@@ -1,0 +1,96 @@
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:8000/api';
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// Request interceptor: attach access token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Response interceptor: auto-refresh on 401
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const refresh = localStorage.getItem('refresh_token');
+      if (refresh) {
+        try {
+          const res = await axios.post(`${API_BASE_URL}/auth/refresh/`, { refresh });
+          localStorage.setItem('access_token', res.data.access);
+          localStorage.setItem('refresh_token', res.data.refresh);
+          originalRequest.headers.Authorization = `Bearer ${res.data.access}`;
+          return api(originalRequest);
+        } catch {
+          localStorage.clear();
+          window.location.href = '/login';
+        }
+      } else {
+        localStorage.clear();
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+// ─── Auth API ───
+export const authAPI = {
+  login: (data) => api.post('/auth/login/', data),
+  logout: (refresh) => api.post('/auth/logout/', { refresh }),
+  refresh: (refresh) => api.post('/auth/refresh/', { refresh }),
+};
+
+// ─── Users API ───
+export const usersAPI = {
+  list: (params) => api.get('/users/', { params }),
+  get: (id) => api.get(`/users/${id}/`),
+  create: (data) => api.post('/users/', data),
+  update: (id, data) => api.patch(`/users/${id}/`, data),
+  delete: (id) => api.delete(`/users/${id}/`),
+  toggleActive: (id) => api.post(`/users/${id}/toggle_active/`),
+  getProfile: () => api.get('/users/profile/'),
+  updateProfile: (data) => api.patch('/users/profile/', data),
+  changePassword: (data) => api.post('/users/change-password/', data),
+  getMyPermissions: () => api.get('/users/my-permissions/'),
+  getDashboardStats: () => api.get('/users/dashboard-stats/'),
+};
+
+// ─── Roles API ───
+export const rolesAPI = {
+  list: () => api.get('/roles/'),
+  get: (id) => api.get(`/roles/${id}/`),
+  create: (data) => api.post('/roles/', data),
+  update: (id, data) => api.patch(`/roles/${id}/`, data),
+  delete: (id) => api.delete(`/roles/${id}/`),
+  getPermissions: () => api.get('/roles/permissions/'),
+};
+
+// ─── Schemes API ───
+export const schemesAPI = {
+  list: (params) => api.get('/schemes/', { params }),
+  get: (id) => api.get(`/schemes/${id}/`),
+  create: (data) => api.post('/schemes/', data),
+  update: (id, data) => api.patch(`/schemes/${id}/`, data),
+  delete: (id) => api.delete(`/schemes/${id}/`),
+};
+
+// ─── Departments API ───
+export const departmentsAPI = {
+  list: () => api.get('/departments/'),
+  create: (data) => api.post('/departments/', data),
+  update: (id, data) => api.patch(`/departments/${id}/`, data),
+  delete: (id) => api.delete(`/departments/${id}/`),
+};
+
+export default api;
