@@ -69,7 +69,7 @@ import dj_database_url
 DATABASES = {
     'default': config(
         'DATABASE_URL',
-        default=f"postgres://{config('DB_USER')}:{config('DB_PASSWORD')}@{config('DB_HOST')}:{config('DB_PORT')}/{config('DB_NAME')}",
+        default='postgres://postgres:root@localhost:5432/mna_portal_db',
         cast=dj_database_url.parse
     )
 }
