@@ -67,11 +67,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 import dj_database_url
 
 DATABASES = {
-    'default': config(
-        'DATABASE_URL',
-        default='postgres://postgres:root@localhost:5432/mna_portal_db',
-        cast=dj_database_url.parse
-    )
+    'default': config('DATABASE_URL', cast=dj_database_url.parse)
 }
 
 # Custom User Model
