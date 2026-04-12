@@ -7,16 +7,16 @@ import {
   Divider, useMediaQuery, useTheme,
 } from '@mui/material';
 import {
-  Menu as MenuIcon, Dashboard, People, Description,
-  Settings, Logout, ChevronLeft,
+  Dashboard, Group, AccountTree, Settings, Menu as MenuIcon, Logout, Security
 } from '@mui/icons-material';
 
 const DRAWER_WIDTH = 260;
 
-const NAV_ITEMS = [
+const MENU_ITEMS = [
   { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
-  { text: 'Users', icon: <People />, path: '/users', module: 'users', action: 'view' },
-  { text: 'Schemes', icon: <Description />, path: '/schemes', module: 'schemes', action: 'view' },
+  { text: 'Users', icon: <Group />, path: '/users', module: 'USERS', action: 'view' },
+  { text: 'Roles', icon: <Security />, path: '/roles', module: 'ROLES', action: 'view' },
+  { text: 'Schemes', icon: <AccountTree />, path: '/schemes', module: 'SCHEMES', action: 'view' },
   { text: 'Settings', icon: <Settings />, path: '/settings' },
 ];
 
@@ -34,7 +34,7 @@ export default function DashboardLayout() {
     navigate('/login');
   };
 
-  const filteredNav = NAV_ITEMS.filter(item =>
+  const filteredNav = MENU_ITEMS.filter(item =>
     !item.module || hasPermission(item.module, item.action)
   );
 

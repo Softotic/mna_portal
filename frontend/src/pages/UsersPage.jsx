@@ -11,8 +11,8 @@ import { useAuth } from '../auth/AuthContext';
 
 export default function UsersPage() {
   const { hasPermission } = useAuth();
-  const canAdd = hasPermission('users', 'add');
-  const canEdit = hasPermission('users', 'edit');
+  const canAdd = hasPermission('USERS', 'create');
+  const canEdit = hasPermission('USERS', 'edit');
 
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -37,7 +37,7 @@ export default function UsersPage() {
   };
 
   const fetchRoles = () => {
-    rolesAPI.list().then(res => setRoles(res.data));
+    rolesAPI.getAllRoles().then(res => setRoles(res.data));
   };
 
   useEffect(() => {

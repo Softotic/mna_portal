@@ -21,6 +21,11 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    // Do not intercept 401s for the login endpoint
+    if (originalRequest.url.includes('/auth/login/')) {
+      return Promise.reject(error);
+    }
+    
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       const refresh = localStorage.getItem('refresh_token');
@@ -34,10 +39,12 @@ api.interceptors.response.use(
         } catch {
           localStorage.clear();
           window.location.href = '/login';
+          return Promise.reject(error);
         }
       } else {
         localStorage.clear();
         window.location.href = '/login';
+        return Promise.reject(error);
       }
     }
     return Promise.reject(error);
@@ -70,10 +77,11 @@ export const usersAPI = {
 export const rolesAPI = {
   list: () => api.get('/roles/'),
   get: (id) => api.get(`/roles/${id}/`),
-  create: (data) => api.post('/roles/', data),
-  update: (id, data) => api.patch(`/roles/${id}/`, data),
-  delete: (id) => api.delete(`/roles/${id}/`),
-  getPermissions: () => api.get('/roles/permissions/'),
+  getAllRoles: () => api.get('/roles/'),
+  getModules: () => api.get('/roles/modules/'),
+  createRole: (data) => api.post('/roles/', data),
+  updateRole: (id, data) => api.patch(`/roles/${id}/`, data),
+  deleteRole: (id) => api.delete(`/roles/${id}/`),
 };
 
 // ─── Schemes API ───

@@ -24,7 +24,7 @@ export default function LoginPage() {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login failed. Please try again.');
+      setError(err.response?.data?.detail || err.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }

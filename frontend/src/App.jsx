@@ -10,6 +10,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import DashboardPage from './pages/DashboardPage';
 import UsersPage from './pages/UsersPage';
 import SchemesPage from './pages/SchemesPage';
+import RolesPage from './pages/RolesPage';
 import SettingsPage from './pages/SettingsPage';
 
 function App() {
@@ -26,7 +27,7 @@ function App() {
               <Route 
                 path="users" 
                 element={
-                  <ProtectedRoute module="users" action="view">
+                  <ProtectedRoute module="USERS" action="view">
                     <UsersPage />
                   </ProtectedRoute>
                 } 
@@ -34,8 +35,16 @@ function App() {
               <Route 
                 path="schemes" 
                 element={
-                  <ProtectedRoute module="schemes" action="view">
+                  <ProtectedRoute module="SCHEMES" action="view">
                     <SchemesPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="roles" 
+                element={
+                  <ProtectedRoute module="ROLES" action="view">
+                    <RolesPage />
                   </ProtectedRoute>
                 } 
               />

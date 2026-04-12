@@ -38,7 +38,7 @@ export function AuthProvider({ children }) {
   const hasPermission = useCallback((module, action) => {
     if (!user) return false;
     if (user.is_superuser) return true;
-    return !!user.permissions?.[`${module}.${action}`];
+    return !!user.permissions?.[module.toUpperCase()]?.[action];
   }, [user]);
 
   const updateUser = useCallback((updates) => {

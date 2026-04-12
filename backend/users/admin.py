@@ -1,6 +1,6 @@
 """Users app admin configuration."""
 from django.contrib import admin
-from .models import CustomUser, Role, Permission
+from .models import CustomUser, Role, Module, RolePermission
 
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
@@ -11,9 +11,12 @@ class CustomUserAdmin(admin.ModelAdmin):
 @admin.register(Role)
 class RoleAdmin(admin.ModelAdmin):
     list_display = ['name', 'created_at']
-    filter_horizontal = ['permissions']
 
-@admin.register(Permission)
-class PermissionAdmin(admin.ModelAdmin):
-    list_display = ['codename', 'module', 'action']
-    list_filter = ['module']
+@admin.register(Module)
+class ModuleAdmin(admin.ModelAdmin):
+    list_display = ['name', 'key']
+
+@admin.register(RolePermission)
+class RolePermissionAdmin(admin.ModelAdmin):
+    list_display = ['role', 'module', 'can_view', 'can_create', 'can_edit', 'can_delete']
+    list_filter = ['role', 'module']

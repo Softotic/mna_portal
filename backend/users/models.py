@@ -1,5 +1,5 @@
 """
-Users app models: CustomUser, Role, Permission.
+Users app models: Module, Role, RolePermission, CustomUser.
 """
 import logging
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
@@ -8,44 +8,24 @@ from django.db import models
 logger = logging.getLogger(__name__)
 
 
-class Permission(models.Model):
-    """Granular permission for RBAC."""
-    MODULE_CHOICES = [
-        ('users', 'User Management'),
-        ('schemes', 'Schemes Management'),
-    ]
-    ACTION_CHOICES = [
-        ('add', 'Add'),
-        ('edit', 'Edit'),
-        ('delete', 'Delete'),
-        ('view', 'View'),
-    ]
-
-    module = models.CharField(max_length=50, choices=MODULE_CHOICES)
-    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
-    codename = models.CharField(max_length=100, unique=True)
-    name = models.CharField(max_length=255)
+class Module(models.Model):
+    """Module representing a section in the application."""
+    name = models.CharField(max_length=100)
+    key = models.CharField(max_length=50, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['module', 'action']
-        unique_together = ('module', 'action')
+        ordering = ['name']
 
     def __str__(self):
-        return self.codename
-
-    def save(self, *args, **kwargs):
-        if not self.codename:
-            self.codename = f"{self.action}_{self.module}"
-        if not self.name:
-            self.name = f"Can {self.action} {self.module}"
-        super().save(*args, **kwargs)
+        return f"{self.name} ({self.key})"
 
 
 class Role(models.Model):
-    """Role with associated permissions."""
+    """Role associated with user and permissions."""
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
-    permissions = models.ManyToManyField(Permission, blank=True, related_name='roles')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -54,6 +34,22 @@ class Role(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class RolePermission(models.Model):
+    """Matrix mapping Role to Module actions."""
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name='role_permissions')
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='module_permissions')
+    can_view = models.BooleanField(default=False)
+    can_create = models.BooleanField(default=False)
+    can_edit = models.BooleanField(default=False)
+    can_delete = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('role', 'module')
+
+    def __str__(self):
+        return f"{self.role.name} - {self.module.key}"
 
 
 class CustomUserManager(BaseUserManager):
@@ -80,7 +76,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     """Custom user model with email-based login."""
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=255)
-    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True, related_name='users')
+    role = models.ForeignKey(Role, on_delete=models.RESTRICT, null=True, blank=True, related_name='users')
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -97,10 +93,23 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
-    def has_module_permission(self, module, action):
-        """Check if user has a specific module+action permission via their role."""
+    def has_module_permission(self, module_key, action):
+        """Check if user has permission dynamically."""
         if self.is_superuser:
             return True
         if not self.role:
             return False
-        return self.role.permissions.filter(module=module, action=action).exists()
+            
+        try:
+            role_perm = self.role.role_permissions.get(module__key=module_key)
+            if action == 'view':
+                return role_perm.can_view
+            elif action == 'create':
+                return role_perm.can_create
+            elif action == 'edit':
+                return role_perm.can_edit
+            elif action == 'delete':
+                return role_perm.can_delete
+        except RolePermission.DoesNotExist:
+            return False
+        return False

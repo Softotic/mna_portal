@@ -17,9 +17,9 @@ const STATUS_COLORS = {
 
 export default function SchemesPage() {
   const { hasPermission } = useAuth();
-  const canAdd = hasPermission('schemes', 'add');
-  const canEdit = hasPermission('schemes', 'edit');
-  const canDelete = hasPermission('schemes', 'delete');
+  const canAdd = hasPermission('SCHEMES', 'create');
+  const canEdit = hasPermission('SCHEMES', 'edit');
+  const canDelete = hasPermission('SCHEMES', 'delete');
 
   const [schemes, setSchemes] = useState([]);
   const [departments, setDepartments] = useState([]);
