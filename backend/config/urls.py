@@ -6,6 +6,12 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # For Vercel with routePrefix '/api', requests arrive without the prefix
+    path('auth/', include('users.auth_urls')),
+    path('users/', include('users.urls')),
+    path('roles/', include('users.role_urls')),
+    path('', include('schemes.urls')),
+    # Also support full /api/auth/ paths for local dev
     path('api/auth/', include('users.auth_urls')),
     path('api/users/', include('users.urls')),
     path('api/roles/', include('users.role_urls')),
