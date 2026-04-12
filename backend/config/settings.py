@@ -63,11 +63,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Database
-import dj_database_url
+from urllib.parse import urlparse
+
+# Parse DATABASE_URL manually to remove dj_database_url dependency
+db_url = config('DATABASE_URL')
+url = urlparse(db_url)
 
 DATABASES = {
-    'default': config('DATABASE_URL', cast=dj_database_url.parse)
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': url.path[1:],
+        'USER': url.username,
+        'PASSWORD': url.password,
+        'HOST': url.hostname,
+        'PORT': url.port or 5432,
+    }
 }
 
 # Custom User Model
