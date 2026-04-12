@@ -1,36 +1,13 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "backend/config/wsgi.py",
-      "use": "@vercel/python",
-      "config": { "maxLambdaSize": "15mb", "runtime": "python3.10" }
+  "experimentalServices": {
+    "backend": {
+      "entrypoint": "backend/config/wsgi.py",
+      "routePrefix": "/api"
     },
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
+    "frontend": {
+      "entrypoint": "frontend",
+      "routePrefix": "/"
     }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "backend/config/wsgi.py"
-    },
-    {
-      "src": "/admin/(.*)",
-      "dest": "backend/config/wsgi.py"
-    },
-    {
-      "src": "/static/(.*)",
-      "dest": "backend/static/$1"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "frontend/index.html"
-    }
-  ]
+  }
 }
