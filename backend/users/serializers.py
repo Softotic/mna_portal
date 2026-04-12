@@ -139,7 +139,8 @@ class UserPermissionSerializer(serializers.Serializer):
     permissions = serializers.SerializerMethodField()
 
     def get_permissions(self, user):
-        if user.is_superuser:
+        # Super Users or Super Admin role get all permissions
+        if user.is_superuser or (user.role and user.role.name == 'Super Admin'):
             perms = {}
             for m in Module.objects.all():
                 perms[m.key] = {"view": True, "create": True, "edit": True, "delete": True}

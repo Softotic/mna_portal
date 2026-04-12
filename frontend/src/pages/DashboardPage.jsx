@@ -45,12 +45,12 @@ export default function DashboardPage() {
           width: 100, height: 100, borderRadius: '50%',
           background: 'rgba(255,255,255,0.03)',
         }} />
-        <CardContent sx={{ p: 3, position: 'relative' }}>
-          <Typography variant="h5" fontWeight={700} gutterBottom>
+        <CardContent sx={{ p: 4, position: 'relative' }}>
+          <Typography variant="h4" fontWeight={800} gutterBottom sx={{ letterSpacing: '-0.02em' }}>
             Welcome back, {user?.name} 👋
           </Typography>
-          <Typography variant="body1" sx={{ opacity: 0.85 }}>
-            Here&apos;s an overview of your MNA admin portal.
+          <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 500, maxWidth: 600 }}>
+            Management console for Naveed Qamar&apos;s Official Portal.
           </Typography>
         </CardContent>
       </Card>

@@ -6,8 +6,9 @@ import {
   LinearProgress, DialogContentText
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
-import { schemesAPI, departmentsAPI } from '../api';
+import { schemeCategoriesAPI, schemesAPI } from '../api';
 import { useAuth } from '../auth/AuthContext';
+import { useParams, Navigate } from 'react-router-dom';
 
 const STATUS_COLORS = {
   pending: 'warning',
@@ -16,13 +17,21 @@ const STATUS_COLORS = {
 };
 
 export default function SchemesPage() {
+  const { slug: category_slug } = useParams();
   const { hasPermission } = useAuth();
-  const canAdd = hasPermission('SCHEMES', 'create');
-  const canEdit = hasPermission('SCHEMES', 'edit');
-  const canDelete = hasPermission('SCHEMES', 'delete');
+  
+  // Safely default to false if route hasn't loaded properly
+  const moduleKey = category_slug ? category_slug.toUpperCase() : '';
+  const canAdd = hasPermission(moduleKey, 'create');
+  const canEdit = hasPermission(moduleKey, 'edit');
+  const canDelete = hasPermission(moduleKey, 'delete');
+  const canView = hasPermission(moduleKey, 'view');
+
+  if (category_slug && !canView) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const [schemes, setSchemes] = useState([]);
-  const [departments, setDepartments] = useState([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -32,30 +41,37 @@ export default function SchemesPage() {
 
   const [open, setOpen] = useState(false);
   const [editScheme, setEditScheme] = useState(null);
-  const [formData, setFormData] = useState({ title: '', description: '', department_id: '', budget: '', status: 'pending' });
+  const [formData, setFormData] = useState({ title: '', description: '', category_slug: '', budget: '', status: 'pending' });
 
   const [deleteId, setDeleteId] = useState(null);
 
   const fetchSchemes = () => {
     setLoading(true);
-    schemesAPI.list({ page: page + 1, page_size: rowsPerPage, search, status: statusFilter })
+    schemesAPI.list({
+      category_slug,
+      search,
+      status: statusFilter,
+      page: page + 1,
+      page_size: rowsPerPage,
+    })
       .then(res => {
         setSchemes(res.data.results);
         setCount(res.data.count);
       })
+      .catch(console.error)
       .finally(() => setLoading(false));
   };
 
-  const fetchDepartments = () => {
-    departmentsAPI.list().then(res => setDepartments(res.data));
+  const fetchCategories = () => {
+    schemeCategoriesAPI.list().then(res => setCategories(res.data));
   };
 
   useEffect(() => {
-    fetchSchemes();
-  }, [page, rowsPerPage, search, statusFilter]);
+    if (category_slug) fetchSchemes();
+  }, [page, rowsPerPage, search, statusFilter, category_slug]);
 
   useEffect(() => {
-    if (canAdd || canEdit) fetchDepartments();
+    if (canAdd || canEdit) fetchCategories();
   }, [canAdd, canEdit]);
 
   const handleOpen = (scheme = null) => {
@@ -64,13 +80,13 @@ export default function SchemesPage() {
       setFormData({ 
         title: scheme.title, 
         description: scheme.description, 
-        department_id: scheme.department, 
+        category_slug: category_slug, 
         budget: scheme.budget,
         status: scheme.status 
       });
     } else {
       setEditScheme(null);
-      setFormData({ title: '', description: '', department_id: '', budget: '', status: 'pending' });
+      setFormData({ title: '', description: '', category_slug: category_slug, budget: '', status: 'pending' });
     }
     setOpen(true);
   };
@@ -147,7 +163,6 @@ export default function SchemesPage() {
             <TableHead>
               <TableRow>
                 <TableCell>Title</TableCell>
-                <TableCell>Department</TableCell>
                 <TableCell>Budget (Rs)</TableCell>
                 <TableCell>Added By</TableCell>
                 <TableCell>Status</TableCell>
@@ -157,13 +172,12 @@ export default function SchemesPage() {
             <TableBody>
               {schemes.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell sx={{ maxWidth: 300 }}>
-                    <Typography variant="body2" fontWeight={600} noWrap>{row.title}</Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: '-webkit-box', overflow: 'hidden', WebkitBoxOrient: 'vertical', WebkitLineClamp: 1 }}>
+                  <TableCell>
+                    <Typography variant="body2" fontWeight={500}>{row.title}</Typography>
+                    <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 250, display: 'block' }}>
                       {row.description}
                     </Typography>
                   </TableCell>
-                  <TableCell>{row.department_name}</TableCell>
                   <TableCell>{parseFloat(row.budget).toLocaleString()}</TableCell>
                   <TableCell>{row.created_by_name}</TableCell>
                   <TableCell>
@@ -218,18 +232,7 @@ export default function SchemesPage() {
                 required 
               />
               <TextField 
-                select 
-                label="Department" 
-                value={formData.department_id} 
-                onChange={(e) => setFormData({...formData, department_id: e.target.value})} 
-                required
-              >
-                {departments.map(d => (
-                  <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
-                ))}
-              </TextField>
-              <TextField 
-                label="Budget Estimated (Rs)" 
+                label="Budget (PKR)" 
                 type="number"
                 value={formData.budget} 
                 onChange={(e) => setFormData({...formData, budget: e.target.value})} 

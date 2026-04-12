@@ -63,11 +63,12 @@ export default function LoginPage() {
       }} />
 
       <Card sx={{
-        width: '100%', maxWidth: 420, mx: 2,
-        borderRadius: 4,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-        backdropFilter: 'blur(20px)',
-        background: 'rgba(255,255,255,0.95)',
+        width: '100%', maxWidth: 440, mx: 2,
+        borderRadius: 5,
+        boxShadow: '0 40px 100px rgba(0,0,0,0.4)',
+        backdropFilter: 'blur(15px)',
+        background: 'rgba(255,255,255,0.92)',
+        border: '1px solid rgba(255,255,255,0.4)',
         position: 'relative',
         overflow: 'visible',
       }}>
@@ -75,18 +76,19 @@ export default function LoginPage() {
           {/* Logo */}
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <Box sx={{
-              width: 64, height: 64, borderRadius: 3, mx: 'auto', mb: 2,
+              width: 72, height: 72, borderRadius: 3, mx: 'auto', mb: 2.5,
               background: 'linear-gradient(135deg, #1B5E20 0%, #4CAF50 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 8px 24px rgba(27,94,32,0.3)',
+              boxShadow: '0 12px 32px rgba(27,94,32,0.35)',
+              border: '2px solid rgba(255,255,255,0.2)',
             }}>
-              <Typography variant="h4" sx={{ color: '#fff', fontWeight: 800 }}>M</Typography>
+              <Typography variant="h4" sx={{ color: '#fff', fontWeight: 900, fontSize: '2.2rem' }}>N</Typography>
             </Box>
-            <Typography variant="h5" fontWeight={700} color="text.primary">
-              MNA Admin Portal
+            <Typography variant="h5" sx={{ fontWeight: 800, color: '#1B5E20', letterSpacing: '-0.02em', mb: 0.5 }}>
+              MNA Naveed Qamar&apos;s Portal
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              Sign in to manage your portal
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.secondary', opacity: 0.8 }}>
+              Portal Admin Panel
             </Typography>
           </Box>
 
@@ -142,12 +144,20 @@ export default function LoginPage() {
               size="large"
               disabled={loading}
               sx={{
-                py: 1.4, fontSize: '1rem', fontWeight: 600,
+                py: 1.8, fontSize: '1.05rem', fontWeight: 700,
+                borderRadius: 2.5,
+                textTransform: 'none',
                 background: 'linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%)',
-                '&:hover': { background: 'linear-gradient(135deg, #0D3B0F 0%, #1B5E20 100%)' },
+                boxShadow: '0 8px 20px rgba(27,94,32,0.25)',
+                '&:hover': { 
+                  background: 'linear-gradient(135deg, #0D3B0F 0%, #1B5E20 100%)',
+                  boxShadow: '0 12px 28px rgba(27,94,32,0.35)',
+                  transform: 'translateY(-2px)'
+                },
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Enter Portal'}
             </Button>
           </form>
 

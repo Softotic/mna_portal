@@ -11,6 +11,7 @@ import DashboardPage from './pages/DashboardPage';
 import UsersPage from './pages/UsersPage';
 import SchemesPage from './pages/SchemesPage';
 import RolesPage from './pages/RolesPage';
+import CategoriesPage from './pages/CategoriesPage';
 import SettingsPage from './pages/SettingsPage';
 
 function App() {
@@ -48,6 +49,15 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
+              <Route 
+                path="categories" 
+                element={
+                  <ProtectedRoute module="CATEGORIES" action="view">
+                    <CategoriesPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route path="schemes/:slug" element={<SchemesPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
 

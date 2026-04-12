@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -93,12 +93,12 @@ export const schemesAPI = {
   delete: (id) => api.delete(`/schemes/${id}/`),
 };
 
-// ─── Departments API ───
-export const departmentsAPI = {
-  list: () => api.get('/departments/'),
-  create: (data) => api.post('/departments/', data),
-  update: (id, data) => api.patch(`/departments/${id}/`, data),
-  delete: (id) => api.delete(`/departments/${id}/`),
+// ─── Scheme Categories API ───
+export const schemeCategoriesAPI = {
+  list: () => api.get('/scheme-categories/'),
+  create: (data) => api.post('/scheme-categories/', data),
+  update: (id, data) => api.patch(`/scheme-categories/${id}/`, data),
+  delete: (id) => api.delete(`/scheme-categories/${id}/`),
 };
 
 export default api;

@@ -9,9 +9,9 @@ from decouple import config, Csv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-prod-key')
 DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='.vercel.app,localhost,127.0.0.1', cast=Csv())
 
 # Application definition
 INSTALLED_APPS = [
@@ -34,6 +34,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -63,15 +64,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
+import dj_database_url
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME', default='mna_portal_db'),
-        'USER': config('DB_USER', default='postgres'),
-        'PASSWORD': config('DB_PASSWORD', default='postgres'),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='5432'),
-    }
+    'default': config(
+        'DATABASE_URL',
+        default=f"postgres://{config('DB_USER')}:{config('DB_PASSWORD')}@{config('DB_HOST')}:{config('DB_PORT')}/{config('DB_NAME')}",
+        cast=dj_database_url.parse
+    )
 }
 
 # Custom User Model
@@ -94,6 +94,7 @@ USE_TZ = True
 # Static files
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -151,20 +152,15 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'mna_portal.log',
-            'formatter': 'verbose',
-        },
     },
     'loggers': {
         'users': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },
         'schemes': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },

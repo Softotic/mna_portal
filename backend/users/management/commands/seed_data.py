@@ -3,7 +3,7 @@ Management command to seed default admin user, roles, modules, and permissions.
 """
 from django.core.management.base import BaseCommand
 from users.models import CustomUser, Role, Module, RolePermission
-from schemes.models import Department
+from schemes.models import SchemeCategory, Scheme
 
 class Command(BaseCommand):
     help = 'Seed default modules, roles, permissions, departments, and admin user'
@@ -12,8 +12,8 @@ class Command(BaseCommand):
         self.stdout.write('Seeding modules...')
         modules_data = [
             {'name': 'Users Management', 'key': 'USERS'},
-            {'name': 'Schemes Management', 'key': 'SCHEMES'},
             {'name': 'Roles Management', 'key': 'ROLES'},
+            {'name': 'Categories', 'key': 'CATEGORIES'},
             {'name': 'Settings', 'key': 'SETTINGS'},
         ]
         
@@ -46,11 +46,11 @@ class Command(BaseCommand):
             defaults={'description': 'Can manage schemes and view users/settings'}
         )
         RolePermission.objects.get_or_create(
-            role=manager_role, module=modules['SCHEMES'],
-            defaults={'can_view': True, 'can_create': True, 'can_edit': True, 'can_delete': False}
+            role=manager_role, module=modules['USERS'],
+            defaults={'can_view': True, 'can_create': False, 'can_edit': False, 'can_delete': False}
         )
         RolePermission.objects.get_or_create(
-            role=manager_role, module=modules['USERS'],
+            role=manager_role, module=modules['CATEGORIES'],
             defaults={'can_view': True, 'can_create': False, 'can_edit': False, 'can_delete': False}
         )
         RolePermission.objects.get_or_create(
@@ -64,7 +64,7 @@ class Command(BaseCommand):
             defaults={'description': 'View-only access to schemes'}
         )
         RolePermission.objects.get_or_create(
-            role=viewer_role, module=modules['SCHEMES'],
+            role=viewer_role, module=modules['CATEGORIES'],
             defaults={'can_view': True, 'can_create': False, 'can_edit': False, 'can_delete': False}
         )
         RolePermission.objects.get_or_create(
@@ -72,25 +72,36 @@ class Command(BaseCommand):
             defaults={'can_view': True, 'can_create': True, 'can_edit': True, 'can_delete': False}
         )
 
-        self.stdout.write('Seeding departments...')
-        departments = [
-            'Education', 'Healthcare', 'Infrastructure',
-            'Agriculture', 'Finance', 'Social Welfare',
-        ]
-        for dept_name in departments:
-            Department.objects.get_or_create(name=dept_name)
+        self.stdout.write('Seeding categories...')
+        categories = sorted([
+            {"name": "Education"},
+            {"name": "Health"},
+            {"name": "Infrastructure"},
+            {"name": "Communication"},
+            {"name": "Energy"},
+        ], key=lambda x: x["name"])
+
+        for cdata in categories:
+            SchemeCategory.objects.get_or_create(
+                name=cdata["name"]
+            )
 
         self.stdout.write('Seeding admin user...')
-        if not CustomUser.objects.filter(email='admin@mna.gov.pk').exists():
-            user = CustomUser.objects.create_superuser(
-                email='admin@mna.gov.pk',
-                password='Admin@123',
-                name='System Admin',
-            )
-            user.role = super_admin_role
-            user.save()
+        user, user_created = CustomUser.objects.update_or_create(
+            email='admin@mna.gov.pk',
+            defaults={
+                'name': 'System Admin',
+                'role': super_admin_role,
+                'is_superuser': True,
+                'is_staff': True
+            }
+        )
+        user.set_password('Admin@123')
+        user.save()
+        
+        if user_created:
             self.stdout.write(self.style.SUCCESS('Admin user created: admin@mna.gov.pk / Admin@123'))
         else:
-            self.stdout.write('Admin user already exists.')
+            self.stdout.write(self.style.SUCCESS('Admin user updated and password reset.'))
 
         self.stdout.write(self.style.SUCCESS('Seeding complete!'))

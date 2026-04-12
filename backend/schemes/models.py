@@ -3,15 +3,31 @@ Schemes app models: Department, Scheme.
 """
 from django.db import models
 from django.conf import settings
+from django.utils.text import slugify
 
 
-class Department(models.Model):
-    """Department for scheme categorization."""
+class SchemeCategory(models.Model):
+    """Metadata-driven category module for schemes."""
     name = models.CharField(max_length=255, unique=True)
+    slug = models.SlugField(max_length=255, unique=True, blank=True)
+    scheme_id = models.CharField(max_length=50, unique=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['name']
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            # Create a clean SNAKE_CASE slug for permissions & system ID use
+            self.slug = slugify(self.name).upper().replace('-', '_')
+            
+        if not getattr(self, 'scheme_id', None):
+            prefix = self.slug[:3].upper() if len(self.slug) >= 3 else self.slug.upper()
+            max_id = SchemeCategory.objects.aggregate(models.Max('id'))['id__max'] or 0
+            self.scheme_id = f"{prefix}-{max_id + 1:02d}"
+            
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -27,8 +43,8 @@ class Scheme(models.Model):
 
     title = models.CharField(max_length=500)
     description = models.TextField(blank=True)
-    department = models.ForeignKey(
-        Department, on_delete=models.CASCADE, related_name='schemes'
+    category = models.ForeignKey(
+        SchemeCategory, on_delete=models.PROTECT, related_name='schemes'
     )
     budget = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')

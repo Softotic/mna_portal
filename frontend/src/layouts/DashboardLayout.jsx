@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import {
@@ -6,21 +6,41 @@ import {
   ListItemIcon, ListItemText, Toolbar, Typography, Avatar, Menu, MenuItem,
   Divider, useMediaQuery, useTheme,
 } from '@mui/material';
+import { schemeCategoriesAPI } from '../api';
 import {
-  Dashboard, Group, AccountTree, Settings, Menu as MenuIcon, Logout, Security
+  Dashboard, Group, AccountTree, Settings, Menu as MenuIcon, Logout, Security, Category, ChevronLeft
 } from '@mui/icons-material';
 
 const DRAWER_WIDTH = 260;
 
-const MENU_ITEMS = [
+const STATIC_MENU_ITEMS = [
   { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
   { text: 'Users', icon: <Group />, path: '/users', module: 'USERS', action: 'view' },
   { text: 'Roles', icon: <Security />, path: '/roles', module: 'ROLES', action: 'view' },
-  { text: 'Schemes', icon: <AccountTree />, path: '/schemes', module: 'SCHEMES', action: 'view' },
+  { text: 'Categories', icon: <Category />, path: '/categories', module: 'CATEGORIES', action: 'view' },
   { text: 'Settings', icon: <Settings />, path: '/settings' },
 ];
 
 export default function DashboardLayout() {
+  const [categories, setCategories] = useState([]);
+  
+  useEffect(() => {
+    schemeCategoriesAPI.list().then(res => setCategories(res.data)).catch(console.error);
+  }, []);
+
+  const dynamicMenuItems = categories.map(cat => ({
+    text: `${cat.name} Schemes`,
+    icon: <AccountTree />,
+    path: `/schemes/${cat.slug.toLowerCase()}`,
+    module: cat.slug.toUpperCase(),
+    action: 'view'
+  }));
+
+  const MENU_ITEMS = [
+    ...STATIC_MENU_ITEMS.slice(0, 4), // Dashboard, Users, Roles, Categories
+    ...dynamicMenuItems,
+    STATIC_MENU_ITEMS[4] // Settings
+  ];
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [drawerOpen, setDrawerOpen] = useState(!isMobile);
@@ -46,19 +66,20 @@ export default function DashboardLayout() {
         background: 'linear-gradient(135deg, #0D3B0F 0%, #1B5E20 100%)',
       }}>
         <Box sx={{
-          width: 40, height: 40, borderRadius: 2,
-          background: 'rgba(255,255,255,0.15)',
+          width: 42, height: 42, borderRadius: 2,
+          background: 'rgba(255,255,255,0.2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '1.2rem', fontWeight: 700, color: '#fff',
+          fontSize: '1.4rem', fontWeight: 900, color: '#fff',
+          border: '1px solid rgba(255,255,255,0.1)',
         }}>
-          M
+          N
         </Box>
         <Box>
-          <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 700, fontSize: '1rem', lineHeight: 1.2 }}>
-            MNA Portal
+          <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 800, fontSize: '0.95rem', lineHeight: 1.1, letterSpacing: '-0.01em' }}>
+            Naveed Qamar
           </Typography>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.7rem' }}>
-            Admin Panel
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.75rem', fontWeight: 500 }}>
+            Official Portal
           </Typography>
         </Box>
         {isMobile && (

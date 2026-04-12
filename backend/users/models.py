@@ -95,7 +95,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def has_module_permission(self, module_key, action):
         """Check if user has permission dynamically."""
-        if self.is_superuser:
+        if self.is_superuser or (self.role and self.role.name == 'Super Admin'):
             return True
         if not self.role:
             return False

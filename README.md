@@ -91,7 +91,25 @@ The stack involves a Django + Django Rest Framework (DRF) backend and a React + 
 
 You can use this default admin user to start managing the system, creating departments, schemes, custom roles, and users with granular permissions.
 
-## Key Features
-- **RBAC**: Advanced role-based access control out of the box. Configurable roles with varied permissions (View, Add, Edit, Delete).
-- **JWT Authentication**: Secured with expiring tokens and rotation.
-- **Premium UI**: Uses Material UI, fully customized with aesthetic glassmorphism, responsive navigation components, and clear notifications/alerts.
+---
+ 
+ ## 3. Vercel Deployment (Full Stack)
+ 
+ This project is configured for a unified deployment on Vercel.
+ 
+ ### Deployment Steps:
+ 1. **Connect your Git repository** to Vercel.
+ 2. **Environment Variables**: Set the following in Vercel Dashboard:
+    - `SECRET_KEY`: A random secure string.
+    - `DATABASE_URL`: Your production PostgreSQL URL (e.g., from Neon.tech).
+    - `DEBUG`: `False`
+    - `ALLOWED_HOSTS`: `.vercel.app`
+ 3. **Build Settings**: Vercel will automatically detect the root `vercel.json` and configure:
+    - **Backend**: Python 3.10 runtime for `config.wsgi`.
+    - **Frontend**: Static build for `frontend/`.
+ 
+ ### Key Features
+ - **RBAC**: Advanced role-based access control out of the box. Configurable roles with varied permissions (View, Add, Edit, Delete).
+ - **JWT Authentication**: Secured with expiring tokens and rotation.
+ - **Premium UI**: Uses Material UI, fully customized with aesthetic glassmorphism, responsive navigation components, and clear notifications/alerts.
+ - **One-Click Deployment**: Unified routing via `vercel.json`.
