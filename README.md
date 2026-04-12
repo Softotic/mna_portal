@@ -28,22 +28,18 @@ The stack involves a Django + Django Rest Framework (DRF) backend and a React + 
 
 3. **Install dependencies:**
    ```bash
-   pip install django djangorestframework djangorestframework-simplejwt django-cors-headers django-filter python-decouple psycopg2-binary django-ratelimit
+   pip install django djangorestframework djangorestframework-simplejwt django-cors-headers django-filter python-decouple psycopg2-binary django-ratelimit dj-database-url whitenoise gunicorn
    ```
 
 4. **Configure Database:**
-   Create an `.env` file in the `backend/` root directory. By default, it's expecting a PostgreSQL database named `mna_portal_db` with user `postgres` and password `root` on `localhost:5432`. Ensure that matches your local PostgreSQL setup.
-
+   Create an `.env` file in the `backend/` root directory.
+ 
    Example `.env` content:
    ```env
    SECRET_KEY=your_secret_key_here
    DEBUG=True
    ALLOWED_HOSTS=localhost,127.0.0.1
-   DB_NAME=mna_portal_db
-   DB_USER=postgres
-   DB_PASSWORD=root
-   DB_HOST=localhost
-   DB_PORT=5432
+   DATABASE_URL=postgres://postgres:root@localhost:5432/mna_portal_db
    CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
    ```
 
