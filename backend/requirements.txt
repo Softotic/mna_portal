@@ -3,9 +3,7 @@ djangorestframework
 djangorestframework-simplejwt
 django-cors-headers
 django-filter
-python-decouple
 psycopg2-binary
 django-ratelimit
 whitenoise
 gunicorn
-dj-database-url

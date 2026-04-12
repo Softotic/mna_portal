@@ -5,13 +5,24 @@ Django settings for MNA Portal.
 import os
 from pathlib import Path
 from datetime import timedelta
-from decouple import config, Csv
+from urllib.parse import parse_qs, urlparse
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-prod-key')
-DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='.vercel.app,localhost,127.0.0.1', cast=Csv())
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-prod-key')
+
+
+def str_to_bool(value: str) -> bool:
+    return str(value).strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def get_env_list(name: str, default: str):
+    return [item.strip() for item in os.environ.get(name, default).split(',') if item.strip()]
+
+
+DEBUG = str_to_bool(os.environ.get('DEBUG', 'False'))
+ALLOWED_HOSTS = get_env_list('ALLOWED_HOSTS', '.vercel.app,localhost,127.0.0.1')
 
 # Application definition
 INSTALLED_APPS = [
@@ -63,21 +74,49 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-from urllib.parse import urlparse
+def parse_database_url(url: str):
+    parsed = urlparse(url)
+    scheme = parsed.scheme.split('+', 1)[0]
 
-# Parse DATABASE_URL manually to remove dj_database_url dependency
-db_url = config('DATABASE_URL')
-url = urlparse(db_url)
+    if scheme in ('postgres', 'postgresql'):
+        engine = 'django.db.backends.postgresql'
+    elif scheme == 'mysql':
+        engine = 'django.db.backends.mysql'
+    elif scheme == 'sqlite':
+        engine = 'django.db.backends.sqlite3'
+    else:
+        raise ImproperlyConfigured(f'Unsupported DATABASE_URL scheme: {scheme}')
+
+    if engine == 'django.db.backends.sqlite3':
+        path = parsed.path
+        if path in ('', '/'):
+            name = ':memory:'
+        elif url.startswith('sqlite:////'):
+            name = path
+        else:
+            name = path.lstrip('/')
+        return {'ENGINE': engine, 'NAME': name}
+
+    db_config = {
+        'ENGINE': engine,
+        'NAME': parsed.path.lstrip('/'),
+        'USER': parsed.username or '',
+        'PASSWORD': parsed.password or '',
+        'HOST': parsed.hostname or '',
+        'OPTIONS': {k: v[0] for k, v in parse_qs(parsed.query).items()},
+    }
+
+    if parsed.port is not None:
+        db_config['PORT'] = str(parsed.port)
+
+    return db_config
+
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
+    raise ImproperlyConfigured('DATABASE_URL environment variable is required.')
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': url.path[1:],
-        'USER': url.username,
-        'PASSWORD': url.password,
-        'HOST': url.hostname,
-        'PORT': url.port or 5432,
-    }
+    'default': parse_database_url(DATABASE_URL)
 }
 
 # Custom User Model
@@ -136,10 +175,9 @@ SIMPLE_JWT = {
 }
 
 # CORS Settings
-CORS_ALLOWED_ORIGINS = config(
+CORS_ALLOWED_ORIGINS = get_env_list(
     'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:5173',
-    cast=Csv()
+    'http://localhost:5173'
 )
 CORS_ALLOW_CREDENTIALS = True
 
