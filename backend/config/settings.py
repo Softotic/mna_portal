@@ -112,12 +112,18 @@ def parse_database_url(url: str):
     return db_config
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
-if not DATABASE_URL:
-    raise ImproperlyConfigured('DATABASE_URL environment variable is required.')
-
-DATABASES = {
-    'default': parse_database_url(DATABASE_URL)
-}
+if DATABASE_URL:
+    DATABASES = {
+        'default': parse_database_url(DATABASE_URL)
+    }
+else:
+    # Fallback for build time when DATABASE_URL is not available
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Custom User Model
 AUTH_USER_MODEL = 'users.CustomUser'

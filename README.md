@@ -28,7 +28,7 @@ The stack involves a Django + Django Rest Framework (DRF) backend and a React + 
 
 3. **Install dependencies:**
    ```bash
-   pip install django djangorestframework djangorestframework-simplejwt django-cors-headers django-filter python-decouple psycopg2-binary django-ratelimit dj-database-url whitenoise gunicorn
+   pip install django djangorestframework djangorestframework-simplejwt django-cors-headers django-filter psycopg2-binary django-ratelimit whitenoise gunicorn
    ```
 
 4. **Configure Database:**
@@ -39,7 +39,7 @@ The stack involves a Django + Django Rest Framework (DRF) backend and a React + 
    SECRET_KEY=your_secret_key_here
    DEBUG=True
    ALLOWED_HOSTS=localhost,127.0.0.1
-   DATABASE_URL=postgres://postgres:root@localhost:5432/mna_portal_db
+   DATABASE_URL=postgresql://postgres:root@localhost:5432/mna_portal_db
    CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
    ```
 
