@@ -100,8 +100,14 @@ You can use this default admin user to start managing the system, creating depar
     - `DATABASE_URL`: Your production PostgreSQL URL (e.g., from Neon.tech).
     - `DEBUG`: `False`
     - `ALLOWED_HOSTS`: `.vercel.app`
- 3. **Build Settings**: Vercel will automatically detect the root `vercel.json` and configure:
-    - **Backend**: Python 3.10 runtime for `config.wsgi`.
+ 3. **Automatic Database Setup**:
+    - Migrations are automatically run when the first request hits the backend (no manual setup needed).
+    - Initial data (admin user, roles, modules) is seeded on first deployment.
+    - Default admin credentials:
+      - **Email:** `admin@mna.gov.pk`
+      - **Password:** `Admin@123`
+ 4. **Build Settings**: Vercel will automatically detect the root `vercel.json` and configure:
+    - **Backend**: Python 3.12 runtime for `config.wsgi`.
     - **Frontend**: Static build for `frontend/`.
  
  ### Key Features
