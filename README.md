@@ -60,6 +60,8 @@ The stack involves a Django + Django Rest Framework (DRF) backend and a React + 
 
 ## 2. Frontend Setup
 
+**⚠️ Important:** Make sure the backend server is running on `http://localhost:8000` before starting the frontend.
+
 1. **Navigate to the Frontend directory:**
    ```bash
    cd frontend
@@ -75,17 +77,40 @@ The stack involves a Django + Django Rest Framework (DRF) backend and a React + 
    npm run dev
    ```
    The React application will run on `http://localhost:5173`.
+   - API requests to `/api` are automatically proxied to `http://localhost:8000`
+
+---
+
+## Local Development Workflow
+
+1. **Terminal 1 - Backend:**
+   ```bash
+   cd backend
+   source venv/bin/activate  # or appropriate activate command
+   python manage.py runserver
+   ```
+
+2. **Terminal 2 - Frontend:**
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+
+3. Open `http://localhost:5173` in your browser and login with:
+   - **Email:** `admin@mna.gov.pk`
+   - **Password:** `Admin@123`
 
 ---
 
 ## Accessing the Application
 
 - **Frontend URL:** `http://localhost:5173`
+- **Backend API:** `http://localhost:8000/api/`
 - **Default Superadmin Login:**
   - **Email:** `admin@mna.gov.pk`
   - **Password:** `Admin@123`
 
-You can use this default admin user to start managing the system, creating departments, schemes, custom roles, and users with granular permissions.
+You can use this default admin user to start managing the system, creating schemes, custom roles, and users with granular permissions.
 
 ---
  
