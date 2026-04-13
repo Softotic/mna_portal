@@ -2,7 +2,7 @@
 Schemes app serializers.
 """
 from rest_framework import serializers
-from .models import Scheme, SchemeCategory
+from .models import Scheme, SchemeCategory, SchemeTemplate, SchemeEntry
 from users.serializers import UserSerializer
 
 
@@ -57,5 +57,55 @@ class SchemeSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Double check if category was correctly resolved, if not fallback to 
         # what's in the data directly if the view didn't inject it.
+        validated_data['created_by'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class SchemeTemplateSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    category_slug = serializers.SlugRelatedField(
+        queryset=SchemeCategory.objects.all(), source='category', slug_field='slug', required=True
+    )
+
+    class Meta:
+        model = SchemeTemplate
+        fields = ['id', 'title', 'category', 'category_name', 'category_slug', 'field_definitions', 'created_by', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at', 'category']
+
+    def to_internal_value(self, data):
+        if hasattr(data, 'dict'):
+            data = data.copy()
+        elif not isinstance(data, dict):
+            data = dict(data)
+        else:
+            data = data.copy()
+
+        # Ensure category_slug is uppercase for consistent lookup
+        if 'category_slug' in data and data['category_slug']:
+            data['category_slug'] = data['category_slug'].upper()
+
+        return super().to_internal_value(data)
+
+    def create(self, validated_data):
+        validated_data['created_by'] = self.context['request'].user
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        return super().update(instance, validated_data)
+
+
+class SchemeEntrySerializer(serializers.ModelSerializer):
+    template_title = serializers.CharField(source='template.title', read_only=True)
+    template_id = serializers.PrimaryKeyRelatedField(
+        queryset=SchemeTemplate.objects.all(), source='template', write_only=True, required=True
+    )
+    created_by_name = serializers.CharField(source='created_by.name', read_only=True)
+
+    class Meta:
+        model = SchemeEntry
+        fields = ['id', 'template', 'template_id', 'template_title', 'values', 'created_by', 'created_by_name', 'created_at']
+        read_only_fields = ['created_by', 'created_at', 'template', 'created_by_name']
+
+    def create(self, validated_data):
         validated_data['created_by'] = self.context['request'].user
         return super().create(validated_data)

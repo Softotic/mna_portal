@@ -13,6 +13,7 @@ import SchemesPage from './pages/SchemesPage';
 import RolesPage from './pages/RolesPage';
 import CategoriesPage from './pages/CategoriesPage';
 import SettingsPage from './pages/SettingsPage';
+import SchemeTemplateDetailPage from './pages/SchemeTemplateDetailPage';
 
 function App() {
   return (
@@ -42,6 +43,22 @@ function App() {
                 } 
               />
               <Route 
+                path="schemes/:category_slug" 
+                element={
+                  <ProtectedRoute module="SCHEMES" action="view">
+                    <SchemesPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="schemes/:category_slug/:template_id" 
+                element={
+                  <ProtectedRoute module="SCHEMES" action="view">
+                    <SchemeTemplateDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
                 path="roles" 
                 element={
                   <ProtectedRoute module="ROLES" action="view">
@@ -57,7 +74,6 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route path="schemes/:slug" element={<SchemesPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
 

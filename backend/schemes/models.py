@@ -60,3 +60,43 @@ class Scheme(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class SchemeTemplate(models.Model):
+    """A scheme template with user-defined fields."""
+    title = models.CharField(max_length=500)
+    category = models.ForeignKey(
+        SchemeCategory, on_delete=models.PROTECT, related_name='templates'
+    )
+    field_definitions = models.JSONField(default=list, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name='scheme_templates'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['title']
+
+    def __str__(self):
+        return self.title
+
+
+class SchemeEntry(models.Model):
+    """An instance of a scheme template with user-supplied values."""
+    template = models.ForeignKey(
+        SchemeTemplate, on_delete=models.CASCADE, related_name='entries'
+    )
+    values = models.JSONField(default=dict, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name='scheme_entries'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.template.title} entry {self.id}"

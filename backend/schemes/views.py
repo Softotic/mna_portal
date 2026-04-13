@@ -8,8 +8,11 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
-from .models import SchemeCategory, Scheme
-from .serializers import SchemeCategorySerializer, SchemeSerializer
+from .models import SchemeCategory, Scheme, SchemeTemplate, SchemeEntry
+from .serializers import (
+    SchemeCategorySerializer, SchemeSerializer,
+    SchemeTemplateSerializer, SchemeEntrySerializer,
+)
 from users.permissions import SchemeModulePermission, HasModulePermission
 
 logger = logging.getLogger(__name__)
@@ -65,9 +68,9 @@ class SchemeCategoryViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         
         # Check strict constraints constraint
-        if Scheme.objects.filter(category=instance).exists():
+        if Scheme.objects.filter(category=instance).exists() or SchemeTemplate.objects.filter(category=instance).exists():
             return Response(
-                {"success": False, "message": "This category cannot be deleted because it has associated schemes."},
+                {"success": False, "message": "This category cannot be deleted because it has associated schemes or templates."},
                 status=status.HTTP_400_BAD_REQUEST
             )
             
@@ -76,3 +79,38 @@ class SchemeCategoryViewSet(viewsets.ModelViewSet):
     filter_backends = [SearchFilter]
     search_fields = ['name']
     pagination_class = None
+
+
+class SchemeTemplateViewSet(viewsets.ModelViewSet):
+    """CRUD for scheme templates with user-defined fields."""
+    queryset = SchemeTemplate.objects.select_related('category', 'created_by').all()
+    serializer_class = SchemeTemplateSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['title']
+    ordering_fields = ['title', 'created_at']
+    ordering = ['title']
+
+    def get_queryset(self):
+        qs = self.queryset
+        cat_slug = self.request.query_params.get('category_slug')
+        if cat_slug:
+            qs = qs.filter(category__slug=cat_slug.upper())
+        return qs
+
+
+class SchemeEntryViewSet(viewsets.ModelViewSet):
+    """User-entered scheme data instances for a template."""
+    queryset = SchemeEntry.objects.select_related('template', 'created_by').all()
+    serializer_class = SchemeEntrySerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    ordering_fields = ['created_at']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        qs = self.queryset
+        template_id = self.request.query_params.get('template_id')
+        if template_id:
+            qs = qs.filter(template_id=template_id)
+        return qs

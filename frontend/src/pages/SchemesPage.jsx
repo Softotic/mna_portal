@@ -1,27 +1,37 @@
 import { useState, useEffect } from 'react';
 import {
-  Box, Card, CardContent, Typography, Button, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, TablePagination, IconButton, Chip,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
-  LinearProgress, DialogContentText
+  Box,
+  Card,
+  Typography,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
+  LinearProgress,
+  DialogContentText,
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
-import { schemeCategoriesAPI, schemesAPI } from '../api';
+import { schemeCategoriesAPI, schemeTemplatesAPI } from '../api';
 import { useAuth } from '../auth/AuthContext';
-import { useParams, Navigate } from 'react-router-dom';
-
-const STATUS_COLORS = {
-  pending: 'warning',
-  approved: 'success',
-  completed: 'info'
-};
+import { useParams, Navigate, useNavigate } from 'react-router-dom';
 
 export default function SchemesPage() {
-  const { slug: category_slug } = useParams();
+  const { category_slug } = useParams();
+  const navigate = useNavigate();
   const { hasPermission } = useAuth();
-  
-  // Safely default to false if route hasn't loaded properly
-  const moduleKey = category_slug ? category_slug.toUpperCase() : '';
+
+  const moduleKey = category_slug ? category_slug.toUpperCase() : 'SCHEMES';
   const canAdd = hasPermission(moduleKey, 'create');
   const canEdit = hasPermission(moduleKey, 'edit');
   const canDelete = hasPermission(moduleKey, 'delete');
@@ -31,32 +41,31 @@ export default function SchemesPage() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const [schemes, setSchemes] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(true);
 
   const [open, setOpen] = useState(false);
-  const [editScheme, setEditScheme] = useState(null);
-  const [formData, setFormData] = useState({ title: '', description: '', category_slug: '', budget: '', status: 'pending' });
+  const [editTemplate, setEditTemplate] = useState(null);
+  const [formData, setFormData] = useState({ title: '', category_slug: category_slug || '', field_definitions: [''] });
 
   const [deleteId, setDeleteId] = useState(null);
 
-  const fetchSchemes = () => {
+  const fetchTemplates = () => {
     setLoading(true);
-    schemesAPI.list({
-      category_slug,
+    schemeTemplatesAPI.list({
+      category_slug: category_slug || undefined,
       search,
-      status: statusFilter,
       page: page + 1,
       page_size: rowsPerPage,
     })
       .then(res => {
-        setSchemes(res.data.results);
-        setCount(res.data.count);
+        setTemplates(res.data.results || res.data);
+        setCount(res.data.count ?? (res.data.results ? res.data.count : res.data.length));
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -67,64 +76,98 @@ export default function SchemesPage() {
   };
 
   useEffect(() => {
-    if (category_slug) fetchSchemes();
-  }, [page, rowsPerPage, search, statusFilter, category_slug]);
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
-    if (canAdd || canEdit) fetchCategories();
-  }, [canAdd, canEdit]);
+    fetchTemplates();
+  }, [page, rowsPerPage, search, category_slug]);
 
-  const handleOpen = (scheme = null) => {
-    if (scheme) {
-      setEditScheme(scheme);
-      setFormData({ 
-        title: scheme.title, 
-        description: scheme.description, 
-        category_slug: category_slug, 
-        budget: scheme.budget,
-        status: scheme.status 
+  const handleOpen = (template = null) => {
+    if (template) {
+      setEditTemplate(template);
+      setFormData({
+        title: template.title,
+        category_slug: template.category_slug,
+        field_definitions: template.field_definitions.length ? template.field_definitions : [''],
       });
     } else {
-      setEditScheme(null);
-      setFormData({ title: '', description: '', category_slug: category_slug, budget: '', status: 'pending' });
+      setEditTemplate(null);
+      setFormData({ title: '', category_slug: category_slug || '', field_definitions: [''] });
     }
     setOpen(true);
   };
 
   const handleClose = () => {
     setOpen(false);
-    setEditScheme(null);
+    setEditTemplate(null);
+  };
+
+  const handleFieldChange = (index, value) => {
+    setFormData((prev) => {
+      const updatedFields = [...prev.field_definitions];
+      updatedFields[index] = value;
+      return { ...prev, field_definitions: updatedFields };
+    });
+  };
+
+  const handleAddField = () => {
+    setFormData((prev) => ({
+      ...prev,
+      field_definitions: [...prev.field_definitions, ''],
+    }));
+  };
+
+  const handleRemoveField = (index) => {
+    setFormData((prev) => {
+      const remaining = prev.field_definitions.filter((_, idx) => idx !== index);
+      return {
+        ...prev,
+        field_definitions: remaining.length ? remaining : [''],
+      };
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const payload = {
+      title: formData.title,
+      category_slug: formData.category_slug || category_slug,
+      field_definitions: formData.field_definitions.filter((field) => field.trim()),
+    };
+
     try {
-      if (editScheme) {
-        await schemesAPI.update(editScheme.id, formData);
+      if (editTemplate) {
+        await schemeTemplatesAPI.update(editTemplate.id, payload);
       } else {
-        await schemesAPI.create(formData);
+        await schemeTemplatesAPI.create(payload);
       }
       handleClose();
-      fetchSchemes();
+      fetchTemplates();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Error saving scheme');
+      alert(err.response?.data?.detail || 'Error saving scheme template');
     }
   };
 
   const handleDelete = async () => {
     try {
-      await schemesAPI.delete(deleteId);
+      await schemeTemplatesAPI.delete(deleteId);
       setDeleteId(null);
-      fetchSchemes();
+      fetchTemplates();
     } catch (err) {
-      alert('Error deleting scheme');
+      alert('Error deleting scheme template');
     }
   };
 
   return (
     <Box>
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h5" fontWeight={700}>Schemes Management</Typography>
+        <Box>
+          <Typography variant="h5" fontWeight={700}>Scheme Management</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Add a scheme title first, then define the fields users will fill later.
+          </Typography>
+        </Box>
         {canAdd && (
           <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>
             Add Scheme
@@ -141,72 +184,64 @@ export default function SchemesPage() {
             onChange={(e) => setSearch(e.target.value)}
             sx={{ width: 300 }}
           />
-          <TextField
-            select
-            size="small"
-            label="Filter Status"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            sx={{ width: 150 }}
-          >
-            <MenuItem value="">All Statuses</MenuItem>
-            <MenuItem value="pending">Pending</MenuItem>
-            <MenuItem value="approved">Approved</MenuItem>
-            <MenuItem value="completed">Completed</MenuItem>
-          </TextField>
+          {category_slug ? (
+            <Typography variant="body2" sx={{ pt: 1 }}>Category: {category_slug.toUpperCase()}</Typography>
+          ) : null}
         </Box>
-        
+
         {loading && <LinearProgress color="primary" />}
-        
+
         <TableContainer>
-          <Table sx={{ minWidth: 800 }}>
+          <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Title</TableCell>
-                <TableCell>Budget (Rs)</TableCell>
-                <TableCell>Added By</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>#</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Scheme Title</TableCell>
+                {!category_slug && <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>}
+                <TableCell sx={{ fontWeight: 700 }}>Fields</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {schemes.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight={500}>{row.title}</Typography>
-                    <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 250, display: 'block' }}>
-                      {row.description}
+              {templates.map((template, index) => (
+                <TableRow key={template.id} hover>
+                  <TableCell>{page * rowsPerPage + index + 1}</TableCell>
+                  <TableCell
+                    sx={{ cursor: 'pointer' }}
+                    onClick={() => navigate(`/schemes/${template.category_slug}/${template.id}`)}
+                  >
+                    <Typography variant="body2" fontWeight={500}>{template.title}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Click to open the scheme and add actual data.
                     </Typography>
                   </TableCell>
-                  <TableCell>{parseFloat(row.budget).toLocaleString()}</TableCell>
-                  <TableCell>{row.created_by_name}</TableCell>
-                  <TableCell>
-                    <Chip size="small" label={row.status.toUpperCase()} color={STATUS_COLORS[row.status] || 'default'} />
-                  </TableCell>
+                  {!category_slug && <TableCell>{template.category_name}</TableCell>}
+                  <TableCell>{template.field_definitions?.length || 0}</TableCell>
                   <TableCell align="right">
                     {canEdit && (
-                      <IconButton size="small" color="primary" onClick={() => handleOpen(row)}>
+                      <IconButton size="small" color="primary" onClick={() => handleOpen(template)}>
                         <Edit fontSize="small" />
                       </IconButton>
                     )}
                     {canDelete && (
-                      <IconButton size="small" color="error" onClick={() => setDeleteId(row.id)}>
+                      <IconButton size="small" color="error" onClick={() => setDeleteId(template.id)}>
                         <Delete fontSize="small" />
                       </IconButton>
                     )}
                   </TableCell>
                 </TableRow>
               ))}
-              {!loading && schemes.length === 0 && (
+              {!loading && templates.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                    <Typography color="text.secondary">No schemes found</Typography>
+                  <TableCell colSpan={category_slug ? 4 : 5} align="center" sx={{ py: 4 }}>
+                    <Typography color="text.secondary">No scheme templates found</Typography>
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
         </TableContainer>
+
         <TablePagination
           component="div"
           count={count}
@@ -222,47 +257,60 @@ export default function SchemesPage() {
 
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <form onSubmit={handleSubmit}>
-          <DialogTitle>{editScheme ? 'Edit Scheme' : 'Add New Scheme'}</DialogTitle>
+          <DialogTitle>{editTemplate ? 'Edit Scheme Template' : 'Add New Scheme'}</DialogTitle>
           <DialogContent dividers>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-              <TextField 
-                label="Scheme Title" 
-                value={formData.title} 
-                onChange={(e) => setFormData({...formData, title: e.target.value})} 
-                required 
+              <TextField
+                label="Scheme Title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                required
               />
-              <TextField 
-                label="Budget (PKR)" 
-                type="number"
-                value={formData.budget} 
-                onChange={(e) => setFormData({...formData, budget: e.target.value})} 
-                required 
-              />
-              <TextField 
-                label="Description" 
-                multiline
-                rows={3}
-                value={formData.description} 
-                onChange={(e) => setFormData({...formData, description: e.target.value})} 
-              />
-              {editScheme && (
-                <TextField 
-                  select 
-                  label="Status" 
-                  value={formData.status} 
-                  onChange={(e) => setFormData({...formData, status: e.target.value})} 
+              {!category_slug && (
+                <TextField
+                  select
+                  label="Category"
+                  value={formData.category_slug}
+                  onChange={(e) => setFormData({ ...formData, category_slug: e.target.value })}
                   required
                 >
-                  <MenuItem value="pending">Pending</MenuItem>
-                  <MenuItem value="approved">Approved</MenuItem>
-                  <MenuItem value="completed">Completed</MenuItem>
+                  {categories.map((category) => (
+                    <MenuItem key={category.id} value={category.slug}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
                 </TextField>
               )}
+
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>Fields</Typography>
+                {formData.field_definitions.map((field, idx) => (
+                  <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 1 }}>
+                    <TextField
+                      fullWidth
+                      label={`Field ${idx + 1}`}
+                      value={field}
+                      onChange={(e) => handleFieldChange(idx, e.target.value)}
+                      required
+                    />
+                    <Button
+                      color="error"
+                      onClick={() => handleRemoveField(idx)}
+                      disabled={formData.field_definitions.length === 1}
+                    >
+                      Remove
+                    </Button>
+                  </Box>
+                ))}
+                <Button variant="outlined" onClick={handleAddField} startIcon={<Add />}>
+                  Add Field
+                </Button>
+              </Box>
             </Box>
           </DialogContent>
           <DialogActions>
             <Button onClick={handleClose}>Cancel</Button>
-            <Button type="submit" variant="contained">Save Scheme</Button>
+            <Button type="submit" variant="contained">Save</Button>
           </DialogActions>
         </form>
       </Dialog>
@@ -271,7 +319,7 @@ export default function SchemesPage() {
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete this scheme? This action cannot be undone.
+            Are you sure you want to delete this scheme template? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>

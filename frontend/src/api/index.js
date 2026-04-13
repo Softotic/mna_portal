@@ -93,6 +93,23 @@ export const schemesAPI = {
   delete: (id) => api.delete(`/schemes/${id}/`),
 };
 
+// ─── Scheme Templates API ───
+export const schemeTemplatesAPI = {
+  list: (params) => api.get('/scheme-templates/', { params }),
+  get: (id) => api.get(`/scheme-templates/${id}/`),
+  create: (data) => api.post('/scheme-templates/', data),
+  update: (id, data) => api.patch(`/scheme-templates/${id}/`, data),
+  delete: (id) => api.delete(`/scheme-templates/${id}/`),
+};
+
+// ─── Scheme Template Entries API ───
+export const schemeTemplateEntriesAPI = {
+  list: (params) => api.get('/scheme-template-entries/', { params }),
+  get: (id) => api.get(`/scheme-template-entries/${id}/`),
+  create: (data) => api.post('/scheme-template-entries/', data),
+  delete: (id) => api.delete(`/scheme-template-entries/${id}/`),
+};
+
 // ─── Scheme Categories API ───
 export const schemeCategoriesAPI = {
   list: () => api.get('/scheme-categories/'),
