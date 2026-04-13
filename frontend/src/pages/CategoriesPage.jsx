@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Box, Card, CardContent, Typography, Button, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, TablePagination, IconButton, Chip,
+  TableContainer, TableHead, TableRow, TablePagination, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, LinearProgress, Switch,
 } from '@mui/material';
 import { Add, Edit, Check, Close, Delete } from '@mui/icons-material';
@@ -117,20 +117,16 @@ export default function CategoriesPage() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Scheme ID</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Schemes</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>#</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Category Name</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {categories.map((cat) => (
+              {categories.map((cat, index) => (
                 <TableRow key={cat.id}>
-                  <TableCell fontWeight={600}>{cat.scheme_id}</TableCell>
+                  <TableCell>{index + 1}</TableCell>
                   <TableCell fontWeight={500}>{cat.name}</TableCell>
-                  <TableCell>
-                    <Chip size="small" label={cat.scheme_count ?? 0} color="primary" />
-                  </TableCell>
                   <TableCell align="right">
                     {canEdit && (
                       <IconButton size="small" color="primary" onClick={() => handleOpen(cat)} sx={{ mr: 1 }}>
