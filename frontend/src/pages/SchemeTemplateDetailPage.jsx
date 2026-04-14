@@ -30,8 +30,9 @@ import {
   ListItemAvatar,
   ListItemText,
   Paper,
+  InputAdornment,
 } from '@mui/material';
-import { ArrowBack, Edit, Delete, Comment, Send } from '@mui/icons-material';
+import { ArrowBack, Edit, Delete, Comment, Send, Search } from '@mui/icons-material';
 import { schemeTemplatesAPI, schemeTemplateEntriesAPI, schemeEntryCommentsAPI } from '../api';
 import { useAuth } from '../auth/AuthContext';
 
@@ -60,6 +61,9 @@ export default function SchemeTemplateDetailPage() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [commentsLoading, setCommentsLoading] = useState(false);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchTemplate = () => {
     schemeTemplatesAPI.get(template_id)
@@ -176,6 +180,26 @@ export default function SchemeTemplateDetailPage() {
     }
   };
 
+  // Filter entries based on search query
+  const filteredEntries = entries.filter((entry) => {
+    if (!searchQuery.trim()) return true;
+    const searchLower = searchQuery.toLowerCase();
+    
+    // Search in all field values
+    for (const field of template?.field_definitions || []) {
+      if (entry.values?.[field]?.toLowerCase().includes(searchLower)) {
+        return true;
+      }
+    }
+    
+    // Search in created_by_name
+    if (entry.created_by_name?.toLowerCase().includes(searchLower)) {
+      return true;
+    }
+    
+    return false;
+  });
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!template) return;
@@ -243,12 +267,30 @@ export default function SchemeTemplateDetailPage() {
             </Box>
           )}
 
-          <Typography variant="h6" sx={{ mb: 2 }}>Existing Entries</Typography>
+          <Typography variant="h6" sx={{ mb: 2 }}>Existing Schemes</Typography>
           {loading ? (
             <LinearProgress />
           ) : entries.length === 0 ? (
-            <Typography color="text.secondary">No entries have been added yet.</Typography>
+            <Typography color="text.secondary">No schemes have been added yet.</Typography>
           ) : (
+            <>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                <TextField
+                  placeholder="Search schemes..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search />
+                      </InputAdornment>
+                    ),
+                  }}
+                  variant="outlined"
+                  size="small"
+                  sx={{ width: '300px' }}
+                />
+              </Box>
             <TableContainer>
               <Table>
                 <TableHead>
@@ -263,7 +305,14 @@ export default function SchemeTemplateDetailPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {entries.map((entry, idx) => (
+                  {filteredEntries.length === 0 && searchQuery ? (
+                    <TableRow>
+                      <TableCell colSpan={template.field_definitions.length + 4} align="center" sx={{ py: 3 }}>
+                        <Typography color="text.secondary">No entries match your search</Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                  {filteredEntries.map((entry, idx) => (
                     <TableRow 
                       key={entry.id} 
                       hover 
@@ -289,6 +338,7 @@ export default function SchemeTemplateDetailPage() {
                 </TableBody>
               </Table>
             </TableContainer>
+            </>
           )}
         </CardContent>
       </Card>
