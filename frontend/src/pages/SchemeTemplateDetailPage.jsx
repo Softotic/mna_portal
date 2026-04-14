@@ -122,7 +122,6 @@ export default function SchemeTemplateDetailPage() {
                       value={values[field] || ''}
                       onChange={(event) => handleValueChange(field, event.target.value)}
                       fullWidth
-                      required
                     />
                   </Grid>
                 ))}

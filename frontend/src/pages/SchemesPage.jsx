@@ -291,7 +291,6 @@ export default function SchemesPage() {
                       label={`Field ${idx + 1}`}
                       value={field}
                       onChange={(e) => handleFieldChange(idx, e.target.value)}
-                      required
                     />
                     <Button
                       color="error"
