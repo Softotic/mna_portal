@@ -8,10 +8,10 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
-from .models import SchemeCategory, Scheme, SchemeTemplate, SchemeEntry
+from .models import SchemeCategory, Scheme, SchemeTemplate, SchemeEntry, SchemeEntryComment
 from .serializers import (
     SchemeCategorySerializer, SchemeSerializer,
-    SchemeTemplateSerializer, SchemeEntrySerializer,
+    SchemeTemplateSerializer, SchemeEntrySerializer, SchemeEntryCommentSerializer,
 )
 from users.permissions import SchemeModulePermission, HasModulePermission
 
@@ -114,3 +114,23 @@ class SchemeEntryViewSet(viewsets.ModelViewSet):
         if template_id:
             qs = qs.filter(template_id=template_id)
         return qs
+
+
+
+class SchemeEntryCommentViewSet(viewsets.ModelViewSet):
+    """Comments on scheme entries."""
+    queryset = SchemeEntryComment.objects.select_related("entry", "created_by").all()
+    serializer_class = SchemeEntryCommentSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ["entry"]
+    ordering_fields = ["created_at"]
+    ordering = ["created_at"]
+
+    def get_queryset(self):
+        qs = self.queryset
+        entry_id = self.request.query_params.get("entry_id")
+        if entry_id:
+            qs = qs.filter(entry_id=entry_id)
+        return qs
+

@@ -111,6 +111,13 @@ export const schemeTemplateEntriesAPI = {
   delete: (id) => api.delete(`/scheme-template-entries/${id}/`),
 };
 
+// ─── Scheme Entry Comments API ───
+export const schemeEntryCommentsAPI = {
+  list: (params) => api.get('/scheme-entry-comments/', { params }),
+  create: (data) => api.post('/scheme-entry-comments/', data),
+  delete: (id) => api.delete(`/scheme-entry-comments/${id}/`),
+};
+
 // ─── Scheme Categories API ───
 export const schemeCategoriesAPI = {
   list: () => api.get('/scheme-categories/'),

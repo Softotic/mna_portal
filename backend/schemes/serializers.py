@@ -2,7 +2,7 @@
 Schemes app serializers.
 """
 from rest_framework import serializers
-from .models import Scheme, SchemeCategory, SchemeTemplate, SchemeEntry
+from .models import Scheme, SchemeCategory, SchemeTemplate, SchemeEntry, SchemeEntryComment
 from users.serializers import UserSerializer
 
 
@@ -109,3 +109,18 @@ class SchemeEntrySerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['created_by'] = self.context['request'].user
         return super().create(validated_data)
+
+
+
+class SchemeEntryCommentSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source="created_by.name", read_only=True)
+
+    class Meta:
+        model = SchemeEntryComment
+        fields = ["id", "entry", "comment", "created_by", "created_by_name", "created_at"]
+        read_only_fields = ["id", "created_by", "created_at"]
+
+    def create(self, validated_data):
+        validated_data["created_by"] = self.context["request"].user
+        return super().create(validated_data)
+

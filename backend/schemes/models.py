@@ -100,3 +100,23 @@ class SchemeEntry(models.Model):
 
     def __str__(self):
         return f"{self.template.title} entry {self.id}"
+
+
+class SchemeEntryComment(models.Model):
+    """Comments on scheme entries."""
+    entry = models.ForeignKey(
+        SchemeEntry, on_delete=models.CASCADE, related_name="comments"
+    )
+    comment = models.TextField()
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name="scheme_entry_comments"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Comment by {self.created_by.name if self.created_by else 'Unknown'} on entry {self.entry.id}"
+

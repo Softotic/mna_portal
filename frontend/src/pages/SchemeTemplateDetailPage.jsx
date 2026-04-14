@@ -23,9 +23,16 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
+  Chip,
+  Avatar,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Paper,
 } from '@mui/material';
-import { ArrowBack, Edit, Delete } from '@mui/icons-material';
-import { schemeTemplatesAPI, schemeTemplateEntriesAPI } from '../api';
+import { ArrowBack, Edit, Delete, Comment, Send } from '@mui/icons-material';
+import { schemeTemplatesAPI, schemeTemplateEntriesAPI, schemeEntryCommentsAPI } from '../api';
 import { useAuth } from '../auth/AuthContext';
 
 export default function SchemeTemplateDetailPage() {
@@ -46,6 +53,13 @@ export default function SchemeTemplateDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteEntryId, setDeleteEntryId] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Detail modal and comments states
+  const [selectedEntry, setSelectedEntry] = useState(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [commentsLoading, setCommentsLoading] = useState(false);
 
   const fetchTemplate = () => {
     schemeTemplatesAPI.get(template_id)
@@ -125,6 +139,40 @@ export default function SchemeTemplateDetailPage() {
       fetchEntries();
     } catch (err) {
       alert('Error deleting entry');
+    }
+  };
+
+  const handleEntryClick = async (entry) => {
+    setSelectedEntry(entry);
+    setDetailModalOpen(true);
+    setCommentsLoading(true);
+    
+    try {
+      const response = await schemeEntryCommentsAPI.list({ entry_id: entry.id });
+      setComments(response.data.results || response.data);
+    } catch (err) {
+      console.error('Error fetching comments:', err);
+      setComments([]);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !selectedEntry) return;
+
+    try {
+      await schemeEntryCommentsAPI.create({
+        entry: selectedEntry.id,
+        comment: newComment.trim(),
+      });
+      
+      // Refresh comments
+      const response = await schemeEntryCommentsAPI.list({ entry_id: selectedEntry.id });
+      setComments(response.data.results || response.data);
+      setNewComment('');
+    } catch (err) {
+      alert('Error adding comment');
     }
   };
 
@@ -216,7 +264,12 @@ export default function SchemeTemplateDetailPage() {
                 </TableHead>
                 <TableBody>
                   {entries.map((entry, idx) => (
-                    <TableRow key={entry.id}>
+                    <TableRow 
+                      key={entry.id} 
+                      hover 
+                      sx={{ cursor: 'pointer' }}
+                      onClick={() => handleEntryClick(entry)}
+                    >
                       <TableCell>{idx + 1}</TableCell>
                       {template.field_definitions.map((field) => (
                         <TableCell key={field}>{entry.values?.[field] || '-'}</TableCell>
@@ -224,10 +277,10 @@ export default function SchemeTemplateDetailPage() {
                       <TableCell>{entry.created_by_name || '—'}</TableCell>
                       <TableCell>{new Date(entry.created_at).toLocaleString()}</TableCell>
                       <TableCell>
-                        <IconButton size="small" color="primary" onClick={() => handleEditEntry(entry)}>
+                        <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); handleEditEntry(entry); }}>
                           <Edit fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" color="error" onClick={() => handleDeleteEntry(entry.id)}>
+                        <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDeleteEntry(entry.id); }}>
                           <Delete fontSize="small" />
                         </IconButton>
                       </TableCell>
@@ -284,6 +337,132 @@ export default function SchemeTemplateDetailPage() {
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">
             Delete
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Entry Detail Modal */}
+      <Dialog 
+        open={detailModalOpen} 
+        onClose={() => setDetailModalOpen(false)} 
+        maxWidth="md" 
+        fullWidth
+        sx={{ '& .MuiDialog-paper': { height: '80vh' } }}
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Comment color="primary" />
+            Entry Details
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          {selectedEntry && (
+            <>
+              <Typography variant="h6" sx={{ mb: 2 }}>Entry Information</Typography>
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                {template?.field_definitions.map((field) => (
+                  <Grid item xs={12} md={6} key={field}>
+                    <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        {field}
+                      </Typography>
+                      <Typography variant="body1">
+                        {selectedEntry.values?.[field] || 'Not provided'}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                ))}
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Added By
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedEntry.created_by_name || 'Unknown'}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Added On
+                    </Typography>
+                    <Typography variant="body1">
+                      {new Date(selectedEntry.created_at).toLocaleString()}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 3 }} />
+
+              <Typography variant="h6" sx={{ mb: 2 }}>Comments</Typography>
+              
+              {commentsLoading ? (
+                <LinearProgress />
+              ) : (
+                <List sx={{ mb: 3 }}>
+                  {comments.length === 0 ? (
+                    <Typography color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                      No comments yet. Be the first to comment!
+                    </Typography>
+                  ) : (
+                    comments.map((comment) => (
+                      <ListItem key={comment.id} alignItems="flex-start">
+                        <ListItemAvatar>
+                          <Avatar>
+                            {comment.created_by_name?.charAt(0)?.toUpperCase() || 'U'}
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="subtitle2">
+                                {comment.created_by_name || 'Unknown User'}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {new Date(comment.created_at).toLocaleString()}
+                              </Typography>
+                            </Box>
+                          }
+                          secondary={comment.comment}
+                        />
+                      </ListItem>
+                    ))
+                  )}
+                </List>
+              )}
+
+              <Divider sx={{ my: 2 }} />
+
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <TextField
+                  fullWidth
+                  placeholder="Add a comment..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleAddComment();
+                    }
+                  }}
+                  multiline
+                  rows={2}
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleAddComment}
+                  disabled={!newComment.trim()}
+                  sx={{ alignSelf: 'flex-end' }}
+                >
+                  <Send />
+                </Button>
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDetailModalOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>
