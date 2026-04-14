@@ -107,6 +107,7 @@ export const schemeTemplateEntriesAPI = {
   list: (params) => api.get('/scheme-template-entries/', { params }),
   get: (id) => api.get(`/scheme-template-entries/${id}/`),
   create: (data) => api.post('/scheme-template-entries/', data),
+  update: (id, data) => api.patch(`/scheme-template-entries/${id}/`, data),
   delete: (id) => api.delete(`/scheme-template-entries/${id}/`),
 };
 

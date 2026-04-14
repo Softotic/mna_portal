@@ -17,8 +17,14 @@ import {
   TableHead,
   TableRow,
   LinearProgress,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
 } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
+import { ArrowBack, Edit, Delete } from '@mui/icons-material';
 import { schemeTemplatesAPI, schemeTemplateEntriesAPI } from '../api';
 import { useAuth } from '../auth/AuthContext';
 
@@ -33,6 +39,13 @@ export default function SchemeTemplateDetailPage() {
   const [values, setValues] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Edit and Delete states
+  const [editEntry, setEditEntry] = useState(null);
+  const [editValues, setEditValues] = useState({});
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteEntryId, setDeleteEntryId] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const fetchTemplate = () => {
     schemeTemplatesAPI.get(template_id)
@@ -65,6 +78,54 @@ export default function SchemeTemplateDetailPage() {
 
   const handleValueChange = (field, value) => {
     setValues((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditValueChange = (field, value) => {
+    setEditValues((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditEntry = (entry) => {
+    setEditEntry(entry);
+    setEditValues(entry.values || {});
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = async (event) => {
+    event.preventDefault();
+    if (!editEntry) return;
+    setSaving(true);
+
+    try {
+      await schemeTemplateEntriesAPI.update(editEntry.id, {
+        template_id: template.id,
+        values: editValues,
+      });
+      setEditDialogOpen(false);
+      setEditEntry(null);
+      fetchEntries();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Error updating entry');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteEntry = (entryId) => {
+    setDeleteEntryId(entryId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteEntryId) return;
+
+    try {
+      await schemeTemplateEntriesAPI.delete(deleteEntryId);
+      setDeleteDialogOpen(false);
+      setDeleteEntryId(null);
+      fetchEntries();
+    } catch (err) {
+      alert('Error deleting entry');
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -150,6 +211,7 @@ export default function SchemeTemplateDetailPage() {
                     ))}
                     <TableCell>Added By</TableCell>
                     <TableCell>Added On</TableCell>
+                    <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -161,6 +223,14 @@ export default function SchemeTemplateDetailPage() {
                       ))}
                       <TableCell>{entry.created_by_name || '—'}</TableCell>
                       <TableCell>{new Date(entry.created_at).toLocaleString()}</TableCell>
+                      <TableCell>
+                        <IconButton size="small" color="primary" onClick={() => handleEditEntry(entry)}>
+                          <Edit fontSize="small" />
+                        </IconButton>
+                        <IconButton size="small" color="error" onClick={() => handleDeleteEntry(entry.id)}>
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -169,6 +239,53 @@ export default function SchemeTemplateDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Entry Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
+        <form onSubmit={handleEditSubmit}>
+          <DialogTitle>Edit Entry</DialogTitle>
+          <DialogContent dividers>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Update the values for this scheme entry.
+            </Typography>
+            <Grid container spacing={2}>
+              {template?.field_definitions.map((field) => (
+                <Grid item xs={12} md={6} key={field}>
+                  <TextField
+                    label={field}
+                    name={field}
+                    value={editValues[field] || ''}
+                    onChange={(event) => handleEditValueChange(field, event.target.value)}
+                    fullWidth
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button type="submit" variant="contained" disabled={saving}>
+              {saving ? 'Updating...' : 'Update Entry'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this entry? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
