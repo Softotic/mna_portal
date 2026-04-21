@@ -539,7 +539,7 @@ export default function SchemeTemplateDetailPage() {
                   variant="outlined"
                 />
                 <Button
-                  variant="contained"
+                  variant="outlined"
                   onClick={handleAddComment}
                   disabled={!newComment.trim()}
                   sx={{ alignSelf: 'flex-end', textTransform: 'none', fontWeight: 600 }}
