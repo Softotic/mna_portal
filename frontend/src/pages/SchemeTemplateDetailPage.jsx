@@ -224,20 +224,33 @@ export default function SchemeTemplateDetailPage() {
   }
 
   return (
-    <Box>
-      <Button startIcon={<ArrowBack />} onClick={() => navigate(category_slug ? `/schemes/${category_slug}` : '/schemes')}>
-        Back to schemes
-      </Button>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#f5f7fa', p: 3 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Button startIcon={<ArrowBack />} onClick={() => navigate(category_slug ? `/schemes/${category_slug}` : '/schemes')} sx={{ textTransform: 'none' }}>
+          Back
+        </Button>
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a1a1a', mb: 0.5 }}>
+            {template.title}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {template.category_name}
+          </Typography>
+        </Box>
+      </Box>
 
-      <Card sx={{ borderRadius: 3, mt: 2 }}>
+      {/* Add Entry Form Card */}
+      <Card sx={{ borderRadius: 2, mb: 4, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
         <CardHeader
-          title={template.title}
-          subheader={`Category: ${template.category_name}`}
+          title="Add New Entry"
+          titleTypographyProps={{ variant: 'h6', sx: { fontWeight: 600, fontSize: '1rem' } }}
+          sx={{ pb: 2, pt: 3, px: 3, bgcolor: '#fafbfc' }}
         />
         <Divider />
-        <CardContent>
+        <CardContent sx={{ pt: 3 }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Fill the fields below to add a new entry for this scheme configuration.
+            Fill out the fields below to create a new entry.
           </Typography>
 
           {template.field_definitions.length === 0 ? (
@@ -245,8 +258,8 @@ export default function SchemeTemplateDetailPage() {
               This scheme has no fields yet. Go back and edit the scheme to add field names first.
             </Typography>
           ) : (
-            <Box component="form" onSubmit={handleSubmit} sx={{ mb: 4 }}>
-              <Grid container spacing={2}>
+            <Box component="form" onSubmit={handleSubmit}>
+              <Grid container spacing={2.5}>
                 {template.field_definitions.map((field) => (
                   <Grid item xs={12} md={6} key={field}>
                     <TextField
@@ -255,60 +268,81 @@ export default function SchemeTemplateDetailPage() {
                       value={values[field] || ''}
                       onChange={(event) => handleValueChange(field, event.target.value)}
                       fullWidth
+                      variant="outlined"
+                      size="small"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          bgcolor: '#fff',
+                          '&:hover fieldset': { borderColor: '#d0d0d0' },
+                        },
+                      }}
                     />
                   </Grid>
                 ))}
               </Grid>
-              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-                <Button type="submit" variant="contained" disabled={saving}>
+              <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                <Button variant="outlined" onClick={() => setValues(Object.fromEntries(Object.keys(values).map((key) => [key, ''])))}>Clear</Button>
+                <Button type="submit" variant="contained" disabled={saving} sx={{ textTransform: 'none', fontWeight: 600 }}>
                   {saving ? 'Saving...' : 'Add Entry'}
                 </Button>
               </Box>
             </Box>
           )}
 
-          <Typography variant="h6" sx={{ mb: 2 }}>Existing Schemes</Typography>
+        </CardContent>
+      </Card>
+
+      {/* Existing Entries Card */}
+      <Card sx={{ borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', mt: 4 }}>
+        <CardHeader
+          title="Existing Entries"
+          titleTypographyProps={{ variant: 'h6', sx: { fontWeight: 600, fontSize: '1rem' } }}
+          sx={{ pb: 2, pt: 3, px: 3, bgcolor: '#fafbfc' }}
+          action={entries.length > 0 && (
+            <TextField
+              placeholder="Search entries..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search sx={{ color: '#999' }} />
+                  </InputAdornment>
+                ),
+              }}
+              variant="outlined"
+              size="small"
+              sx={{ width: '280px', mr: 0 }}
+            />
+          )}
+        />
+        <Divider />
+        <CardContent sx={{ pt: 0 }}>
           {loading ? (
-            <LinearProgress />
+            <Box sx={{ py: 4 }}><LinearProgress /></Box>
           ) : entries.length === 0 ? (
-            <Typography color="text.secondary">No schemes have been added yet.</Typography>
+            <Box sx={{ py: 6, textAlign: 'center' }}>
+              <Typography color="text.secondary">No entries have been added yet.</Typography>
+            </Box>
           ) : (
-            <>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                <TextField
-                  placeholder="Search schemes..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search />
-                      </InputAdornment>
-                    ),
-                  }}
-                  variant="outlined"
-                  size="small"
-                  sx={{ width: '300px' }}
-                />
-              </Box>
             <TableContainer>
               <Table>
                 <TableHead>
-                  <TableRow>
-                    <TableCell>#</TableCell>
+                  <TableRow sx={{ bgcolor: '#fafbfc', '& th': { fontWeight: 600, fontSize: '0.875rem', color: '#4a4a4a' } }}>
+                    <TableCell sx={{ fontWeight: 600 }}>#</TableCell>
                     {template.field_definitions.map((field) => (
-                      <TableCell key={field}>{field}</TableCell>
+                      <TableCell key={field} sx={{ fontWeight: 600 }}>{field}</TableCell>
                     ))}
-                    <TableCell>Added By</TableCell>
-                    <TableCell>Added On</TableCell>
-                    <TableCell>Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Added By</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Added On</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {filteredEntries.length === 0 && searchQuery ? (
                     <TableRow>
-                      <TableCell colSpan={template.field_definitions.length + 4} align="center" sx={{ py: 3 }}>
-                        <Typography color="text.secondary">No entries match your search</Typography>
+                      <TableCell colSpan={template.field_definitions.length + 4} align="center" sx={{ py: 4 }}>
+                        <Typography color="text.secondary" variant="body2">No entries match your search</Typography>
                       </TableCell>
                     </TableRow>
                   ) : null}
@@ -316,20 +350,24 @@ export default function SchemeTemplateDetailPage() {
                     <TableRow 
                       key={entry.id} 
                       hover 
-                      sx={{ cursor: 'pointer' }}
+                      sx={{ 
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: '#f5f7fa' },
+                        '& td': { py: 1.5, px: 2 }
+                      }}
                       onClick={() => handleEntryClick(entry)}
                     >
-                      <TableCell>{idx + 1}</TableCell>
+                      <TableCell sx={{ color: '#999', fontSize: '0.875rem' }}>{idx + 1}</TableCell>
                       {template.field_definitions.map((field) => (
-                        <TableCell key={field}>{entry.values?.[field] || '-'}</TableCell>
+                        <TableCell key={field} sx={{ fontSize: '0.875rem' }}>{entry.values?.[field] || '-'}</TableCell>
                       ))}
-                      <TableCell>{entry.created_by_name || '—'}</TableCell>
-                      <TableCell>{new Date(entry.created_at).toLocaleString()}</TableCell>
-                      <TableCell>
-                        <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); handleEditEntry(entry); }}>
+                      <TableCell sx={{ fontSize: '0.875rem' }}>{entry.created_by_name || '—'}</TableCell>
+                      <TableCell sx={{ fontSize: '0.875rem', color: '#666' }}>{new Date(entry.created_at).toLocaleString()}</TableCell>
+                      <TableCell sx={{ textAlign: 'center' }}>
+                        <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); handleEditEntry(entry); }} title="Edit">
                           <Edit fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDeleteEntry(entry.id); }}>
+                        <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDeleteEntry(entry.id); }} title="Delete">
                           <Delete fontSize="small" />
                         </IconButton>
                       </TableCell>
@@ -338,7 +376,6 @@ export default function SchemeTemplateDetailPage() {
                 </TableBody>
               </Table>
             </TableContainer>
-            </>
           )}
         </CardContent>
       </Card>
@@ -346,12 +383,12 @@ export default function SchemeTemplateDetailPage() {
       {/* Edit Entry Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
         <form onSubmit={handleEditSubmit}>
-          <DialogTitle>Edit Entry</DialogTitle>
-          <DialogContent dividers>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Update the values for this scheme entry.
+          <DialogTitle sx={{ fontWeight: 600, fontSize: '1.25rem', pt: 3 }}>Edit Entry</DialogTitle>
+          <DialogContent dividers sx={{ pt: 3 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Update the entry information below.
             </Typography>
-            <Grid container spacing={2}>
+            <Grid container spacing={2.5}>
               {template?.field_definitions.map((field) => (
                 <Grid item xs={12} md={6} key={field}>
                   <TextField
@@ -360,14 +397,16 @@ export default function SchemeTemplateDetailPage() {
                     value={editValues[field] || ''}
                     onChange={(event) => handleEditValueChange(field, event.target.value)}
                     fullWidth
+                    variant="outlined"
+                    size="small"
                   />
                 </Grid>
               ))}
             </Grid>
           </DialogContent>
-          <DialogActions>
+          <DialogActions sx={{ p: 2 }}>
             <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={saving}>
+            <Button type="submit" variant="contained" disabled={saving} sx={{ textTransform: 'none', fontWeight: 600 }}>
               {saving ? 'Updating...' : 'Update Entry'}
             </Button>
           </DialogActions>
@@ -375,16 +414,16 @@ export default function SchemeTemplateDetailPage() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600, fontSize: '1.25rem', pt: 3 }}>Confirm Deletion</DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
           <DialogContentText>
             Are you sure you want to delete this entry? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained" sx={{ textTransform: 'none', fontWeight: 600 }}>
             Delete
           </Button>
         </DialogActions>
@@ -398,45 +437,43 @@ export default function SchemeTemplateDetailPage() {
         fullWidth
         sx={{ '& .MuiDialog-paper': { height: '80vh' } }}
       >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Comment color="primary" />
-            Entry Details
-          </Box>
+        <DialogTitle sx={{ fontWeight: 600, fontSize: '1.25rem', pt: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Comment color="primary" />
+          Entry Details
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent dividers sx={{ pt: 3 }}>
           {selectedEntry && (
             <>
-              <Typography variant="h6" sx={{ mb: 2 }}>Entry Information</Typography>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>Entry Information</Typography>
               <Grid container spacing={2} sx={{ mb: 3 }}>
                 {template?.field_definitions.map((field) => (
                   <Grid item xs={12} md={6} key={field}>
-                    <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-                      <Typography variant="subtitle2" color="text.secondary">
+                    <Paper sx={{ p: 2.5, bgcolor: '#fafbfc', border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                      <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5 }}>
                         {field}
                       </Typography>
-                      <Typography variant="body1">
-                        {selectedEntry.values?.[field] || 'Not provided'}
+                      <Typography variant="body2">
+                        {selectedEntry.values?.[field] || <em style={{ color: '#999' }}>Not provided</em>}
                       </Typography>
                     </Paper>
                   </Grid>
                 ))}
                 <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-                    <Typography variant="subtitle2" color="text.secondary">
+                  <Paper sx={{ p: 2.5, bgcolor: '#fafbfc', border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5 }}>
                       Added By
                     </Typography>
-                    <Typography variant="body1">
+                    <Typography variant="body2">
                       {selectedEntry.created_by_name || 'Unknown'}
                     </Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-                    <Typography variant="subtitle2" color="text.secondary">
+                  <Paper sx={{ p: 2.5, bgcolor: '#fafbfc', border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5 }}>
                       Added On
                     </Typography>
-                    <Typography variant="body1">
+                    <Typography variant="body2">
                       {new Date(selectedEntry.created_at).toLocaleString()}
                     </Typography>
                   </Paper>
@@ -445,7 +482,7 @@ export default function SchemeTemplateDetailPage() {
 
               <Divider sx={{ my: 3 }} />
 
-              <Typography variant="h6" sx={{ mb: 2 }}>Comments</Typography>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>Comments</Typography>
               
               {commentsLoading ? (
                 <LinearProgress />
@@ -484,7 +521,7 @@ export default function SchemeTemplateDetailPage() {
 
               <Divider sx={{ my: 2 }} />
 
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
                 <TextField
                   fullWidth
                   placeholder="Add a comment..."
@@ -498,14 +535,17 @@ export default function SchemeTemplateDetailPage() {
                   }}
                   multiline
                   rows={2}
+                  size="small"
+                  variant="outlined"
                 />
                 <Button
                   variant="contained"
                   onClick={handleAddComment}
                   disabled={!newComment.trim()}
-                  sx={{ alignSelf: 'flex-end' }}
+                  sx={{ alignSelf: 'flex-end', textTransform: 'none', fontWeight: 600 }}
                 >
-                  <Send />
+                  <Send sx={{ mr: 1 }} />
+                  Send
                 </Button>
               </Box>
             </>
