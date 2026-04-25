@@ -52,12 +52,19 @@ export default function PublicWebsiteSettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const data = { ...settings };
-      delete data.id;
-      delete data.created_at;
-      delete data.updated_at;
+      const payload = { ...settings };
+      delete payload.id;
+      delete payload.created_at;
+      delete payload.updated_at;
 
-      await publicSettingsAPI.update(data);
+      if (payload.logo && typeof payload.logo === 'string') {
+        delete payload.logo;
+      }
+      if (payload.intro_image && typeof payload.intro_image === 'string') {
+        delete payload.intro_image;
+      }
+
+      await publicSettingsAPI.update(settings.id, payload);
       setMessage('Settings saved successfully!');
       setTimeout(() => setMessage(''), 3000);
       fetchSettings();

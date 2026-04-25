@@ -129,7 +129,21 @@ export const schemeCategoriesAPI = {
 // ─── Public Site Settings API ───
 export const publicSettingsAPI = {
   current: () => api.get('/public/settings/current/'),
-  update: (data) => api.patch('/public/settings/1/', data),
+  update: (id, data) => {
+    const hasFileUpload = data.logo instanceof File || data.intro_image instanceof File;
+    if (hasFileUpload) {
+      const formData = new FormData();
+      Object.keys(data).forEach((key) => {
+        if (data[key] !== null && data[key] !== undefined) {
+          formData.append(key, data[key]);
+        }
+      });
+      return api.patch(`/public/settings/${id}/`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    }
+    return api.patch(`/public/settings/${id}/`, data);
+  },
 };
 
 // ─── Public News API (Public - No Auth Required) ───

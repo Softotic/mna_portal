@@ -24,6 +24,7 @@ class PublicSettingsViewSet(viewsets.ModelViewSet):
     """
     queryset = PublicSettings.objects.all()
     serializer_class = PublicSettingsSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'current']:
