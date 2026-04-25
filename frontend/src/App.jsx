@@ -14,6 +14,10 @@ import RolesPage from './pages/RolesPage';
 import CategoriesPage from './pages/CategoriesPage';
 import SettingsPage from './pages/SettingsPage';
 import SchemeTemplateDetailPage from './pages/SchemeTemplateDetailPage';
+import PublicLandingPage from './pages/PublicLandingPage';
+import PublicNewsPage from './pages/PublicNewsPage';
+import PublicWebsiteSettingsPage from './pages/PublicWebsiteSettingsPage';
+import NewsManagementPage from './pages/NewsManagementPage';
 
 function App() {
   return (
@@ -23,6 +27,11 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             
+            {/* Public Routes */}
+            <Route path="/public" element={<PublicLandingPage />} />
+            <Route path="/public/news" element={<PublicNewsPage />} />
+            
+            {/* Admin Routes */}
             <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<DashboardPage />} />
@@ -75,6 +84,16 @@ function App() {
                 } 
               />
               <Route path="settings" element={<SettingsPage />} />
+              
+              {/* Public Website Management Routes */}
+              <Route 
+                path="website-settings" 
+                element={<PublicWebsiteSettingsPage />} 
+              />
+              <Route 
+                path="news-management" 
+                element={<NewsManagementPage />} 
+              />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

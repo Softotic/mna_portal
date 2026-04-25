@@ -58,13 +58,13 @@ The stack involves a Django + Django Rest Framework (DRF) backend and a React + 
 
 ---
 
-## 2. Frontend Setup
+## 2. Admin Panel Setup
 
-**⚠️ Important:** Make sure the backend server is running on `http://localhost:8000` before starting the frontend.
+**Important:** Make sure the backend server is running on `http://localhost:8000` before starting the admin panel.
 
-1. **Navigate to the Frontend directory:**
+1. **Navigate to the Admin Panel directory:**
    ```bash
-   cd frontend
+   cd adminPanel
    ```
 
 2. **Install dependencies:**
@@ -76,7 +76,7 @@ The stack involves a Django + Django Rest Framework (DRF) backend and a React + 
    ```bash
    npm run dev
    ```
-   The React application will run on `http://localhost:5173`.
+   The admin panel will run on `http://localhost:5173`.
    - API requests to `/api` are automatically proxied to `http://localhost:8000`
 
 ---
@@ -90,13 +90,23 @@ The stack involves a Django + Django Rest Framework (DRF) backend and a React + 
    python manage.py runserver
    ```
 
-2. **Terminal 2 - Frontend:**
+2. **Terminal 2 - Admin Panel:**
    ```bash
-   cd frontend
+   cd adminPanel
    npm run dev
    ```
 
-3. Open `http://localhost:5173` in your browser and login with:
+3. **Terminal 3 - Public Website:**
+   ```bash
+   cd publicWebsite
+   npm run dev
+   ```
+
+4. Open the apps in your browser:
+   - Admin Panel: `http://localhost:5173` or `http://localhost:5173/admin`
+   - Public Website: `http://localhost:4173`
+
+5. Login to the admin panel with:
    - **Email:** `admin@mna.gov.pk`
    - **Password:** `Admin@123`
 
@@ -104,7 +114,8 @@ The stack involves a Django + Django Rest Framework (DRF) backend and a React + 
 
 ## Accessing the Application
 
-- **Frontend URL:** `http://localhost:5173`
+- **Admin Panel URL:** `http://localhost:5173`
+- **Public Website URL:** `http://localhost:4173`
 - **Backend API:** `http://localhost:8000/api/`
 - **Default Superadmin Login:**
   - **Email:** `admin@mna.gov.pk`
@@ -114,7 +125,7 @@ You can use this default admin user to start managing the system, creating schem
 
 ---
  
- ## 3. Vercel Deployment (Full Stack)
+ ## 4. Vercel Deployment (Full Stack)
  
  This project is configured for a unified deployment on Vercel.
  
@@ -133,7 +144,8 @@ You can use this default admin user to start managing the system, creating schem
       - **Password:** `Admin@123`
  4. **Build Settings**: Vercel will automatically detect the root `vercel.json` and configure:
     - **Backend**: Python 3.12 runtime for `config.wsgi`.
-    - **Frontend**: Static build for `frontend/`.
+    - **Admin Panel**: Static build from `adminPanel/`.
+    - **Public Website**: Static build from `publicWebsite/`.
  
  ### Key Features
  - **RBAC**: Advanced role-based access control out of the box. Configurable roles with varied permissions (View, Add, Edit, Delete).

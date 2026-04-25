@@ -5,8 +5,12 @@
       "entrypoint": "backend/config/wsgi.py",
       "routePrefix": "/api"
     },
-    "frontend": {
-      "entrypoint": "frontend",
+    "adminPanel": {
+      "entrypoint": "adminPanel",
+      "routePrefix": "/admin"
+    },
+    "publicWebsite": {
+      "entrypoint": "publicWebsite",
       "routePrefix": "/"
     }
   }

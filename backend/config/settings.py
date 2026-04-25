@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     # Local apps
     'users',
     'schemes',
+    'public_site',
 ]
 
 MIDDLEWARE = [
