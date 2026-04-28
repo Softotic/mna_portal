@@ -66,16 +66,27 @@ export default function PublicLandingPage() {
               <Typography variant="h5" sx={{ mb: 4, fontWeight: 300, color: '#d7e6cf', lineHeight: 1.6 }}>
                 {settings?.site_message || 'A dynamic public portal for MNA news and updates.'}
               </Typography>
-              <Button
-                component={RouterLink}
-                to="/news"
-                variant="contained"
-                size="large"
-                endIcon={<ArrowForward />}
-                sx={{ textTransform: 'none', fontWeight: 700, paddingX: 4, paddingY: 1.5 }}
-              >
-                Explore News
-              </Button>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2 }}>
+                <Button
+                  component={RouterLink}
+                  to="/news"
+                  variant="contained"
+                  size="large"
+                  endIcon={<ArrowForward />}
+                  sx={{ textTransform: 'none', fontWeight: 700, paddingX: 4, paddingY: 1.5 }}
+                >
+                  Explore News
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/complaints"
+                  variant="outlined"
+                  size="large"
+                  sx={{ textTransform: 'none', fontWeight: 700, color: '#fff', borderColor: 'rgba(255,255,255,0.7)' }}
+                >
+                  Submit a Complaint
+                </Button>
+              </Box>
             </Grid>
             {settings?.intro_image && (
               <Grid item xs={12} md={6}>
@@ -87,6 +98,58 @@ export default function PublicLandingPage() {
                 />
               </Grid>
             )}
+          </Grid>
+        </Container>
+      </Box>
+
+      <Box sx={{ bgcolor: '#fff', py: { xs: 6, md: 10 } }}>
+        <Container maxWidth="lg">
+          <Typography variant="overline" sx={{ color: '#0a3712', letterSpacing: 1.5, fontWeight: 700, mb: 2, display: 'block', textAlign: 'center' }}>
+            Quick Access
+          </Typography>
+          <Typography variant="h3" sx={{ fontWeight: 800, mb: 6, textAlign: 'center' }}>
+            Get the support you need fast
+          </Typography>
+          <Grid container spacing={4}>
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 4, borderRadius: 4, border: '1px solid #e3f2e1', bgcolor: '#f7fcf7', height: '100%' }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                  Latest News
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3, lineHeight: 1.8 }}>
+                  Stay informed with official news, announcements, and event updates from the office.
+                </Typography>
+                <Button component={RouterLink} to="/news" size="small" sx={{ textTransform: 'none', fontWeight: 700 }}>
+                  View news
+                </Button>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 4, borderRadius: 4, border: '1px solid #e3f2e1', bgcolor: '#f7fcf7', height: '100%' }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                  File a Complaint
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3, lineHeight: 1.8 }}>
+                  Report local issues, request help, and receive a tracking number for every submission.
+                </Typography>
+                <Button component={RouterLink} to="/complaints" size="small" sx={{ textTransform: 'none', fontWeight: 700 }}>
+                  Submit now
+                </Button>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 4, borderRadius: 4, border: '1px solid #e3f2e1', bgcolor: '#f7fcf7', height: '100%' }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                  Track Progress
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3, lineHeight: 1.8 }}>
+                  Use your tracking number or CNIC to see the latest status of your complaint.
+                </Typography>
+                <Button component={RouterLink} to="/complaints" size="small" sx={{ textTransform: 'none', fontWeight: 700 }}>
+                  Track request
+                </Button>
+              </Paper>
+            </Grid>
           </Grid>
         </Container>
       </Box>

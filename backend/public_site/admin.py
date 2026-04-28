@@ -2,7 +2,7 @@
 Admin panel configuration for Public Site.
 """
 from django.contrib import admin
-from .models import PublicSettings, News
+from .models import PublicSettings, News, Complaint
 
 
 @admin.register(PublicSettings)
@@ -52,3 +52,23 @@ class NewsAdmin(admin.ModelAdmin):
         }),
     )
     readonly_fields = ('created_at', 'updated_at')
+
+
+@admin.register(Complaint)
+class ComplaintAdmin(admin.ModelAdmin):
+    list_display = ('tracking_number', 'name', 'cnic', 'category', 'status', 'created_at')
+    list_filter = ('status', 'category', 'created_at')
+    search_fields = ('tracking_number', 'name', 'cnic', 'description', 'admin_remarks')
+    readonly_fields = ('tracking_number', 'created_at', 'updated_at')
+    fieldsets = (
+        ('Complaint Details', {
+            'fields': ('tracking_number', 'name', 'cnic', 'phone', 'category', 'description', 'attachment'),
+        }),
+        ('Administration', {
+            'fields': ('status', 'admin_remarks', 'admin_attachment'),
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )

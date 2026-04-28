@@ -3,7 +3,7 @@ Serializers for Public Site.
 """
 from rest_framework import serializers
 from django.utils import timezone
-from .models import PublicSettings, News
+from .models import PublicSettings, News, Complaint
 
 
 class PublicSettingsSerializer(serializers.ModelSerializer):
@@ -59,6 +59,52 @@ class NewsDetailSerializer(serializers.ModelSerializer):
             'created_at',
         ]
         read_only_fields = ['id', 'published_at', 'created_at']
+
+
+class ComplaintSerializer(serializers.ModelSerializer):
+    """Serializer for complaint submission and tracking."""
+
+    class Meta:
+        model = Complaint
+        fields = [
+            'id',
+            'tracking_number',
+            'name',
+            'cnic',
+            'phone',
+            'category',
+            'description',
+            'attachment',
+            'status',
+            'admin_remarks',
+            'admin_attachment',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'tracking_number', 'status', 'admin_remarks', 'admin_attachment', 'created_at', 'updated_at']
+
+
+class ComplaintAdminSerializer(serializers.ModelSerializer):
+    """Serializer for complaint management in admin panel."""
+
+    class Meta:
+        model = Complaint
+        fields = [
+            'id',
+            'tracking_number',
+            'name',
+            'cnic',
+            'phone',
+            'category',
+            'description',
+            'attachment',
+            'status',
+            'admin_remarks',
+            'admin_attachment',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'tracking_number', 'created_at', 'updated_at']
 
 
 class NewsAdminSerializer(serializers.ModelSerializer):

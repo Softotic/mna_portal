@@ -3,6 +3,7 @@ Public Site models: PublicSettings, News, Update.
 """
 from django.db import models
 from django.core.files.storage import default_storage
+from uuid import uuid4
 import os
 
 
@@ -64,3 +65,42 @@ class News(models.Model):
     
     def __str__(self):
         return self.title
+
+class Complaint(models.Model):
+    """Public-facing complaints / service requests submitted by citizens."""
+    STATUS_CHOICES = [
+        ('submitted', 'Submitted'),
+        ('in_progress', 'In Progress'),
+        ('resolved', 'Resolved'),
+        ('declined', 'Declined'),
+    ]
+
+    tracking_number = models.CharField(max_length=16, unique=True, editable=False)
+    name = models.CharField(max_length=255)
+    cnic = models.CharField(max_length=30)
+    phone = models.CharField(max_length=50)
+    category = models.CharField(max_length=120)
+    description = models.TextField()
+    attachment = models.FileField(upload_to='public/complaints/', blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='submitted')
+    admin_remarks = models.TextField(blank=True)
+    admin_attachment = models.FileField(upload_to='public/complaints/admin/', blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['tracking_number']),
+            models.Index(fields=['cnic']),
+            models.Index(fields=['status', '-created_at']),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.tracking_number:
+            self.tracking_number = f"CMP-{uuid4().hex[:8].upper()}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} ({self.tracking_number})"

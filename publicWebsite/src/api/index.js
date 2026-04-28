@@ -17,4 +17,19 @@ export const publicNewsAPI = {
   featured: () => api.get('/public/news/featured/'),
 };
 
+export const publicComplaintsAPI = {
+  create: (data) => {
+    const formData = new FormData();
+    Object.keys(data).forEach((key) => {
+      if (data[key] !== null && data[key] !== undefined) {
+        formData.append(key, data[key]);
+      }
+    });
+    return api.post('/public/complaints/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  track: (params) => api.get('/public/complaints/track/', { params }),
+};
+
 export default api;

@@ -3,6 +3,7 @@ import { AppBar, Box, Button, Container, CssBaseline, Toolbar, Typography } from
 import PublicLandingPage from './pages/PublicLandingPage.jsx';
 import PublicNewsPage from './pages/PublicNewsPage.jsx';
 import PublicNewsDetailPage from './pages/PublicNewsDetailPage.jsx';
+import PublicComplaintPage from './pages/PublicComplaintPage.jsx';
 
 export default function App() {
   return (
@@ -23,6 +24,9 @@ export default function App() {
               <Button component={Link} to="/news" color="inherit" sx={{ textTransform: 'none', fontWeight: 600 }}>
                 News
               </Button>
+              <Button component={Link} to="/complaints" color="inherit" sx={{ textTransform: 'none', fontWeight: 600 }}>
+                Complaints
+              </Button>
             </Box>
           </Toolbar>
         </Container>
@@ -32,6 +36,7 @@ export default function App() {
         <Route path="/" element={<PublicLandingPage />} />
         <Route path="/news" element={<PublicNewsPage />} />
         <Route path="/news/:id" element={<PublicNewsDetailPage />} />
+        <Route path="/complaints" element={<PublicComplaintPage />} />
         <Route path="*" element={<Typography sx={{ p: 8, textAlign: 'center' }}>Page not found.</Typography>} />
       </Routes>
     </BrowserRouter>

@@ -16,6 +16,7 @@ import SettingsPage from './pages/SettingsPage';
 import SchemeTemplateDetailPage from './pages/SchemeTemplateDetailPage';
 import PublicWebsiteSettingsPage from './pages/PublicWebsiteSettingsPage';
 import NewsManagementPage from './pages/NewsManagementPage';
+import ComplaintsManagementPage from './pages/ComplaintsManagementPage';
 
 function App() {
   const basename = window.location.pathname.startsWith('/admin') ? '/admin' : '';
@@ -89,6 +90,10 @@ function App() {
               <Route 
                 path="news-management" 
                 element={<NewsManagementPage />} 
+              />
+              <Route 
+                path="complaints-management"
+                element={<ComplaintsManagementPage />}
               />
             </Route>
 

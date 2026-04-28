@@ -185,4 +185,20 @@ export const newsAdminAPI = {
   toggleFeatured: (id) => api.post(`/public/admin/news/${id}/toggle_featured/`),
 };
 
+export const complaintsAPI = {
+  list: (params) => api.get('/public/complaints/', { params }),
+  get: (id) => api.get(`/public/complaints/${id}/`),
+  update: (id, data) => {
+    const formData = new FormData();
+    Object.keys(data).forEach((key) => {
+      if (data[key] !== null && data[key] !== undefined) {
+        formData.append(key, data[key]);
+      }
+    });
+    return api.patch(`/public/complaints/${id}/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+};
+
 export default api;
