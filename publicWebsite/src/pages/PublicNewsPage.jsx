@@ -1,160 +1,171 @@
-import { useEffect, useState } from 'react';
-import { Box, Button, Card, CardContent, CardMedia, Container, Grid, LinearProgress, TextField, Typography } from '@mui/material';
-import { Search } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  CardMedia,
+  Container,
+  Grid,
+  InputAdornment,
+  LinearProgress,
+  Paper,
+  TextField,
+  Typography,
+} from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import { ArrowOutward, Search } from '@mui/icons-material';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { publicNewsAPI } from '../api/index.js';
 
 export default function PublicNewsPage() {
   const navigate = useNavigate();
+  const { settings } = useOutletContext();
   const [newsList, setNewsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
+    let active = true;
+
     (async () => {
-      setLoading(true);
       try {
         const response = await publicNewsAPI.list();
-        const data = response.data;
-        setNewsList(Array.isArray(data) ? data : data?.results || []);
-      } catch (err) {
-        console.error(err);
+        if (!active) return;
+        const data = Array.isArray(response.data) ? response.data : response.data?.results || [];
+        setNewsList(data);
+      } catch (error) {
+        console.error(error);
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     })();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const filteredNews = newsList.filter((news) => {
-    const term = searchQuery.toLowerCase();
-    return (
-      news.title?.toLowerCase().includes(term) ||
-      (news.excerpt || '').toLowerCase().includes(term)
-    );
-  });
+  const filteredNews = useMemo(() => {
+    const term = searchQuery.trim().toLowerCase();
+    if (!term) return newsList;
+    return newsList.filter((item) => {
+      return item.title?.toLowerCase().includes(term) || (item.excerpt || '').toLowerCase().includes(term);
+    });
+  }, [newsList, searchQuery]);
 
-  const featuredNews = filteredNews[0];
-  const otherNews = filteredNews.slice(1);
+  const leadStory = filteredNews[0];
+  const supportingStories = filteredNews.slice(1, 5);
+  const archiveStories = filteredNews.slice(5);
 
   if (loading) {
-    return <LinearProgress />;
+    return <LinearProgress color="secondary" />;
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f4f6f8' }}>
-      <Box sx={{ position: 'relative', bgcolor: '#0a3712', color: '#fff', py: { xs: 6, md: 10 }, overflow: 'hidden' }}>
-        <Box sx={{ position: 'absolute', top: -80, right: -80, width: 240, height: 240, bgcolor: 'rgba(255,255,255,0.08)', borderRadius: '50%' }} />
-        <Box sx={{ position: 'absolute', bottom: -60, left: -60, width: 220, height: 220, bgcolor: 'rgba(255,255,255,0.06)', borderRadius: '50%' }} />
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-          <Typography variant="overline" sx={{ color: '#94d087', letterSpacing: 1.5, mb: 2, display: 'block', fontWeight: 700 }}>
-            Latest updates
-          </Typography>
-          <Typography variant="h2" sx={{ fontWeight: 800, lineHeight: 1.05, mb: 3, maxWidth: 760 }}>
-            News from the MNA portal
-          </Typography>
-          <Typography variant="body1" sx={{ maxWidth: 680, color: '#d7e6cf', mb: 4, fontSize: '1rem' }}>
-            Discover official news, announcements, and published updates in one elegant experience.
-          </Typography>
-          <TextField
-            fullWidth
-            placeholder="Search news by title or summary..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <Box sx={{ pr: 1, color: '#b7d5b0' }}>
-                  <Search />
-                </Box>
-              ),
-            }}
-            variant="filled"
-            sx={{ bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 2, input: { color: '#fff' }, '.MuiInputBase-input': { color: '#fff' } }}
-          />
-        </Container>
-      </Box>
+    <Box>
+      <Container sx={{ pt: { xs: 6, md: 8 }, pb: 4 }}>
+        <Grid container spacing={4} alignItems="end">
+          <Grid item xs={12} lg={7}>
+            <Typography variant="overline" color="secondary.main">
+              Official Newsroom
+            </Typography>
+            <Typography variant="h2" sx={{ mt: 1.2, maxWidth: 800 }}>
+              A professional record of public statements, field work, and office activity
+            </Typography>
+            <Typography color="text.secondary" sx={{ mt: 2.5, maxWidth: 760 }}>
+              {settings?.site_name || 'This office'} uses the newsroom to publish official updates in a clear editorial format that is easy for citizens, media, and stakeholders to browse.
+            </Typography>
+          </Grid>
+          <Grid item xs={12} lg={5}>
+            <TextField
+              fullWidth
+              placeholder="Search headlines or summaries"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+        </Grid>
+      </Container>
 
-      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>
+      <Container sx={{ pb: { xs: 6, md: 8 } }}>
         {filteredNews.length === 0 ? (
-          <Box sx={{ py: 12, textAlign: 'center' }}>
-            <Typography variant="h5" sx={{ mb: 2 }}>No news found</Typography>
-            <Typography color="text.secondary">Try a different search term or check back later for new updates.</Typography>
-          </Box>
+          <Paper sx={{ p: 4, border: '1px solid rgba(16,36,27,0.08)', textAlign: 'center' }}>
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              No matching updates found
+            </Typography>
+            <Typography color="text.secondary">
+              Try a different keyword or return later as new stories are published.
+            </Typography>
+          </Paper>
         ) : (
-          <Grid container spacing={4}>
-            {featuredNews && (
-              <Grid item xs={12} md={8}>
-                <Card
-                  onClick={() => navigate(`/news/${featuredNews.id}`)}
-                  sx={{ borderRadius: 4, overflow: 'hidden', boxShadow: '0 24px 64px rgba(15, 23, 42, 0.08)', cursor: 'pointer', transition: 'transform 0.3s ease, boxShadow 0.3s ease', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 32px 80px rgba(15, 23, 42, 0.12)' } }}
-                >
-                  {featuredNews.image ? (
-                    <CardMedia component="img" height="420" image={featuredNews.image} alt={featuredNews.title} />
+          <Grid container spacing={3}>
+            {leadStory && (
+              <Grid item xs={12} lg={8}>
+                <Card sx={{ cursor: 'pointer', overflow: 'hidden' }} onClick={() => navigate(`/news/${leadStory.id}`)}>
+                  {leadStory.image ? (
+                    <CardMedia component="img" image={leadStory.image} alt={leadStory.title} sx={{ height: { xs: 260, md: 470 }, objectFit: 'cover' }} />
                   ) : (
-                    <Box sx={{ height: 420, bgcolor: '#e8f4e0' }} />
+                    <Box sx={{ height: { xs: 260, md: 470 }, bgcolor: alpha('#1f5f46', 0.08) }} />
                   )}
                   <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-                    <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: 1.2, mb: 2, display: 'block' }}>
-                      {new Date(featuredNews.published_at).toLocaleDateString()}
+                    <Typography variant="overline" color="secondary.main">
+                      {leadStory.published_at ? new Date(leadStory.published_at).toLocaleDateString() : 'Lead story'}
                     </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
-                      {featuredNews.title}
+                    <Typography variant="h3" sx={{ mt: 1.2, mb: 1.6, maxWidth: 820 }}>
+                      {leadStory.title}
                     </Typography>
-                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3, lineHeight: 1.75 }}>
-                      {featuredNews.excerpt}
+                    <Typography color="text.secondary" sx={{ maxWidth: 760 }}>
+                      {leadStory.excerpt || 'Open the story to read the complete official update.'}
                     </Typography>
-                    <Button variant="contained" size="large" sx={{ textTransform: 'none', boxShadow: '0 12px 24px rgba(15, 23, 42, 0.12)' }}>
-                      Read news
-                    </Button>
+                    <Typography sx={{ mt: 2.5, color: 'primary.main', fontWeight: 800 }}>
+                      Read article <ArrowOutward sx={{ fontSize: 18, verticalAlign: 'middle', ml: 0.5 }} />
+                    </Typography>
                   </CardContent>
                 </Card>
               </Grid>
             )}
 
-            <Grid item xs={12} md={featuredNews ? 4 : 12}>
-              <Box sx={{ display: 'grid', gap: 24 }}>
-                {otherNews.slice(0, 3).map((news) => (
-                  <Card
-                    key={news.id}
-                    onClick={() => navigate(`/news/${news.id}`)}
-                    sx={{ borderRadius: 3, minHeight: 220, transition: 'transform 0.25s ease', cursor: 'pointer', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 18px 40px rgba(15,23,42,0.08)' } }}
-                  >
-                    {news.image && <CardMedia component="img" height="180" image={news.image} alt={news.title} />}
-                    <CardContent>
-                      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                        {new Date(news.published_at).toLocaleDateString()}
-                      </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5 }}>
-                        {news.title}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {news.excerpt}
-                      </Typography>
-                      <Button size="small" sx={{ textTransform: 'none', fontWeight: 600 }}>Read more</Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </Box>
+            <Grid item xs={12} lg={4}>
+              <StackedPaperList items={supportingStories} navigate={navigate} />
             </Grid>
 
-            {otherNews.length > 3 && (
+            {archiveStories.length > 0 && (
               <Grid item xs={12}>
+                <Box sx={{ mt: 1, mb: 2 }}>
+                  <Typography variant="overline" color="secondary.main">
+                    Archive
+                  </Typography>
+                  <Typography variant="h4" sx={{ mt: 0.8 }}>
+                    More published updates
+                  </Typography>
+                </Box>
                 <Grid container spacing={3}>
-                  {otherNews.slice(3).map((news) => (
-                    <Grid item xs={12} sm={6} key={news.id}>
-                      <Card
-                        onClick={() => navigate(`/news/${news.id}`)}
-                        sx={{ borderRadius: 3, transition: 'transform 0.25s ease', cursor: 'pointer', '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 14px 36px rgba(15,23,42,0.08)' } }}
-                      >
-                        {news.image && <CardMedia component="img" height="200" image={news.image} alt={news.title} />}
-                        <CardContent>
-                          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                            {new Date(news.published_at).toLocaleDateString()}
+                  {archiveStories.map((item) => (
+                    <Grid item xs={12} md={6} xl={4} key={item.id}>
+                      <Card sx={{ height: '100%', cursor: 'pointer' }} onClick={() => navigate(`/news/${item.id}`)}>
+                        {item.image ? (
+                          <CardMedia component="img" image={item.image} alt={item.title} sx={{ height: 220, objectFit: 'cover' }} />
+                        ) : (
+                          <Box sx={{ height: 220, bgcolor: alpha('#1f5f46', 0.08) }} />
+                        )}
+                        <CardContent sx={{ p: 3 }}>
+                          <Typography variant="overline" color="secondary.main">
+                            {item.published_at ? new Date(item.published_at).toLocaleDateString() : 'Official update'}
                           </Typography>
-                          <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5 }}>
-                            {news.title}
+                          <Typography variant="h6" sx={{ mt: 1, mb: 1.2 }}>
+                            {item.title}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                            {news.excerpt}
+                          <Typography color="text.secondary">
+                            {item.excerpt || 'Open the article to continue reading.'}
                           </Typography>
                         </CardContent>
                       </Card>
@@ -166,6 +177,43 @@ export default function PublicNewsPage() {
           </Grid>
         )}
       </Container>
+    </Box>
+  );
+}
+
+function StackedPaperList({ items, navigate }) {
+  if (!items.length) {
+    return (
+      <Paper sx={{ p: 3.5, border: '1px solid rgba(16,36,27,0.08)' }}>
+        <Typography variant="h6" sx={{ mb: 1 }}>
+          Newsroom ready
+        </Typography>
+        <Typography color="text.secondary">
+          Additional published updates will appear here automatically.
+        </Typography>
+      </Paper>
+    );
+  }
+
+  return (
+    <Box sx={{ display: 'grid', gap: 2 }}>
+      {items.map((item) => (
+        <Paper
+          key={item.id}
+          sx={{ p: 2.6, border: '1px solid rgba(16,36,27,0.08)', cursor: 'pointer' }}
+          onClick={() => navigate(`/news/${item.id}`)}
+        >
+          <Typography variant="overline" color="secondary.main">
+            {item.published_at ? new Date(item.published_at).toLocaleDateString() : 'Published'}
+          </Typography>
+          <Typography variant="h6" sx={{ mt: 0.9, mb: 1.1 }}>
+            {item.title}
+          </Typography>
+          <Typography color="text.secondary">
+            {item.excerpt || 'Open the article to read the complete update.'}
+          </Typography>
+        </Paper>
+      ))}
     </Box>
   );
 }

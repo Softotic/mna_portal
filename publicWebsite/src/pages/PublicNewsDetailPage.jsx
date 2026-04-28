@@ -1,7 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Box, Button, Card, CardContent, CardMedia, Container, Grid, LinearProgress, Typography } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
-import { useParams, useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardMedia,
+  Container,
+  Grid,
+  LinearProgress,
+  Paper,
+  Typography,
+} from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import { ArrowBack, ArrowOutward } from '@mui/icons-material';
+import { useNavigate, useParams } from 'react-router-dom';
 import { publicNewsAPI } from '../api/index.js';
 
 export default function PublicNewsDetailPage() {
@@ -12,136 +24,143 @@ export default function PublicNewsDetailPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    let active = true;
+
     if (!id) {
-      setError('News ID not provided');
+      setError('News article not found.');
       setLoading(false);
-      return;
+      return undefined;
     }
 
     (async () => {
-      setLoading(true);
-      setError('');
       try {
         const response = await publicNewsAPI.get(id);
-        setNews(response.data);
+        if (active) {
+          setNews(response.data);
+        }
       } catch (err) {
         console.error(err);
-        setError('Unable to load news article.');
+        if (active) {
+          setError('Unable to load this article.');
+        }
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     })();
+
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   if (loading) {
-    return <LinearProgress />;
+    return <LinearProgress color="secondary" />;
   }
 
   if (error || !news) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: '#f4f6f8' }}>
-        <Container maxWidth="lg" sx={{ py: 10, textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ mb: 2 }}>
-            {error || 'News article not found'}
-          </Typography>
-          <Button onClick={() => navigate('/news')} sx={{ textTransform: 'none', fontWeight: 600 }}>
-            Back to news
-          </Button>
-        </Container>
-      </Box>
+      <Container sx={{ py: 10, textAlign: 'center' }}>
+        <Typography variant="h5" sx={{ mb: 2 }}>
+          {error || 'News article not found.'}
+        </Typography>
+        <Button onClick={() => navigate('/news')} startIcon={<ArrowBack />}>
+          Return to newsroom
+        </Button>
+      </Container>
     );
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f4f6f8' }}>
-      <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 } }}>
-        <Button
-          onClick={() => navigate('/news')}
-          startIcon={<ArrowBack />}
-          sx={{ textTransform: 'none', fontWeight: 600, mb: 4 }}
-        >
-          Back to news
+    <Box>
+      <Container sx={{ pt: { xs: 5, md: 7 }, pb: 4 }}>
+        <Button onClick={() => navigate('/news')} startIcon={<ArrowBack />} sx={{ mb: 3 }}>
+          Back to newsroom
         </Button>
+        <Typography variant="overline" color="secondary.main">
+          Official Article
+        </Typography>
+        <Typography variant="h2" sx={{ mt: 1.1, maxWidth: 920 }}>
+          {news.title}
+        </Typography>
+        {news.excerpt && (
+          <Typography color="text.secondary" sx={{ mt: 2.4, maxWidth: 780, fontSize: '1.05rem' }}>
+            {news.excerpt}
+          </Typography>
+        )}
+      </Container>
 
-        <Card sx={{ borderRadius: 4, overflow: 'hidden', boxShadow: '0 12px 40px rgba(15, 23, 42, 0.08)' }}>
-          {news.image && (
-            <CardMedia component="img" height="500" image={news.image} alt={news.title} sx={{ objectFit: 'cover' }} />
+      <Container sx={{ pb: 8 }}>
+        <Card>
+          {news.image ? (
+            <CardMedia component="img" image={news.image} alt={news.title} sx={{ height: { xs: 260, md: 520 }, objectFit: 'cover' }} />
+          ) : (
+            <Box sx={{ height: { xs: 260, md: 360 }, bgcolor: alpha('#1f5f46', 0.08) }} />
           )}
-          <CardContent sx={{ p: { xs: 4, md: 6 } }}>
-            <Typography variant="overline" sx={{ color: '#0a3712', letterSpacing: 1.2, fontWeight: 700, mb: 2, display: 'block' }}>
-              Published {new Date(news.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
-            </Typography>
 
-            <Typography variant="h2" sx={{ fontWeight: 800, mb: 3, lineHeight: 1.2 }}>
-              {news.title}
-            </Typography>
-
-            {news.excerpt && (
-              <Typography variant="h5" sx={{ color: '#666', fontWeight: 300, mb: 4, lineHeight: 1.7 }}>
-                {news.excerpt}
-              </Typography>
-            )}
-
-            <Box sx={{ my: 4, borderTop: '1px solid #e0e7dd', borderBottom: '1px solid #e0e7dd', py: 3 }}>
-              <Grid container spacing={3}>
-                <Grid item xs={6} sm={3}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                    Status
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 700, textTransform: 'capitalize' }}>
-                    {news.status}
-                  </Typography>
+          <CardContent sx={{ p: { xs: 3, md: 5 } }}>
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+              {[
+                {
+                  label: 'Published',
+                  value: news.published_at
+                    ? new Date(news.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+                    : 'Not available',
+                },
+                {
+                  label: 'Status',
+                  value: news.status ? news.status.replace(/_/g, ' ') : 'Published',
+                },
+                {
+                  label: 'Updated',
+                  value: news.updated_at ? new Date(news.updated_at).toLocaleDateString() : 'Not available',
+                },
+              ].map((item) => (
+                <Grid item xs={12} md={4} key={item.label}>
+                  <Paper sx={{ p: 2.4, border: '1px solid rgba(16,36,27,0.08)' }}>
+                    <Typography variant="overline" color="secondary.main">
+                      {item.label}
+                    </Typography>
+                    <Typography sx={{ mt: 0.8, fontWeight: 700, textTransform: 'capitalize' }}>
+                      {item.value}
+                    </Typography>
+                  </Paper>
                 </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                    Published
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                    {news.published_at ? 'Yes' : 'No'}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                    Featured
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                    {news.featured ? 'Yes' : 'No'}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                    Updated
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                    {new Date(news.updated_at).toLocaleDateString()}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Box>
+              ))}
+            </Grid>
 
             <Typography
-              variant="body1"
               sx={{
-                color: '#333',
+                color: 'text.primary',
                 lineHeight: 2,
-                fontSize: '1.1rem',
+                fontSize: '1.08rem',
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
+                maxWidth: 900,
               }}
             >
               {news.content}
             </Typography>
 
-            <Box sx={{ mt: 6, pt: 4, borderTop: '1px solid #e0e7dd' }}>
-              <Button
-                onClick={() => navigate('/news')}
-                variant="outlined"
-                startIcon={<ArrowBack />}
-                sx={{ textTransform: 'none', fontWeight: 600 }}
-              >
-                Back to all news
+            <Paper
+              sx={{
+                mt: 5,
+                p: 3,
+                border: '1px solid rgba(16,36,27,0.08)',
+                background: 'linear-gradient(135deg, rgba(220,235,220,0.60) 0%, rgba(255,255,255,0.96) 100%)',
+              }}
+            >
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                Need support on a related issue?
+              </Typography>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
+                Citizens can submit a complaint or service request through the public complaint portal and receive a trackable case reference.
+              </Typography>
+              <Button onClick={() => navigate('/complaints')} variant="contained" color="secondary" endIcon={<ArrowOutward />}>
+                Open Complaint Portal
               </Button>
-            </Box>
+            </Paper>
           </CardContent>
         </Card>
       </Container>

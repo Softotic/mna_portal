@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -7,11 +8,9 @@ import {
   CardHeader,
   Divider,
   Grid,
+  LinearProgress,
   TextField,
   Typography,
-  LinearProgress,
-  Alert,
-  Paper,
 } from '@mui/material';
 import { Save as SaveIcon } from '@mui/icons-material';
 import { publicSettingsAPI } from '../api';
@@ -32,8 +31,8 @@ export default function PublicWebsiteSettingsPage() {
       const response = await publicSettingsAPI.current();
       setSettings(response.data);
     } catch (err) {
-      setMessage('Error loading settings');
       console.error(err);
+      setMessage('Error loading website settings.');
     } finally {
       setLoading(false);
     }
@@ -65,12 +64,12 @@ export default function PublicWebsiteSettingsPage() {
       }
 
       await publicSettingsAPI.update(settings.id, payload);
-      setMessage('Settings saved successfully!');
+      setMessage('Website settings saved successfully.');
       setTimeout(() => setMessage(''), 3000);
       fetchSettings();
     } catch (err) {
-      setMessage(err.response?.data?.detail || 'Error saving settings');
       console.error(err);
+      setMessage(err.response?.data?.detail || 'Error saving website settings.');
     } finally {
       setSaving(false);
     }
@@ -83,7 +82,7 @@ export default function PublicWebsiteSettingsPage() {
   if (!settings) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="error">Failed to load settings</Alert>
+        <Alert severity="error">Failed to load website settings.</Alert>
       </Box>
     );
   }
@@ -95,13 +94,13 @@ export default function PublicWebsiteSettingsPage() {
           Public Website Settings
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Manage your public website content and appearance
+          Personalize the MNA public website with local identity, contact channels, and social information.
         </Typography>
       </Box>
 
       {message && (
         <Alert
-          severity={message.includes('Error') ? 'error' : 'success'}
+          severity={message.toLowerCase().includes('error') ? 'error' : 'success'}
           sx={{ mb: 3 }}
           onClose={() => setMessage('')}
         >
@@ -109,46 +108,32 @@ export default function PublicWebsiteSettingsPage() {
         </Alert>
       )}
 
-      {/* Site Identity */}
-      <Card sx={{ borderRadius: 2, mb: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-        <CardHeader
-          title="Site Identity"
-          titleTypographyProps={{ variant: 'h6', sx: { fontWeight: 600, fontSize: '1rem' } }}
-          sx={{ pb: 2, pt: 3, px: 3, bgcolor: '#fafbfc' }}
-        />
+      <Card sx={{ borderRadius: 2, mb: 3 }}>
+        <CardHeader title="Leader Identity" sx={{ bgcolor: '#fafbfc' }} />
         <Divider />
-        <CardContent sx={{ pt: 3 }}>
+        <CardContent>
           <Grid container spacing={2.5}>
             <Grid item xs={12} md={6}>
-              <TextField
-                label="Site Name"
-                fullWidth
-                value={settings.site_name || ''}
-                onChange={(e) => handleChange('site_name', e.target.value)}
-                variant="outlined"
-                size="small"
-              />
+              <TextField label="Site Name" fullWidth value={settings.site_name || ''} onChange={(e) => handleChange('site_name', e.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField label="Leader Name" fullWidth value={settings.leader_name || ''} onChange={(e) => handleChange('leader_name', e.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField label="Designation" fullWidth value={settings.designation || ''} onChange={(e) => handleChange('designation', e.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField label="Constituency" fullWidth value={settings.constituency || ''} onChange={(e) => handleChange('constituency', e.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField label="District / City" fullWidth value={settings.district || ''} onChange={(e) => handleChange('district', e.target.value)} />
             </Grid>
             <Grid item xs={12} md={6}>
               <Box>
                 <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
                   Logo
                 </Typography>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileChange('logo', e.target.files?.[0])}
-                  style={{ marginBottom: '8px' }}
-                />
-                {settings.logo && typeof settings.logo === 'string' && (
-                  <Box sx={{ mt: 1 }}>
-                    <img
-                      src={settings.logo}
-                      alt="Logo"
-                      style={{ maxHeight: '80px', maxWidth: '200px' }}
-                    />
-                  </Box>
-                )}
+                <input type="file" accept="image/*" onChange={(e) => handleFileChange('logo', e.target.files?.[0])} />
               </Box>
             </Grid>
             <Grid item xs={12}>
@@ -159,108 +144,57 @@ export default function PublicWebsiteSettingsPage() {
                 rows={2}
                 value={settings.site_message || ''}
                 onChange={(e) => handleChange('site_message', e.target.value)}
-                variant="outlined"
-                size="small"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Hero Statement"
+                fullWidth
+                multiline
+                rows={2}
+                value={settings.hero_statement || ''}
+                onChange={(e) => handleChange('hero_statement', e.target.value)}
               />
             </Grid>
           </Grid>
         </CardContent>
       </Card>
 
-      {/* Landing Page Content */}
-      <Card sx={{ borderRadius: 2, mb: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-        <CardHeader
-          title="Landing Page Content"
-          titleTypographyProps={{ variant: 'h6', sx: { fontWeight: 600, fontSize: '1rem' } }}
-          sx={{ pb: 2, pt: 3, px: 3, bgcolor: '#fafbfc' }}
-        />
+      <Card sx={{ borderRadius: 2, mb: 3 }}>
+        <CardHeader title="Public Content" sx={{ bgcolor: '#fafbfc' }} />
         <Divider />
-        <CardContent sx={{ pt: 3 }}>
+        <CardContent>
           <Grid container spacing={2.5}>
             <Grid item xs={12}>
-              <TextField
-                label="Introduction"
-                fullWidth
-                multiline
-                rows={4}
-                value={settings.intro || ''}
-                onChange={(e) => handleChange('intro', e.target.value)}
-                variant="outlined"
-                size="small"
-                helperText="Main introduction text for the landing page"
-              />
+              <TextField label="Introduction" fullWidth multiline rows={4} value={settings.intro || ''} onChange={(e) => handleChange('intro', e.target.value)} />
             </Grid>
             <Grid item xs={12}>
               <Box>
                 <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
-                  Introduction Image
+                  Hero / Introduction Image
                 </Typography>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileChange('intro_image', e.target.files?.[0])}
-                  style={{ marginBottom: '8px' }}
-                />
-                {settings.intro_image && typeof settings.intro_image === 'string' && (
-                  <Box sx={{ mt: 1 }}>
-                    <img
-                      src={settings.intro_image}
-                      alt="Intro"
-                      style={{ maxHeight: '200px', maxWidth: '100%' }}
-                    />
-                  </Box>
-                )}
+                <input type="file" accept="image/*" onChange={(e) => handleFileChange('intro_image', e.target.files?.[0])} />
               </Box>
             </Grid>
             <Grid item xs={12}>
+              <TextField label="About Section" fullWidth multiline rows={4} value={settings.about || ''} onChange={(e) => handleChange('about', e.target.value)} />
+            </Grid>
+            <Grid item xs={12}>
               <TextField
-                label="About"
+                label="Achievements / Focus Areas"
                 fullWidth
                 multiline
                 rows={4}
-                value={settings.about || ''}
-                onChange={(e) => handleChange('about', e.target.value)}
-                variant="outlined"
-                size="small"
-              />
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-
-      {/* Organization Information */}
-      <Card sx={{ borderRadius: 2, mb: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-        <CardHeader
-          title="Organization Information"
-          titleTypographyProps={{ variant: 'h6', sx: { fontWeight: 600, fontSize: '1rem' } }}
-          sx={{ pb: 2, pt: 3, px: 3, bgcolor: '#fafbfc' }}
-        />
-        <Divider />
-        <CardContent sx={{ pt: 3 }}>
-          <Grid container spacing={2.5}>
-            <Grid item xs={12}>
-              <TextField
-                label="Vision"
-                fullWidth
-                multiline
-                rows={3}
-                value={settings.vision || ''}
-                onChange={(e) => handleChange('vision', e.target.value)}
-                variant="outlined"
-                size="small"
+                helperText="Enter one achievement or public focus area per line."
+                value={settings.achievements || ''}
+                onChange={(e) => handleChange('achievements', e.target.value)}
               />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                label="Mission"
-                fullWidth
-                multiline
-                rows={3}
-                value={settings.mission || ''}
-                onChange={(e) => handleChange('mission', e.target.value)}
-                variant="outlined"
-                size="small"
-              />
+              <TextField label="Vision" fullWidth multiline rows={3} value={settings.vision || ''} onChange={(e) => handleChange('vision', e.target.value)} />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField label="Mission" fullWidth multiline rows={3} value={settings.mission || ''} onChange={(e) => handleChange('mission', e.target.value)} />
             </Grid>
             <Grid item xs={12}>
               <TextField
@@ -268,25 +202,56 @@ export default function PublicWebsiteSettingsPage() {
                 fullWidth
                 multiline
                 rows={3}
+                helperText="Enter one value per line."
                 value={settings.values || ''}
                 onChange={(e) => handleChange('values', e.target.value)}
-                variant="outlined"
-                size="small"
               />
             </Grid>
           </Grid>
         </CardContent>
       </Card>
 
-      {/* Save Button */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-        <Button
-          variant="contained"
-          startIcon={<SaveIcon />}
-          disabled={saving}
-          onClick={handleSave}
-          sx={{ textTransform: 'none', fontWeight: 600 }}
-        >
+      <Card sx={{ borderRadius: 2, mb: 3 }}>
+        <CardHeader title="Office Contact & Social Links" sx={{ bgcolor: '#fafbfc' }} />
+        <Divider />
+        <CardContent>
+          <Grid container spacing={2.5}>
+            <Grid item xs={12}>
+              <TextField label="Office Address" fullWidth multiline rows={3} value={settings.office_address || ''} onChange={(e) => handleChange('office_address', e.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField label="Office Hours" fullWidth value={settings.office_hours || ''} onChange={(e) => handleChange('office_hours', e.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField label="Contact Email" fullWidth value={settings.contact_email || ''} onChange={(e) => handleChange('contact_email', e.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField label="Contact Phone" fullWidth value={settings.contact_phone || ''} onChange={(e) => handleChange('contact_phone', e.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField label="WhatsApp" fullWidth value={settings.whatsapp || ''} onChange={(e) => handleChange('whatsapp', e.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField label="Facebook URL" fullWidth value={settings.facebook_url || ''} onChange={(e) => handleChange('facebook_url', e.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField label="X / Twitter URL" fullWidth value={settings.x_url || ''} onChange={(e) => handleChange('x_url', e.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField label="Instagram URL" fullWidth value={settings.instagram_url || ''} onChange={(e) => handleChange('instagram_url', e.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField label="YouTube URL" fullWidth value={settings.youtube_url || ''} onChange={(e) => handleChange('youtube_url', e.target.value)} />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField label="Website URL" fullWidth value={settings.website_url || ''} onChange={(e) => handleChange('website_url', e.target.value)} />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button variant="contained" startIcon={<SaveIcon />} disabled={saving} onClick={handleSave}>
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>
       </Box>

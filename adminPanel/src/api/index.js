@@ -153,6 +153,14 @@ export const publicNewsAPI = {
   featured: () => api.get('/public/news/featured/'),
 };
 
+export const feedbacksAPI = {
+  list: (params) => api.get('/public/feedbacks/', { params }),
+  get: (id) => api.get(`/public/feedbacks/${id}/`),
+  create: (data) => api.post('/public/feedbacks/', data),
+  update: (id, data) => api.patch(`/public/feedbacks/${id}/`, data),
+  delete: (id) => api.delete(`/public/feedbacks/${id}/`),
+};
+
 // ─── News Admin API (Admin - Auth Required) ───
 export const newsAdminAPI = {
   list: (params) => api.get('/public/admin/news/', { params }),
@@ -196,6 +204,17 @@ export const complaintsAPI = {
       }
     });
     return api.patch(`/public/complaints/${id}/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  addUpdate: (id, data) => {
+    const formData = new FormData();
+    Object.keys(data).forEach((key) => {
+      if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
+        formData.append(key, data[key]);
+      }
+    });
+    return api.post(`/public/complaints/${id}/add_update/`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },

@@ -2,6 +2,10 @@
   "name": "mna-portal-monorepo",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "dev": "./start.sh",
+    "start": "./start.sh"
+  },
   "workspaces": [
     "adminPanel",
     "publicWebsite",

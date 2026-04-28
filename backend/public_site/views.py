@@ -8,9 +8,10 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.utils import timezone
 from django.db.models import Q
-from .models import PublicSettings, News, Complaint
+from .models import PublicSettings, News, Complaint, ComplaintUpdate, CitizenFeedback
 from .serializers import (
     PublicSettingsSerializer,
+    CitizenFeedbackSerializer,
     NewsListSerializer,
     NewsDetailSerializer,
     NewsAdminSerializer,
@@ -40,6 +41,34 @@ class PublicSettingsViewSet(viewsets.ModelViewSet):
         if not settings:
             settings = PublicSettings.objects.create()
         serializer = self.get_serializer(settings)
+        return Response(serializer.data)
+
+
+class CitizenFeedbackViewSet(viewsets.ModelViewSet):
+    """Public feedback listing and admin feedback management."""
+
+    queryset = CitizenFeedback.objects.all().order_by('sort_order', '-created_at')
+    serializer_class = CitizenFeedbackSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    filterset_fields = ['status', 'featured']
+    search_fields = ['name', 'location', 'quote']
+    ordering_fields = ['sort_order', 'created_at', 'updated_at']
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve', 'featured']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        queryset = CitizenFeedback.objects.all().order_by('sort_order', '-created_at')
+        if self.action in ['list', 'retrieve', 'featured'] and not getattr(self.request, 'user', None).is_authenticated:
+            return queryset.filter(status='published')
+        return queryset
+
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    def featured(self, request):
+        feedbacks = self.get_queryset().filter(featured=True)[:6]
+        serializer = self.get_serializer(feedbacks, many=True)
         return Response(serializer.data)
 
 
@@ -76,6 +105,22 @@ def news_featured(request):
     )[:3]
     
     serializer = NewsListSerializer(news, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def news_detail(request, pk):
+    """Public detail view for a single published news item."""
+    news = News.objects.filter(
+        pk=pk,
+        status='published',
+        published_at__isnull=False,
+    ).first()
+    if not news:
+        return Response({'detail': 'News article not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = NewsDetailSerializer(news)
     return Response(serializer.data)
 
 
@@ -126,6 +171,9 @@ class ComplaintViewSet(viewsets.ModelViewSet):
     queryset = Complaint.objects.all().order_by('-created_at')
     serializer_class = ComplaintSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+    filterset_fields = ['status', 'category']
+    search_fields = ['tracking_number', 'name', 'cnic', 'phone', 'description', 'admin_remarks']
+    ordering_fields = ['created_at', 'updated_at', 'status']
 
     def get_permissions(self):
         if self.action in ['create', 'track']:
@@ -136,6 +184,12 @@ class ComplaintViewSet(viewsets.ModelViewSet):
         if self.action in ['update', 'partial_update', 'retrieve', 'list']:
             return ComplaintAdminSerializer
         return ComplaintSerializer
+
+    def get_queryset(self):
+        queryset = Complaint.objects.all().order_by('-created_at').prefetch_related('updates')
+        if self.action in ['track']:
+            return queryset
+        return queryset
 
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def track(self, request):
@@ -158,3 +212,37 @@ class ComplaintViewSet(viewsets.ModelViewSet):
             {'detail': 'Please provide a tracking_number or cnic to search.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated], parser_classes=[MultiPartParser, FormParser, JSONParser])
+    def add_update(self, request, pk=None):
+        complaint = self.get_object()
+        next_status = request.data.get('status') or complaint.status
+        comment = (request.data.get('comment') or '').strip()
+        attachment = request.FILES.get('attachment') or request.data.get('attachment')
+
+        if next_status not in dict(Complaint.STATUS_CHOICES):
+            return Response({'status': ['Invalid status supplied.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not comment and not attachment and next_status == complaint.status:
+            return Response(
+                {'detail': 'Add a status change, remark, or attachment before saving.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        complaint.status = next_status
+        if comment:
+            complaint.admin_remarks = comment
+        if attachment:
+            complaint.admin_attachment = attachment
+        complaint.save(update_fields=['status', 'admin_remarks', 'admin_attachment', 'updated_at'])
+
+        ComplaintUpdate.objects.create(
+            complaint=complaint,
+            status=next_status,
+            comment=comment,
+            attachment=attachment,
+            created_by=request.user if request.user.is_authenticated else None,
+        )
+
+        serializer = ComplaintAdminSerializer(complaint, context=self.get_serializer_context())
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

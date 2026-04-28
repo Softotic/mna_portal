@@ -2,7 +2,7 @@
 Admin panel configuration for Public Site.
 """
 from django.contrib import admin
-from .models import PublicSettings, News, Complaint
+from .models import PublicSettings, News, Complaint, ComplaintUpdate, CitizenFeedback
 
 
 @admin.register(PublicSettings)
@@ -11,13 +11,27 @@ class PublicSettingsAdmin(admin.ModelAdmin):
     list_display = ('site_name', 'updated_at')
     fieldsets = (
         ('Site Identity', {
-            'fields': ('site_name', 'logo'),
+            'fields': ('site_name', 'leader_name', 'designation', 'constituency', 'district', 'logo'),
         }),
         ('Content', {
-            'fields': ('site_message', 'intro', 'intro_image', 'about'),
+            'fields': ('site_message', 'hero_statement', 'intro', 'intro_image', 'about', 'achievements'),
         }),
         ('Organization Info', {
             'fields': ('vision', 'mission', 'values'),
+        }),
+        ('Public Contact & Socials', {
+            'fields': (
+                'office_address',
+                'office_hours',
+                'contact_email',
+                'contact_phone',
+                'whatsapp',
+                'facebook_url',
+                'x_url',
+                'instagram_url',
+                'youtube_url',
+                'website_url',
+            ),
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
@@ -72,3 +86,19 @@ class ComplaintAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
+
+
+@admin.register(ComplaintUpdate)
+class ComplaintUpdateAdmin(admin.ModelAdmin):
+    list_display = ('complaint', 'status', 'created_by', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('complaint__tracking_number', 'complaint__name', 'comment')
+    readonly_fields = ('created_at',)
+
+
+@admin.register(CitizenFeedback)
+class CitizenFeedbackAdmin(admin.ModelAdmin):
+    list_display = ('name', 'location', 'status', 'featured', 'sort_order', 'updated_at')
+    list_filter = ('status', 'featured')
+    search_fields = ('name', 'location', 'quote')
+    list_editable = ('status', 'featured', 'sort_order')

@@ -9,7 +9,7 @@ import {
 import { schemeCategoriesAPI } from '../api';
 import {
   Dashboard, Group, AccountTree, Settings, Menu as MenuIcon, Logout, Security, Category, ChevronLeft,
-  Language, Newspaper
+  Language, Newspaper, Forum
 } from '@mui/icons-material';
 
 const DRAWER_WIDTH = 260;
@@ -21,6 +21,7 @@ const STATIC_MENU_ITEMS = [
   { text: 'Categories', icon: <Category />, path: '/categories', module: 'CATEGORIES', action: 'view' },
   { text: 'Website Settings', icon: <Language />, path: '/website-settings' },
   { text: 'News Management', icon: <Newspaper />, path: '/news-management' },
+  { text: 'Feedback Management', icon: <Forum />, path: '/feedback-management' },
   { text: 'Complaints Management', icon: <Settings />, path: '/complaints-management' },
   { text: 'Settings', icon: <Settings />, path: '/settings' },
 ];

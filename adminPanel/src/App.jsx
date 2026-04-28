@@ -17,6 +17,7 @@ import SchemeTemplateDetailPage from './pages/SchemeTemplateDetailPage';
 import PublicWebsiteSettingsPage from './pages/PublicWebsiteSettingsPage';
 import NewsManagementPage from './pages/NewsManagementPage';
 import ComplaintsManagementPage from './pages/ComplaintsManagementPage';
+import FeedbackManagementPage from './pages/FeedbackManagementPage';
 
 function App() {
   const basename = window.location.pathname.startsWith('/admin') ? '/admin' : '';
@@ -90,6 +91,10 @@ function App() {
               <Route 
                 path="news-management" 
                 element={<NewsManagementPage />} 
+              />
+              <Route
+                path="feedback-management"
+                element={<FeedbackManagementPage />}
               />
               <Route 
                 path="complaints-management"

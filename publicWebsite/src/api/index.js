@@ -17,6 +17,11 @@ export const publicNewsAPI = {
   featured: () => api.get('/public/news/featured/'),
 };
 
+export const publicFeedbacksAPI = {
+  list: (params) => api.get('/public/feedbacks/', { params }),
+  featured: () => api.get('/public/feedbacks/featured/'),
+};
+
 export const publicComplaintsAPI = {
   create: (data) => {
     const formData = new FormData();
