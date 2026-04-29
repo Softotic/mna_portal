@@ -6,7 +6,6 @@ import {
   CardContent,
   CardMedia,
   Container,
-  Grid,
   LinearProgress,
   Paper,
   Typography,
@@ -73,8 +72,8 @@ export default function PublicNewsDetailPage() {
   }
 
   return (
-    <Box>
-      <Container sx={{ pt: { xs: 5, md: 7 }, pb: 4 }}>
+    <Box sx={{ pb: { xs: 6, md: 9 } }}>
+      <Container sx={{ pt: { xs: 5, md: 7 }, pb: { xs: 3, md: 5 } }}>
         <Button onClick={() => navigate('/news')} startIcon={<ArrowBack />} sx={{ mb: 3 }}>
           Back to newsroom
         </Button>
@@ -91,8 +90,8 @@ export default function PublicNewsDetailPage() {
         )}
       </Container>
 
-      <Container sx={{ pb: 8 }}>
-        <Card>
+      <Container>
+        <Card sx={{ overflow: 'hidden' }}>
           {news.image ? (
             <CardMedia component="img" image={news.image} alt={news.title} sx={{ height: { xs: 260, md: 520 }, objectFit: 'cover' }} />
           ) : (
@@ -100,7 +99,14 @@ export default function PublicNewsDetailPage() {
           )}
 
           <CardContent sx={{ p: { xs: 3, md: 5 } }}>
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
+                gap: 2.5,
+                mb: { xs: 3.5, md: 5 },
+              }}
+            >
               {[
                 {
                   label: 'Published',
@@ -117,7 +123,7 @@ export default function PublicNewsDetailPage() {
                   value: news.updated_at ? new Date(news.updated_at).toLocaleDateString() : 'Not available',
                 },
               ].map((item) => (
-                <Grid item xs={12} md={4} key={item.label}>
+                <Box key={item.label}>
                   <Paper sx={{ p: 2.4, border: '1px solid rgba(16,36,27,0.08)' }}>
                     <Typography variant="overline" color="secondary.main">
                       {item.label}
@@ -126,9 +132,9 @@ export default function PublicNewsDetailPage() {
                       {item.value}
                     </Typography>
                   </Paper>
-                </Grid>
+                </Box>
               ))}
-            </Grid>
+            </Box>
 
             <Typography
               sx={{
@@ -138,6 +144,7 @@ export default function PublicNewsDetailPage() {
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
                 maxWidth: 900,
+                mx: 'auto',
               }}
             >
               {news.content}
@@ -146,7 +153,7 @@ export default function PublicNewsDetailPage() {
             <Paper
               sx={{
                 mt: 5,
-                p: 3,
+                p: { xs: 2.5, md: 3.5 },
                 border: '1px solid rgba(16,36,27,0.08)',
                 background: 'linear-gradient(135deg, rgba(220,235,220,0.60) 0%, rgba(255,255,255,0.96) 100%)',
               }}

@@ -4,6 +4,7 @@ Public Site models: PublicSettings, News, and citizen complaints.
 from uuid import uuid4
 
 from django.conf import settings
+from django.core.validators import FileExtensionValidator
 from django.db import models
 
 
@@ -33,7 +34,13 @@ class PublicSettings(models.Model):
     instagram_url = models.URLField(blank=True)
     youtube_url = models.URLField(blank=True)
     website_url = models.URLField(blank=True)
-    logo = models.ImageField(upload_to='public/logo/', blank=True, null=True, help_text='Organization logo')
+    logo = models.FileField(
+        upload_to='public/logo/',
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])],
+        help_text='Organization logo',
+    )
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

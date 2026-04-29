@@ -7,8 +7,6 @@ import {
   CardMedia,
   Chip,
   Container,
-  Grid,
-  LinearProgress,
   Paper,
   Stack,
   Typography,
@@ -17,7 +15,6 @@ import { alpha } from '@mui/material/styles';
 import {
   ArrowOutward,
   Campaign,
-  Diversity3,
   Feedback,
   Newspaper,
   Public,
@@ -95,10 +92,6 @@ export default function PublicLandingPage() {
     { href: settings?.website_url, label: 'Website', icon: <Language fontSize="small" /> },
   ].filter((item) => item.href);
 
-  if (loading) {
-    return <LinearProgress color="secondary" />;
-  }
-
   return (
     <Box>
       <Box
@@ -110,29 +103,53 @@ export default function PublicLandingPage() {
             'linear-gradient(180deg, rgba(220,235,220,0.65) 0%, rgba(255,253,248,0.98) 100%)',
         }}
       >
-        <Container sx={{ py: { xs: 7, md: 10 } }}>
-          <Grid container spacing={5} alignItems="center">
-            <Grid item xs={12} lg={7}>
+        <Container sx={{ py: { xs: 5, sm: 7, md: 9 } }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.05fr) minmax(360px, 0.75fr)' },
+              gap: { xs: 4, md: 6 },
+              alignItems: 'center',
+            }}
+          >
+            <Box sx={{ minWidth: 0, maxWidth: { xs: 'calc(100vw - 32px)', lg: 'none' }, padding: { xs: 0, md: 6 } }}>
               <Chip
                 label={settings?.constituency || 'Official Constituency Portal'}
                 sx={{ alignSelf: 'flex-start', bgcolor: alpha('#1f5f46', 0.10), color: 'primary.main', mb: 2.5 }}
               />
-              <Typography variant="h1" sx={{ maxWidth: 820, fontSize: { xs: '3rem', md: '5.4rem' } }}>
+              <Typography
+                variant="h1"
+                sx={{
+                  maxWidth: 900,
+                  fontSize: { xs: '2.35rem', sm: '3.7rem', md: '5.2rem' },
+                  lineHeight: { xs: 1.05, md: 1.02 },
+                  overflowWrap: 'anywhere',
+                }}
+              >
                 {settings?.leader_name || settings?.site_name || 'Member of the National Assembly'}
               </Typography>
-              <Typography variant="h4" sx={{ mt: 1.5, maxWidth: 760, color: 'primary.main' }}>
+              <Typography
+                variant="h4"
+                sx={{
+                  mt: 1.5,
+                  maxWidth: 760,
+                  color: 'primary.main',
+                  fontSize: { xs: '1.75rem', sm: '2.25rem', md: '2.7rem' },
+                  overflowWrap: 'anywhere',
+                }}
+              >
                 {settings?.designation || 'Member of the National Assembly'}{settings?.constituency ? ` for ${settings.constituency}` : ''}
               </Typography>
-              <Typography sx={{ mt: 2.5, maxWidth: 760, color: 'text.secondary', fontSize: '1.06rem' }}>
+              <Typography sx={{ mt: 2.5, maxWidth: 760, color: 'text.secondary', fontSize: '1.06rem', overflowWrap: 'break-word' }}>
                 {settings?.hero_statement ||
                   settings?.site_message ||
                   'A public service platform built for the people of Pakistan, with direct access to complaints, updates, feedback, and office communication.'}
               </Typography>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 3.5 }}>
-                <Button component={RouterLink} to="/complaints" variant="contained" color="secondary" endIcon={<ArrowOutward />}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 3.5, alignItems: { xs: 'stretch', sm: 'center' } }}>
+                <Button component={RouterLink} to="/complaints" variant="contained" color="secondary" endIcon={<ArrowOutward />} sx={{ minWidth: 0 }}>
                   Submit a Complaint
                 </Button>
-                <Button component={RouterLink} to="/news" variant="outlined" endIcon={<ArrowOutward />}>
+                <Button component={RouterLink} to="/news" variant="outlined" endIcon={<ArrowOutward />} sx={{ minWidth: 0 }}>
                   Read News Updates
                 </Button>
               </Stack>
@@ -154,12 +171,13 @@ export default function PublicLandingPage() {
                   ))}
                 </Stack>
               )}
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} lg={5}>
+            <Box sx={{ minWidth: 0, maxWidth: { xs: 'calc(100vw - 32px)', lg: 'none' }, padding: { xs: 0, md: 8 } }}>
               <Paper
                 sx={{
-                  p: 3,
+                  borderRadius: { xs: 3, md: 5 },
+                  p: { xs: 2, md: 3 },
                   border: '1px solid rgba(16,36,27,0.08)',
                   background: 'linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(220,235,220,0.66) 100%)',
                 }}
@@ -169,7 +187,7 @@ export default function PublicLandingPage() {
                     component="img"
                     image={settings.intro_image}
                     alt={settings?.leader_name || settings?.site_name || 'MNA portrait'}
-                    sx={{ borderRadius: 5, aspectRatio: '4 / 4.7', objectFit: 'cover', mb: 3 }}
+                    sx={{ borderRadius: { xs: 3, md: 5 }, aspectRatio: { xs: '4 / 4.15', md: '4 / 4.7' }, objectFit: 'cover', mb: 3 }}
                   />
                 ) : (
                   <Box
@@ -186,23 +204,39 @@ export default function PublicLandingPage() {
                     }}
                   >
                     <Campaign sx={{ fontSize: 48 }} />
-                    <Typography variant="h4" sx={{ color: 'white', maxWidth: 300 }}>
+                    <Typography
+                      variant="h4"
+                      sx={{
+                        color: 'white',
+                        maxWidth: { xs: 260, md: 320 },
+                        fontSize: { xs: '1.9rem', sm: '2.15rem', md: '2.35rem' },
+                        lineHeight: 1.05,
+                        overflowWrap: 'break-word',
+                      }}
+                    >
                       Representation with purpose, dignity, and local accountability
                     </Typography>
                   </Box>
                 )}
 
-                <Grid container spacing={1.5}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+                    gap: 1.5,
+                  }}
+                >
                   {[
-                    { label: 'Constituency', value: settings?.constituency || 'Configured in admin' },
+                    // { label: 'Constituency', value: settings?.constituency || 'Configured in admin' },
                     { label: 'District', value: settings?.district || 'Local office' },
                     { label: 'Citizen Portal', value: 'Active' },
                   ].map((item) => (
-                    <Grid item xs={12} sm={4} key={item.label}>
+                    <Box key={item.label}>
                       <Box
                         sx={{
                           p: 1.8,
-                          borderRadius: 3,
+                          borderRadius: 3,textAlign: 'center',
+                        
                           border: '1px solid rgba(16,36,27,0.08)',
                           bgcolor: 'rgba(255,255,255,0.78)',
                         }}
@@ -212,17 +246,23 @@ export default function PublicLandingPage() {
                         </Typography>
                         <Typography sx={{ fontWeight: 800, mt: 0.4 }}>{item.value}</Typography>
                       </Box>
-                    </Grid>
+                    </Box>
                   ))}
-                </Grid>
+                </Box>
               </Paper>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Container>
       </Box>
 
-      <Container sx={{ py: { xs: 5, md: 7 } }}>
-        <Grid container spacing={3}>
+      <Container sx={{ py: { xs: 6, md: 9 }, px: { xs: 3, md: 8 } }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
+            gap: 3,
+          }}
+        >
           {[
             {
               title: 'Complaints & Support',
@@ -240,7 +280,7 @@ export default function PublicLandingPage() {
               icon: <Feedback fontSize="small" />,
             },
           ].map((item, index) => (
-            <Grid item xs={12} md={4} key={item.title}>
+            <Box key={item.title}>
               <Paper sx={{ p: 3.2, border: '1px solid rgba(16,36,27,0.08)', height: '100%' }}>
                 <Typography variant="overline" color="secondary.main">
                   0{index + 1}
@@ -251,14 +291,21 @@ export default function PublicLandingPage() {
                 </Typography>
                 <Typography color="text.secondary">{item.text}</Typography>
               </Paper>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       </Container>
 
-      <Container sx={{ pb: { xs: 5, md: 7 } }}>
-        <Grid container spacing={4}>
-          <Grid item xs={12} lg={7}>
+      <Container sx={{ pb: { xs: 5, md: 7 }, px: { xs: 3, md: 8 } }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) minmax(300px, 420px)' },
+            gap: { xs: 3, md: 5 },
+            alignItems: 'center',
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
             <Typography variant="overline" color="secondary.main">
               About the Office
             </Typography>
@@ -270,8 +317,8 @@ export default function PublicLandingPage() {
                 settings?.intro ||
                 'This website is designed to help citizens stay connected with the work of their elected representative, access the office more easily, and receive responses through structured public-service channels.'}
             </Typography>
-          </Grid>
-          <Grid item xs={12} lg={5}>
+          </Box>
+          <Box sx={{ minWidth: 0 }}>
             <Paper sx={{ p: 3.2, border: '1px solid rgba(16,36,27,0.08)' }}>
               <Typography variant="overline" color="secondary.main">
                 Public Priorities
@@ -292,14 +339,21 @@ export default function PublicLandingPage() {
                 ))}
               </Stack>
             </Paper>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Container>
 
       <Box sx={{ borderTop: '1px solid rgba(16,36,27,0.08)', borderBottom: '1px solid rgba(16,36,27,0.08)', bgcolor: alpha('#dcebdc', 0.32) }}>
-        <Container sx={{ py: { xs: 5, md: 7 } }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
+        <Container sx={{ py: { xs: 5, md: 7 }, px: { xs: 3, md: 8 } }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'minmax(240px, 0.8fr) minmax(0, 1.4fr) minmax(220px, 0.7fr)' },
+              gap: 3,
+              alignItems: 'stretch',
+            }}
+          >
+            <Box>
               <Card sx={{ height: '100%' }}>
                 <CardContent sx={{ p: 3 }}>
                   <Typography variant="h6" sx={{ mb: 1.2 }}>
@@ -318,8 +372,8 @@ export default function PublicLandingPage() {
                   {settings?.contact_phone && <Typography color="text.secondary">{settings.contact_phone}</Typography>}
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid item xs={12} md={4}>
+            </Box>
+            <Box>
               <Card sx={{ height: '100%' }}>
                 <CardContent sx={{ p: 3 }}>
                   <Typography variant="h6" sx={{ mb: 1.2 }}>
@@ -330,8 +384,8 @@ export default function PublicLandingPage() {
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid item xs={12} md={4}>
+            </Box>
+            <Box>
               <Card sx={{ height: '100%' }}>
                 <CardContent sx={{ p: 3 }}>
                   <Typography variant="h6" sx={{ mb: 1.2 }}>
@@ -347,12 +401,12 @@ export default function PublicLandingPage() {
                   </Stack>
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Container>
       </Box>
 
-      <Container sx={{ py: { xs: 6, md: 8 } }}>
+      <Container sx={{ py: { xs: 6, md: 8 }, px: { xs: 3, md: 8 } }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'end', flexWrap: 'wrap', mb: 3 }}>
           <Box>
             <Typography variant="overline" color="secondary.main">
@@ -367,10 +421,16 @@ export default function PublicLandingPage() {
           </Button>
         </Box>
 
-        <Grid container spacing={3}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'repeat(4, minmax(0, 1fr))' },
+            gap: 3,
+          }}
+        >
           {featuredNews.length > 0 ? (
             featuredNews.slice(0, 3).map((item, index) => (
-              <Grid item xs={12} md={index === 0 ? 6 : 3} key={item.id}>
+              <Box key={item.id} sx={{ gridColumn: { xs: 'auto', md: index === 0 ? 'span 2' : 'span 1' } }}>
                 <Card sx={{ height: '100%' }}>
                   {item.image ? (
                     <CardMedia component="img" image={item.image} alt={item.title} sx={{ height: index === 0 ? 320 : 220, objectFit: 'cover' }} />
@@ -392,10 +452,10 @@ export default function PublicLandingPage() {
                     </Button>
                   </CardContent>
                 </Card>
-              </Grid>
+              </Box>
             ))
           ) : (
-            <Grid item xs={12}>
+            <Box sx={{ gridColumn: '1 / -1' }}>
               <Paper sx={{ p: 4, border: '1px solid rgba(16,36,27,0.08)' }}>
                 <Typography variant="h6" sx={{ mb: 1 }}>
                   News publishing is ready
@@ -404,12 +464,12 @@ export default function PublicLandingPage() {
                   Published and featured stories from the admin panel will appear here automatically.
                 </Typography>
               </Paper>
-            </Grid>
+            </Box>
           )}
-        </Grid>
+        </Box>
       </Container>
 
-      <Container sx={{ pb: 8 }}>
+      <Container sx={{ pb: 8, px: { xs: 3, md: 8 } }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'end', flexWrap: 'wrap', mb: 3 }}>
           <Box>
             <Typography variant="overline" color="secondary.main">
@@ -423,10 +483,16 @@ export default function PublicLandingPage() {
             Public feedback and community sentiment can be managed from the admin panel and highlighted here.
           </Typography>
         </Box>
-        <Grid container spacing={3}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
+            gap: 3,
+          }}
+        >
           {feedbacks.length > 0 ? (
             feedbacks.slice(0, 3).map((item) => (
-              <Grid item xs={12} md={4} key={item.id}>
+              <Box key={item.id}>
                 <Paper sx={{ p: 3.2, border: '1px solid rgba(16,36,27,0.08)', height: '100%' }}>
                   <Typography variant="h6" sx={{ mb: 1.4 }}>
                     “{item.quote}”
@@ -441,10 +507,10 @@ export default function PublicLandingPage() {
                     </Typography>
                   )}
                 </Paper>
-              </Grid>
+              </Box>
             ))
           ) : (
-            <Grid item xs={12}>
+            <Box sx={{ gridColumn: '1 / -1' }}>
               <Paper sx={{ p: 4, border: '1px solid rgba(16,36,27,0.08)' }}>
                 <Typography variant="h6" sx={{ mb: 1 }}>
                   Feedback section is ready
@@ -453,12 +519,12 @@ export default function PublicLandingPage() {
                   Add published citizen feedback entries from the admin panel to show public voices here.
                 </Typography>
               </Paper>
-            </Grid>
+            </Box>
           )}
-        </Grid>
+        </Box>
       </Container>
 
-      <Container sx={{ pb: 4 }}>
+      <Container sx={{ pb: 4, px: { xs: 3, md: 8 } }}>
         <Paper
           sx={{
             p: { xs: 3, md: 4 },
@@ -467,8 +533,15 @@ export default function PublicLandingPage() {
             color: 'white',
           }}
         >
-          <Grid container spacing={3} alignItems="center">
-            <Grid item xs={12} md={8}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) auto' },
+              gap: 3,
+              alignItems: 'center',
+            }}
+          >
+            <Box>
               <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.74)' }}>
                 People First
               </Typography>
@@ -478,13 +551,13 @@ export default function PublicLandingPage() {
               <Typography sx={{ color: 'rgba(255,255,255,0.80)', mt: 1.5, maxWidth: 700 }}>
                 Use the complaints portal for support, the newsroom for official updates, and the office channels for direct communication with the MNA team.
               </Typography>
-            </Grid>
-            <Grid item xs={12} md={4} sx={{ textAlign: { xs: 'left', md: 'right' } }}>
+            </Box>
+            <Box sx={{ textAlign: { xs: 'left', md: 'right' } }}>
               <Button component={RouterLink} to="/complaints" variant="contained" color="secondary" endIcon={<Public />}>
                 Reach the Office
               </Button>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Paper>
       </Container>
     </Box>

@@ -5,7 +5,6 @@ import {
   CardContent,
   CardMedia,
   Container,
-  Grid,
   InputAdornment,
   LinearProgress,
   Paper,
@@ -64,10 +63,17 @@ export default function PublicNewsPage() {
   }
 
   return (
-    <Box>
-      <Container sx={{ pt: { xs: 6, md: 8 }, pb: 4 }}>
-        <Grid container spacing={4} alignItems="end">
-          <Grid item xs={12} lg={7}>
+    <Box sx={{ pb: { xs: 6, md: 9 }, px: { xs: 3, md: 6 } }}>
+      <Container sx={{ pt: { xs: 5, md: 8 }, pb: { xs: 4, md: 5 } }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) minmax(320px, 420px)' },
+            gap: { xs: 3, md: 5 },
+            alignItems: 'end',
+          }}
+        >
+          <Box>
             <Typography variant="overline" color="secondary.main">
               Official Newsroom
             </Typography>
@@ -77,8 +83,8 @@ export default function PublicNewsPage() {
             <Typography color="text.secondary" sx={{ mt: 2.5, maxWidth: 760 }}>
               {settings?.site_name || 'This office'} uses the newsroom to publish official updates in a clear editorial format that is easy for citizens, media, and stakeholders to browse.
             </Typography>
-          </Grid>
-          <Grid item xs={12} lg={5}>
+          </Box>
+          <Box>
             <TextField
               fullWidth
               placeholder="Search headlines or summaries"
@@ -92,11 +98,11 @@ export default function PublicNewsPage() {
                 ),
               }}
             />
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Container>
 
-      <Container sx={{ pb: { xs: 6, md: 8 } }}>
+      <Container>
         {filteredNews.length === 0 ? (
           <Paper sx={{ p: 4, border: '1px solid rgba(16,36,27,0.08)', textAlign: 'center' }}>
             <Typography variant="h6" sx={{ mb: 1 }}>
@@ -107,9 +113,16 @@ export default function PublicNewsPage() {
             </Typography>
           </Paper>
         ) : (
-          <Grid container spacing={3}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 2fr) minmax(300px, 1fr)' },
+              gap: { xs: 3, md: 4 },
+              alignItems: 'start',
+            }}
+          >
             {leadStory && (
-              <Grid item xs={12} lg={8}>
+              <Box>
                 <Card sx={{ cursor: 'pointer', overflow: 'hidden' }} onClick={() => navigate(`/news/${leadStory.id}`)}>
                   {leadStory.image ? (
                     <CardMedia component="img" image={leadStory.image} alt={leadStory.title} sx={{ height: { xs: 260, md: 470 }, objectFit: 'cover' }} />
@@ -131,16 +144,16 @@ export default function PublicNewsPage() {
                     </Typography>
                   </CardContent>
                 </Card>
-              </Grid>
+              </Box>
             )}
 
-            <Grid item xs={12} lg={4}>
+            <Box>
               <StackedPaperList items={supportingStories} navigate={navigate} />
-            </Grid>
+            </Box>
 
             {archiveStories.length > 0 && (
-              <Grid item xs={12}>
-                <Box sx={{ mt: 1, mb: 2 }}>
+              <Box sx={{ gridColumn: '1 / -1', mt: { xs: 2, md: 4 } }}>
+                <Box sx={{ mb: 2.5 }}>
                   <Typography variant="overline" color="secondary.main">
                     Archive
                   </Typography>
@@ -148,9 +161,15 @@ export default function PublicNewsPage() {
                     More published updates
                   </Typography>
                 </Box>
-                <Grid container spacing={3}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(3, minmax(0, 1fr))' },
+                    gap: 3,
+                  }}
+                >
                   {archiveStories.map((item) => (
-                    <Grid item xs={12} md={6} xl={4} key={item.id}>
+                    <Box key={item.id}>
                       <Card sx={{ height: '100%', cursor: 'pointer' }} onClick={() => navigate(`/news/${item.id}`)}>
                         {item.image ? (
                           <CardMedia component="img" image={item.image} alt={item.title} sx={{ height: 220, objectFit: 'cover' }} />
@@ -169,12 +188,12 @@ export default function PublicNewsPage() {
                           </Typography>
                         </CardContent>
                       </Card>
-                    </Grid>
+                    </Box>
                   ))}
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
             )}
-          </Grid>
+          </Box>
         )}
       </Container>
     </Box>

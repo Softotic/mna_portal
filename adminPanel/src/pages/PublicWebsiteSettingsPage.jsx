@@ -15,6 +15,33 @@ import {
 import { Save as SaveIcon } from '@mui/icons-material';
 import { publicSettingsAPI } from '../api';
 
+function formatApiError(error) {
+  const data = error.response?.data;
+
+  if (!data) {
+    return 'Error saving website settings.';
+  }
+
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  if (data.detail) {
+    return data.detail;
+  }
+
+  if (typeof data === 'object') {
+    return Object.entries(data)
+      .map(([field, messages]) => {
+        const text = Array.isArray(messages) ? messages.join(' ') : String(messages);
+        return `${field}: ${text}`;
+      })
+      .join('\n');
+  }
+
+  return 'Error saving website settings.';
+}
+
 export default function PublicWebsiteSettingsPage() {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -69,7 +96,7 @@ export default function PublicWebsiteSettingsPage() {
       fetchSettings();
     } catch (err) {
       console.error(err);
-      setMessage(err.response?.data?.detail || 'Error saving website settings.');
+      setMessage(formatApiError(err));
     } finally {
       setSaving(false);
     }
@@ -133,7 +160,7 @@ export default function PublicWebsiteSettingsPage() {
                 <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
                   Logo
                 </Typography>
-                <input type="file" accept="image/*" onChange={(e) => handleFileChange('logo', e.target.files?.[0])} />
+                <input type="file" accept="image/*,.svg" onChange={(e) => handleFileChange('logo', e.target.files?.[0])} />
               </Box>
             </Grid>
             <Grid item xs={12}>

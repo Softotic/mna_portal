@@ -5,8 +5,12 @@ import {
   Button,
   Container,
   Divider,
+  Drawer,
   IconButton,
   LinearProgress,
+  List,
+  ListItemButton,
+  ListItemText,
   Stack,
   Toolbar,
   Typography,
@@ -14,8 +18,10 @@ import {
 import { alpha } from '@mui/material/styles';
 import {
   AlternateEmail,
+  Close,
   Facebook,
   Instagram,
+  Menu,
   Phone,
   YouTube,
 } from '@mui/icons-material';
@@ -32,6 +38,7 @@ export default function PublicSiteLayout() {
   const location = useLocation();
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -68,9 +75,42 @@ export default function PublicSiteLayout() {
     [settings],
   );
 
+  const brandName = settings?.leader_name || settings?.site_name || 'MNA Portal';
+  const brandSubline = settings?.designation || 'Member of the National Assembly';
+  const brandInitial = brandName.trim().charAt(0) || 'M';
+  const logoUrl = settings?.logo;
+
+  const navLinks = (
+    <>
+      {navItems.map((item) => {
+        const active = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+        return (
+          <Button
+            key={item.path}
+            component={RouterLink}
+            to={item.path}
+            color="inherit"
+            onClick={() => setNavOpen(false)}
+            sx={{
+              color: active ? 'primary.main' : 'text.primary',
+              bgcolor: active ? alpha('#1f5f46', 0.08) : 'transparent',
+              px: 1.8,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {item.label}
+          </Button>
+        );
+      })}
+      <Button component={RouterLink} to="/complaints" variant="contained" color="secondary" onClick={() => setNavOpen(false)}>
+        Get in Touch
+      </Button>
+    </>
+  );
+
   return (
-    <Box sx={{ minHeight: '100vh', color: 'text.primary', position: 'relative' }}>
-      <Box
+    <Box sx={{ minHeight: '100vh', color: 'text.primary', position: 'relative', overflowX: 'hidden' }}>
+      {/* <Box
         component="a"
         href="#main-content"
         sx={{
@@ -87,7 +127,7 @@ export default function PublicSiteLayout() {
         }}
       >
         Skip to content
-      </Box>
+      </Box> */}
 
       <Box sx={{ position: 'relative', zIndex: 1 }}>
         <Box
@@ -99,15 +139,25 @@ export default function PublicSiteLayout() {
           <Container>
             <Stack
               direction={{ xs: 'column', md: 'row' }}
-              spacing={1.5}
-              justifyContent="space-between"
-              alignItems={{ xs: 'flex-start', md: 'center' }}
-              sx={{ py: 1.1 }}
+              spacing={{ xs: 0.6, md: 1.5 }}
+              sx={{
+                py: { xs: 0.8, md: 1.1 },
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', md: 'center' },
+              }}
             >
-              <Typography variant="overline" sx={{ color: 'text.secondary' }}>
+              <Typography
+                variant="overline"
+                sx={{
+                  color: 'text.secondary',
+                  display: { xs: 'none', sm: 'block' },
+                  fontSize: { sm: '0.66rem', md: '0.75rem' },
+                  overflowWrap: 'anywhere',
+                }}
+              >
                 Official Website of a Member of the National Assembly, Pakistan
               </Typography>
-              <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap sx={{ color: 'text.secondary' }}>
+              <Stack direction="row" spacing={{ xs: 1, sm: 2 }} useFlexGap sx={{ color: 'text.secondary', flexWrap: 'wrap' }}>
                 {settings?.contact_phone && (
                   <Typography variant="body2" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6 }}>
                     <Phone sx={{ fontSize: 16 }} /> {settings.contact_phone}
@@ -133,29 +183,50 @@ export default function PublicSiteLayout() {
           }}
         >
           <Container>
-            <Toolbar disableGutters sx={{ py: 1.7, gap: 2, justifyContent: 'space-between' }}>
+            <Toolbar disableGutters sx={{ py: { xs: 1, md: 1.5 }, gap: 2, justifyContent: 'space-between' }}>
               <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1.6, minWidth: 0 }}>
-                <Box
-                  sx={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: '50%',
-                    display: 'grid',
-                    placeItems: 'center',
-                    bgcolor: 'primary.main',
-                    color: 'white',
-                    fontFamily: '"Newsreader", "Georgia", serif',
-                    fontSize: '1.18rem',
-                    fontWeight: 800,
-                    boxShadow: '0 12px 28px rgba(16,36,27,0.18)',
-                    flexShrink: 0,
-                  }}
-                >
-                  {settings?.leader_name?.trim()?.charAt(0) || settings?.site_name?.trim()?.charAt(0) || 'M'}
-                </Box>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={{ fontWeight: 800, lineHeight: 1.1 }}>
-                    {settings?.leader_name || settings?.site_name || 'MNA Portal'}
+                {logoUrl ? (
+                  <Box
+                    component="img"
+                    src={logoUrl}
+                    alt={`${brandName} logo`}
+                    sx={{
+                      width: { xs: 42, md: 52 },
+                      height: { xs: 42, md: 52 },
+                      borderRadius: 2,
+                      bgcolor: 'white',
+                      boxShadow: '0 12px 28px rgba(16,36,27,0.18)',
+                      objectFit: 'contain',
+                      p: 0.7,
+                      flexShrink: 0,
+                    }}
+                  />
+                ) : (
+                  <Box
+                    sx={{
+                      width: { xs: 42, md: 52 },
+                      height: { xs: 42, md: 52 },
+                      borderRadius: '50%',
+                      display: 'grid',
+                      placeItems: 'center',
+                      bgcolor: 'primary.main',
+                      color: 'white',
+                      fontFamily: '"Newsreader", "Georgia", serif',
+                      fontSize: '1.18rem',
+                      fontWeight: 800,
+                      boxShadow: '0 12px 28px rgba(16,36,27,0.18)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {brandInitial}
+                  </Box>
+                )}
+                <Box sx={{ minWidth: 0, maxWidth: { xs: 'calc(100vw - 118px)', md: 'none' } }}>
+                  <Typography sx={{ fontWeight: 800, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis',
+
+                    color: 'text.primary'
+                   }}>
+                    {brandName}
                   </Typography>
                   <Typography
                     variant="caption"
@@ -164,40 +235,60 @@ export default function PublicSiteLayout() {
                       color: 'text.secondary',
                       letterSpacing: '0.15em',
                       textTransform: 'uppercase',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
                     }}
                   >
-                    {settings?.designation || 'Member of the National Assembly'}
+                    {brandSubline}
                   </Typography>
                 </Box>
               </Box>
 
-              <Stack direction="row" spacing={0.7} alignItems="center" flexWrap="wrap" useFlexGap justifyContent="flex-end">
-                {navItems.map((item) => {
-                  const active = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
-                  return (
-                    <Button
-                      key={item.path}
-                      component={RouterLink}
-                      to={item.path}
-                      color="inherit"
-                      sx={{
-                        color: active ? 'primary.main' : 'text.primary',
-                        bgcolor: active ? alpha('#1f5f46', 0.08) : 'transparent',
-                        px: 1.8,
-                      }}
-                    >
-                      {item.label}
-                    </Button>
-                  );
-                })}
-                <Button component={RouterLink} to="/complaints" variant="contained" color="secondary">
-                  Get in Touch
-                </Button>
+              <Stack
+                direction="row"
+                spacing={0.7}
+                sx={{
+                  display: { xs: 'none', md: 'flex' },
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                }}
+              >
+                {navLinks}
               </Stack>
+
+              <IconButton
+                aria-label="Open navigation"
+                onClick={() => setNavOpen(true)}
+                sx={{ display: { xs: 'inline-flex', md: 'none' }, border: '1px solid rgba(31,95,70,0.16)' }}
+              >
+                <Menu />
+              </IconButton>
             </Toolbar>
           </Container>
           {loading && <LinearProgress color="secondary" />}
         </AppBar>
+
+        <Drawer anchor="right" open={navOpen} onClose={() => setNavOpen(false)}>
+          <Box sx={{ width: 300, maxWidth: '86vw', p: 2.2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+              <Typography variant="h6">{brandName}</Typography>
+              <IconButton aria-label="Close navigation" onClick={() => setNavOpen(false)}>
+                <Close />
+              </IconButton>
+            </Box>
+            <List>
+              {navItems.map((item) => (
+                <ListItemButton key={item.path} component={RouterLink} to={item.path} onClick={() => setNavOpen(false)}>
+                  <ListItemText primary={item.label} />
+                </ListItemButton>
+              ))}
+            </List>
+            <Button component={RouterLink} to="/complaints" variant="contained" color="secondary" fullWidth onClick={() => setNavOpen(false)}>
+              Get in Touch
+            </Button>
+          </Box>
+        </Drawer>
 
         <Box component="main" id="main-content">
           <Outlet context={{ settings: settings || {} }} />
@@ -214,9 +305,19 @@ export default function PublicSiteLayout() {
               }}
             >
               <Box>
-                <Typography variant="h6" sx={{ color: 'white', mb: 1.3 }}>
-                  {settings?.leader_name || settings?.site_name || 'MNA Portal'}
-                </Typography>
+                <Stack direction="row" spacing={1.4} sx={{ mb: 1.3, alignItems: 'center' }}>
+                  {logoUrl && (
+                    <Box
+                      component="img"
+                      src={logoUrl}
+                      alt={`${brandName} logo`}
+                      sx={{ width: 46, height: 46, objectFit: 'contain', borderRadius: 1.5, bgcolor: 'rgba(255,255,255,0.94)', p: 0.5 }}
+                    />
+                  )}
+                  <Typography variant="h6" sx={{ color: 'white' }}>
+                    {brandName}
+                  </Typography>
+                </Stack>
                 <Typography sx={{ color: 'rgba(255,255,255,0.78)', maxWidth: 560 }}>
                   {settings?.hero_statement ||
                     settings?.site_message ||

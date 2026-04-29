@@ -8,7 +8,6 @@ import {
   Chip,
   Container,
   Divider,
-  Grid,
   MenuItem,
   Paper,
   Stack,
@@ -60,10 +59,16 @@ function fileLabel(value) {
 function TrackingCard({ complaint }) {
   return (
     <Card>
-      <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={8}>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent="space-between">
+      <CardContent sx={{ p: { xs: 3, md: 4 },  }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 2fr) minmax(260px, 1fr)' },
+            gap: 3,
+          }}
+        >
+          <Box>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ justifyContent: 'space-between' }}>
               <Box>
                 <Typography variant="overline" color="secondary.main">
                   {complaint.category}
@@ -89,9 +94,9 @@ function TrackingCard({ complaint }) {
                 <Typography color="text.secondary">{complaint.admin_remarks}</Typography>
               </Box>
             )}
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={4}>
+          <Box>
             <Paper sx={{ p: 2.4, border: '1px solid rgba(16,36,27,0.08)', height: '100%' }}>
               <Typography variant="overline" color="secondary.main">
                 Case Details
@@ -111,8 +116,8 @@ function TrackingCard({ complaint }) {
                 </Typography>
               )}
             </Paper>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
 
         <Divider sx={{ my: 3 }} />
         <Typography variant="h6" sx={{ mb: 2 }}>
@@ -122,7 +127,7 @@ function TrackingCard({ complaint }) {
           {complaint.updates?.length ? (
             complaint.updates.map((update) => (
               <Paper key={update.id} sx={{ p: 2.4, border: '1px solid rgba(16,36,27,0.08)' }}>
-                <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ justifyContent: 'space-between' }}>
                   <Typography sx={{ fontWeight: 800, textTransform: 'capitalize' }}>
                     {formatStatus(update.status)}
                   </Typography>
@@ -230,10 +235,17 @@ export default function PublicComplaintPage() {
   };
 
   return (
-    <Box>
-      <Container sx={{ pt: { xs: 6, md: 8 }, pb: 4 }}>
-        <Grid container spacing={4}>
-          <Grid item xs={12} lg={7}>
+    <Box sx={{ pb: { xs: 6, md: 9 }, px: { xs: 3, md: 6 } }}>
+      <Container sx={{ pt: { xs: 5, md: 8 }, pb: { xs: 4, md: 8 },  }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) minmax(320px, 420px)' },
+            gap: { xs: 3, md: 5 },
+            alignItems: 'start',
+          }}
+        >
+          <Box>
             <Typography variant="overline" color="secondary.main">
               Citizen Complaint Portal
             </Typography>
@@ -243,9 +255,9 @@ export default function PublicComplaintPage() {
             <Typography color="text.secondary" sx={{ mt: 2.4, maxWidth: 760 }}>
               {settings?.leader_name || settings?.site_name || 'This office'} provides a structured complaint system so citizens can raise issues formally, submit supporting material, and monitor progress through a dedicated tracking interface.
             </Typography>
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} lg={5}>
+          <Box>
             <Paper sx={{ p: 3.2, border: '1px solid rgba(16,36,27,0.08)' }}>
               <Typography variant="h6" sx={{ mb: 1.2, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <ManageSearch fontSize="small" color="secondary" />
@@ -272,11 +284,11 @@ export default function PublicComplaintPage() {
                 {trackingLoading ? 'Searching...' : 'Track Complaint'}
               </Button>
             </Paper>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Container>
 
-      <Container sx={{ pb: 5 }}>
+      <Container>
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
             {error}
@@ -288,8 +300,15 @@ export default function PublicComplaintPage() {
           </Alert>
         )}
 
-        <Grid container spacing={4}>
-          <Grid item xs={12} lg={7}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.35fr) minmax(300px, 0.85fr)' },
+            gap: { xs: 3, md: 4 },
+            alignItems: 'start',
+          }}
+        >
+          <Box>
             <Card>
               <CardContent sx={{ p: { xs: 3, md: 4 } }}>
                 <Typography variant="overline" color="secondary.main">
@@ -302,17 +321,17 @@ export default function PublicComplaintPage() {
                   Provide clear information so the office can review the issue and respond appropriately.
                 </Typography>
 
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 3 }}>
+                  <Box>
                     <TextField fullWidth label="Full Name" value={form.name} onChange={(event) => updateFormValue('name', event.target.value)} />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
+                  </Box>
+                  <Box>
                     <TextField fullWidth label="CNIC" value={form.cnic} onChange={(event) => updateFormValue('cnic', event.target.value)} />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
+                  </Box>
+                  <Box>
                     <TextField fullWidth label="Phone Number" value={form.phone} onChange={(event) => updateFormValue('phone', event.target.value)} />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
+                  </Box>
+                  <Box>
                     <TextField
                       select
                       fullWidth
@@ -326,19 +345,19 @@ export default function PublicComplaintPage() {
                         </MenuItem>
                       ))}
                     </TextField>
-                  </Grid>
-                  <Grid item xs={12}>
+                  </Box>
+                  <Box sx={{ gridColumn: '1 / -1' }}>
                     <TextField
                       fullWidth
                       label="Description"
                       multiline
-                      rows={7}
+                      rows={5}
                       value={form.description}
                       onChange={(event) => updateFormValue('description', event.target.value)}
                       helperText="Include the location, nature of the issue, and what support is required."
                     />
-                  </Grid>
-                  <Grid item xs={12}>
+                  </Box>
+                  <Box sx={{ gridColumn: '1 / -1' }}>
                     <Button variant="outlined" component="label" startIcon={<Attachment />}>
                       Attach image, PDF, or video
                       <input
@@ -351,18 +370,18 @@ export default function PublicComplaintPage() {
                     <Typography color="text.secondary" sx={{ mt: 1.1, fontSize: '0.92rem' }}>
                       {form.attachment ? `Selected file: ${form.attachment.name}` : 'Supporting files are optional but often helpful.'}
                     </Typography>
-                  </Grid>
-                  <Grid item xs={12}>
+                  </Box>
+                  <Box sx={{ gridColumn: '1 / -1' }}>
                     <Button onClick={handleSubmit} variant="contained" color="secondary" size="large" fullWidth disabled={loading}>
                       {loading ? 'Submitting...' : 'Submit Complaint'}
                     </Button>
-                  </Grid>
-                </Grid>
+                  </Box>
+                </Box>
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} lg={5}>
+          <Box>
             <Stack spacing={3}>
               {processNotes.map((note) => (
                 <Paper key={note.title} sx={{ p: 3, border: '1px solid rgba(16,36,27,0.08)' }}>
@@ -390,8 +409,8 @@ export default function PublicComplaintPage() {
                 </Typography>
               </Paper>
             </Stack>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
 
         {trackingItems.length > 0 && (
           <Box sx={{ mt: 6 }}>
