@@ -70,13 +70,25 @@ class NewsAdmin(admin.ModelAdmin):
 
 @admin.register(Complaint)
 class ComplaintAdmin(admin.ModelAdmin):
-    list_display = ('tracking_number', 'name', 'cnic', 'category', 'status', 'created_at')
+    list_display = ('tracking_number', 'name', 'father_name', 'union_council', 'cnic', 'category', 'status', 'created_at')
     list_filter = ('status', 'category', 'created_at')
-    search_fields = ('tracking_number', 'name', 'cnic', 'description', 'admin_remarks')
+    search_fields = ('tracking_number', 'name', 'father_name', 'village', 'union_council', 'cnic', 'department', 'description', 'admin_remarks')
     readonly_fields = ('tracking_number', 'created_at', 'updated_at')
     fieldsets = (
         ('Complaint Details', {
-            'fields': ('tracking_number', 'name', 'cnic', 'phone', 'category', 'description', 'attachment'),
+            'fields': (
+                'tracking_number',
+                'name',
+                'father_name',
+                'village',
+                'union_council',
+                'cnic',
+                'department',
+                'phone',
+                'category',
+                'description',
+                'attachment',
+            ),
         }),
         ('Administration', {
             'fields': ('status', 'admin_remarks', 'admin_attachment'),

@@ -93,10 +93,15 @@ class News(models.Model):
     ]
     
     title = models.CharField(max_length=500)
-    slug = models.SlugField(unique=True)
-    content = models.TextField()
+    slug = models.SlugField(max_length=255, unique=True)
+    content = models.TextField(blank=True)
     excerpt = models.CharField(max_length=500, blank=True, help_text='Short summary shown in listings')
-    image = models.ImageField(upload_to='public/news/', blank=True, null=True)
+    image = models.FileField(
+        upload_to='public/news/',
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])],
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     featured = models.BooleanField(default=False, help_text='Show this news prominently')
     
@@ -125,7 +130,11 @@ class Complaint(models.Model):
 
     tracking_number = models.CharField(max_length=16, unique=True, editable=False)
     name = models.CharField(max_length=255)
+    father_name = models.CharField(max_length=255, blank=True)
+    village = models.CharField(max_length=255, blank=True)
+    union_council = models.CharField(max_length=255, blank=True)
     cnic = models.CharField(max_length=30)
+    department = models.CharField(max_length=255, blank=True)
     phone = models.CharField(max_length=50)
     category = models.CharField(max_length=120)
     description = models.TextField()

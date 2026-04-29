@@ -231,8 +231,24 @@ export default function ComplaintsPage() {
                         <Typography variant="body2" fontWeight={600}>{selectedComplaint.name}</Typography>
                       </Grid>
                       <Grid item xs={12} sm={6}>
+                        <Typography variant="caption" color="text.secondary">Father Name</Typography>
+                        <Typography variant="body2" fontWeight={600}>{selectedComplaint.father_name || 'N/A'}</Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="caption" color="text.secondary">Village</Typography>
+                        <Typography variant="body2" fontWeight={600}>{selectedComplaint.village || 'N/A'}</Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="caption" color="text.secondary">Union Council</Typography>
+                        <Typography variant="body2" fontWeight={600}>{selectedComplaint.union_council || 'N/A'}</Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
                         <Typography variant="caption" color="text.secondary">CNIC</Typography>
                         <Typography variant="body2" fontWeight={600}>{selectedComplaint.cnic}</Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="caption" color="text.secondary">Department</Typography>
+                        <Typography variant="body2" fontWeight={600}>{selectedComplaint.department || 'N/A'}</Typography>
                       </Grid>
                       <Grid item xs={12} sm={6}>
                         <Typography variant="caption" color="text.secondary">Phone Number</Typography>

@@ -406,30 +406,30 @@ export default function PublicLandingPage() {
         </Container>
       </Box>
 
-      <Container sx={{ py: { xs: 6, md: 8 }, px: { xs: 3, md: 8 } }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'end', flexWrap: 'wrap', mb: 3 }}>
-          <Box>
-            <Typography variant="overline" color="secondary.main">
-              Latest Updates
-            </Typography>
-            <Typography variant="h3" sx={{ mt: 1.2 }}>
-              News from the constituency and public office
-            </Typography>
+      {featuredNews.length > 0 && (
+        <Container sx={{ py: { xs: 6, md: 8 }, px: { xs: 3, md: 8 } }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'end', flexWrap: 'wrap', mb: 3 }}>
+            <Box>
+              <Typography variant="overline" color="secondary.main">
+                Latest Updates
+              </Typography>
+              <Typography variant="h3" sx={{ mt: 1.2 }}>
+                News from the constituency and public office
+              </Typography>
+            </Box>
+            <Button component={RouterLink} to="/news" variant="outlined" endIcon={<ArrowOutward />}>
+              View all news
+            </Button>
           </Box>
-          <Button component={RouterLink} to="/news" variant="outlined" endIcon={<ArrowOutward />}>
-            View all news
-          </Button>
-        </Box>
 
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: 'repeat(4, minmax(0, 1fr))' },
-            gap: 3,
-          }}
-        >
-          {featuredNews.length > 0 ? (
-            featuredNews.slice(0, 3).map((item, index) => (
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(4, minmax(0, 1fr))' },
+              gap: 3,
+            }}
+          >
+            {featuredNews.slice(0, 3).map((item, index) => (
               <Box key={item.id} sx={{ gridColumn: { xs: 'auto', md: index === 0 ? 'span 2' : 'span 1' } }}>
                 <Card sx={{ height: '100%' }}>
                   {item.image ? (
@@ -453,45 +453,31 @@ export default function PublicLandingPage() {
                   </CardContent>
                 </Card>
               </Box>
-            ))
-          ) : (
-            <Box sx={{ gridColumn: '1 / -1' }}>
-              <Paper sx={{ p: 4, border: '1px solid rgba(16,36,27,0.08)' }}>
-                <Typography variant="h6" sx={{ mb: 1 }}>
-                  News publishing is ready
-                </Typography>
-                <Typography color="text.secondary">
-                  Published and featured stories from the admin panel will appear here automatically.
-                </Typography>
-              </Paper>
-            </Box>
-          )}
-        </Box>
-      </Container>
-
-      <Container sx={{ pb: 8, px: { xs: 3, md: 8 } }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'end', flexWrap: 'wrap', mb: 3 }}>
-          <Box>
-            <Typography variant="overline" color="secondary.main">
-              Citizen Feedback
-            </Typography>
-            <Typography variant="h3" sx={{ mt: 1.2 }}>
-              Voices from the community
-            </Typography>
+            ))}
           </Box>
-          <Typography color="text.secondary" sx={{ maxWidth: 520 }}>
-            Public feedback and community sentiment can be managed from the admin panel and highlighted here.
-          </Typography>
-        </Box>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
-            gap: 3,
-          }}
-        >
-          {feedbacks.length > 0 ? (
-            feedbacks.slice(0, 3).map((item) => (
+        </Container>
+      )}
+
+      {feedbacks.length > 0 && (
+        <Container sx={{ pb: 8, px: { xs: 3, md: 8 } }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'end', flexWrap: 'wrap', mb: 3 }}>
+            <Box>
+              <Typography variant="overline" color="secondary.main">
+                Citizen Feedback
+              </Typography>
+              <Typography variant="h3" sx={{ mt: 1.2 }}>
+                Voices from the community
+              </Typography>
+            </Box>
+          </Box>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
+              gap: 3,
+            }}
+          >
+            {feedbacks.slice(0, 3).map((item) => (
               <Box key={item.id}>
                 <Paper sx={{ p: 3.2, border: '1px solid rgba(16,36,27,0.08)', height: '100%' }}>
                   <Typography variant="h6" sx={{ mb: 1.4 }}>
@@ -508,21 +494,10 @@ export default function PublicLandingPage() {
                   )}
                 </Paper>
               </Box>
-            ))
-          ) : (
-            <Box sx={{ gridColumn: '1 / -1' }}>
-              <Paper sx={{ p: 4, border: '1px solid rgba(16,36,27,0.08)' }}>
-                <Typography variant="h6" sx={{ mb: 1 }}>
-                  Feedback section is ready
-                </Typography>
-                <Typography color="text.secondary">
-                  Add published citizen feedback entries from the admin panel to show public voices here.
-                </Typography>
-              </Paper>
-            </Box>
-          )}
-        </Box>
-      </Container>
+            ))}
+          </Box>
+        </Container>
+      )}
 
       <Container sx={{ pb: 4, px: { xs: 3, md: 8 } }}>
         <Paper

@@ -2,16 +2,16 @@ import { useEffect, useState } from 'react';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   CardMedia,
+  Chip,
   Container,
   LinearProgress,
   Paper,
+  Stack,
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { ArrowBack, ArrowOutward } from '@mui/icons-material';
+import { ArrowBack, ArrowOutward, Article, CalendarToday, SupportAgent, Update } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { publicNewsAPI } from '../api/index.js';
 
@@ -72,104 +72,192 @@ export default function PublicNewsDetailPage() {
   }
 
   return (
-    <Box sx={{ pb: { xs: 6, md: 9 } }}>
-      <Container sx={{ pt: { xs: 5, md: 7 }, pb: { xs: 3, md: 5 } }}>
-        <Button onClick={() => navigate('/news')} startIcon={<ArrowBack />} sx={{ mb: 3 }}>
+    <Box sx={{ pb: { xs: 6, md: 10 }, px: { xs: 2, sm: 3, md: 6 } }}>
+      <Container sx={{ pt: { xs: 4, md: 7 }, pb: { xs: 3, md: 5 } }}>
+        <Button onClick={() => navigate('/news')} startIcon={<ArrowBack />} sx={{ mb: { xs: 2.5, md: 4 } }}>
           Back to newsroom
         </Button>
-        <Typography variant="overline" color="secondary.main">
-          Official Article
-        </Typography>
-        <Typography variant="h2" sx={{ mt: 1.1, maxWidth: 920 }}>
-          {news.title}
-        </Typography>
-        {news.excerpt && (
-          <Typography color="text.secondary" sx={{ mt: 2.4, maxWidth: 780, fontSize: '1.05rem' }}>
-            {news.excerpt}
-          </Typography>
-        )}
-      </Container>
 
-      <Container>
-        <Card sx={{ overflow: 'hidden' }}>
-          {news.image ? (
-            <CardMedia component="img" image={news.image} alt={news.title} sx={{ height: { xs: 260, md: 520 }, objectFit: 'cover' }} />
-          ) : (
-            <Box sx={{ height: { xs: 260, md: 360 }, bgcolor: alpha('#1f5f46', 0.08) }} />
-          )}
-
-          <CardContent sx={{ p: { xs: 3, md: 5 } }}>
-            <Box
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 0.9fr) minmax(320px, 0.36fr)' },
+            gap: { xs: 3, md: 5 },
+            alignItems: 'end',
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
+            <Chip
+              label="Official Article"
               sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
-                gap: 2.5,
-                mb: { xs: 3.5, md: 5 },
+                bgcolor: alpha('#1f5f46', 0.10),
+                color: 'primary.main',
+                fontWeight: 800,
+                mb: 2.5,
+              }}
+            />
+            <Typography
+              variant="h1"
+              sx={{
+                maxWidth: 980,
+                fontSize: { xs: '2.25rem', sm: '3.2rem', md: '4.5rem' },
+                lineHeight: { xs: 1.08, md: 1.02 },
+                overflowWrap: 'anywhere',
               }}
             >
+              {news.title}
+            </Typography>
+            {news.excerpt && (
+              <Typography color="text.secondary" sx={{ mt: 2.4, maxWidth: 820, fontSize: { xs: '1rem', md: '1.12rem' } }}>
+                {news.excerpt}
+              </Typography>
+            )}
+          </Box>
+
+          <Paper
+            sx={{
+              p: { xs: 2.4, md: 3 },
+              border: '1px solid rgba(16,36,27,0.08)',
+              bgcolor: alpha('#fffdfa', 0.92),
+            }}
+          >
+            <Stack spacing={2}>
               {[
                 {
+                  icon: <CalendarToday fontSize="small" />,
                   label: 'Published',
                   value: news.published_at
                     ? new Date(news.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
                     : 'Not available',
                 },
                 {
-                  label: 'Status',
-                  value: news.status ? news.status.replace(/_/g, ' ') : 'Published',
-                },
-                {
+                  icon: <Update fontSize="small" />,
                   label: 'Updated',
                   value: news.updated_at ? new Date(news.updated_at).toLocaleDateString() : 'Not available',
                 },
               ].map((item) => (
-                <Box key={item.label}>
-                  <Paper sx={{ p: 2.4, border: '1px solid rgba(16,36,27,0.08)' }}>
-                    <Typography variant="overline" color="secondary.main">
+                <Box key={item.label} sx={{ display: 'grid', gridTemplateColumns: '32px minmax(0, 1fr)', gap: 1.5 }}>
+                  <Box sx={{ color: 'secondary.main', pt: 0.3 }}>{item.icon}</Box>
+                  <Box>
+                    <Typography variant="overline" color="text.secondary">
                       {item.label}
                     </Typography>
-                    <Typography sx={{ mt: 0.8, fontWeight: 700, textTransform: 'capitalize' }}>
-                      {item.value}
-                    </Typography>
-                  </Paper>
+                    <Typography sx={{ fontWeight: 800, mt: 0.2 }}>{item.value}</Typography>
+                  </Box>
                 </Box>
               ))}
-            </Box>
+            </Stack>
+          </Paper>
+        </Box>
+      </Container>
 
+      <Container sx={{ pb: { xs: 4, md: 6 } }}>
+        <Box
+          sx={{
+            overflow: 'hidden',
+            borderRadius: { xs: 3, md: 5 },
+            border: '1px solid rgba(16,36,27,0.08)',
+            boxShadow: '0 24px 58px rgba(16,36,27,0.09)',
+            bgcolor: alpha('#1f5f46', 0.06),
+          }}
+        >
+          {news.image ? (
+            <CardMedia
+              component="img"
+              image={news.image}
+              alt={news.title}
+              sx={{ width: '100%', height: { xs: 250, sm: 380, md: 560 }, objectFit: 'cover' }}
+            />
+          ) : (
+            <Box
+              sx={{
+                minHeight: { xs: 250, sm: 360, md: 460 },
+                p: { xs: 3, sm: 4, md: 6 },
+                display: 'grid',
+                alignItems: 'end',
+                background:
+                  'linear-gradient(135deg, rgba(220,235,220,0.90) 0%, rgba(255,253,248,0.96) 54%, rgba(180,138,67,0.20) 100%)',
+              }}
+            >
+              <Box sx={{ maxWidth: 760 }}>
+                <Box
+                  sx={{
+                    width: 62,
+                    height: 62,
+                    borderRadius: '50%',
+                    display: 'grid',
+                    placeItems: 'center',
+                    bgcolor: alpha('#1f5f46', 0.10),
+                    color: 'primary.main',
+                    mb: 3,
+                  }}
+                >
+                  <Article />
+                </Box>
+                <Typography variant="overline" color="secondary.main">
+                  Official update
+                </Typography>
+                <Typography variant="h3" sx={{ mt: 1.2, maxWidth: 720 }}>
+                  {news.title}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </Box>
+      </Container>
+
+      <Container>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 900px) minmax(280px, 360px)' },
+            gap: { xs: 4, md: 5 },
+            alignItems: 'start',
+            justifyContent: 'center',
+          }}
+        >
+          <Paper
+            sx={{
+              p: { xs: 3, sm: 4, md: 6 },
+              border: '1px solid rgba(16,36,27,0.08)',
+              bgcolor: alpha('#fffdfa', 0.96),
+            }}
+          >
             <Typography
               sx={{
                 color: 'text.primary',
-                lineHeight: 2,
-                fontSize: '1.08rem',
+                lineHeight: { xs: 1.85, md: 2 },
+                fontSize: { xs: '1rem', md: '1.11rem' },
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
-                maxWidth: 900,
-                mx: 'auto',
               }}
             >
-              {news.content}
+              {news.content || news.excerpt || ''}
             </Typography>
+          </Paper>
 
+          <Box sx={{ position: { lg: 'sticky' }, top: { lg: 96 } }}>
             <Paper
               sx={{
-                mt: 5,
-                p: { xs: 2.5, md: 3.5 },
+                p: { xs: 2.5, md: 3 },
                 border: '1px solid rgba(16,36,27,0.08)',
-                background: 'linear-gradient(135deg, rgba(220,235,220,0.60) 0%, rgba(255,255,255,0.96) 100%)',
+                background: 'linear-gradient(135deg, rgba(31,95,70,0.96) 0%, rgba(47,127,91,0.96) 100%)',
+                color: 'white',
               }}
             >
-              <Typography variant="h6" sx={{ mb: 1 }}>
+              <SupportAgent sx={{ color: 'secondary.main', mb: 1.5 }} />
+              <Typography variant="h6" sx={{ color: 'white', mb: 1 }}>
                 Need support on a related issue?
               </Typography>
-              <Typography color="text.secondary" sx={{ mb: 2 }}>
-                Citizens can submit a complaint or service request through the public complaint portal and receive a trackable case reference.
+              <Typography sx={{ color: 'rgba(255,255,255,0.78)', mb: 2.5 }}>
+                Submit a complaint or service request through the public portal and receive a trackable case reference.
               </Typography>
               <Button onClick={() => navigate('/complaints')} variant="contained" color="secondary" endIcon={<ArrowOutward />}>
                 Open Complaint Portal
               </Button>
             </Paper>
-          </CardContent>
-        </Card>
+          </Box>
+        </Box>
       </Container>
     </Box>
   );

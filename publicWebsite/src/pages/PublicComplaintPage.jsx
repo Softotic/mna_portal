@@ -168,7 +168,11 @@ export default function PublicComplaintPage() {
   const { settings } = useOutletContext();
   const [form, setForm] = useState({
     name: '',
+    father_name: '',
+    village: '',
+    union_council: '',
     cnic: '',
+    department: '',
     phone: '',
     category: '',
     description: '',
@@ -191,7 +195,7 @@ export default function PublicComplaintPage() {
   };
 
   const handleSubmit = async () => {
-    if (!form.name || !form.cnic || !form.phone || !form.category || !form.description) {
+    if (!form.name || !form.father_name || !form.village || !form.union_council || !form.cnic || !form.phone || !form.category || !form.description) {
       setError('Please complete all required fields before submitting the complaint.');
       return;
     }
@@ -202,7 +206,18 @@ export default function PublicComplaintPage() {
       const response = await publicComplaintsAPI.create(form);
       setSubmissionStatus(response.data.tracking_number);
       setTrackingResult(response.data);
-      setForm({ name: '', cnic: '', phone: '', category: '', description: '', attachment: null });
+      setForm({
+        name: '',
+        father_name: '',
+        village: '',
+        union_council: '',
+        cnic: '',
+        department: '',
+        phone: '',
+        category: '',
+        description: '',
+        attachment: null,
+      });
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.detail || 'Unable to submit complaint right now.');
@@ -323,10 +338,22 @@ export default function PublicComplaintPage() {
 
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 3 }}>
                   <Box>
-                    <TextField fullWidth label="Full Name" value={form.name} onChange={(event) => updateFormValue('name', event.target.value)} />
+                    <TextField fullWidth label="Name" value={form.name} onChange={(event) => updateFormValue('name', event.target.value)} />
+                  </Box>
+                  <Box>
+                    <TextField fullWidth label="Father Name" value={form.father_name} onChange={(event) => updateFormValue('father_name', event.target.value)} />
+                  </Box>
+                  <Box>
+                    <TextField fullWidth label="Village" value={form.village} onChange={(event) => updateFormValue('village', event.target.value)} />
+                  </Box>
+                  <Box>
+                    <TextField fullWidth label="Union Council" value={form.union_council} onChange={(event) => updateFormValue('union_council', event.target.value)} />
                   </Box>
                   <Box>
                     <TextField fullWidth label="CNIC" value={form.cnic} onChange={(event) => updateFormValue('cnic', event.target.value)} />
+                  </Box>
+                  <Box>
+                    <TextField fullWidth label="Department (Optional)" value={form.department} onChange={(event) => updateFormValue('department', event.target.value)} />
                   </Box>
                   <Box>
                     <TextField fullWidth label="Phone Number" value={form.phone} onChange={(event) => updateFormValue('phone', event.target.value)} />

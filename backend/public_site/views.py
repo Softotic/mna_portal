@@ -172,7 +172,18 @@ class ComplaintViewSet(viewsets.ModelViewSet):
     serializer_class = ComplaintSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     filterset_fields = ['status', 'category']
-    search_fields = ['tracking_number', 'name', 'cnic', 'phone', 'description', 'admin_remarks']
+    search_fields = [
+        'tracking_number',
+        'name',
+        'father_name',
+        'village',
+        'union_council',
+        'cnic',
+        'department',
+        'phone',
+        'description',
+        'admin_remarks',
+    ]
     ordering_fields = ['created_at', 'updated_at', 'status']
 
     def get_permissions(self):

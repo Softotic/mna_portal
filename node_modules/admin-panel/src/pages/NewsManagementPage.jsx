@@ -43,6 +43,7 @@ export default function NewsManagementPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [dialogError, setDialogError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingNews, setEditingNews] = useState(null);
@@ -79,7 +80,21 @@ export default function NewsManagementPage() {
       .replace(/[^\w\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
-      .trim();
+      .replace(/^-+|-+$/g, '');
+  };
+
+  const formatApiError = (data) => {
+    if (!data) return 'Error saving news';
+    if (typeof data === 'string') return data;
+    if (data.detail) return data.detail;
+
+    return Object.entries(data)
+      .map(([field, value]) => {
+        const message = Array.isArray(value) ? value.join(' ') : String(value);
+        const label = field.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+        return `${label}: ${message}`;
+      })
+      .join(' ');
   };
 
   const handleTitleChange = (title) => {
@@ -91,16 +106,19 @@ export default function NewsManagementPage() {
   };
 
   const handleChange = (field, value) => {
+    setDialogError('');
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleFileChange = (file) => {
     if (file) {
+      setDialogError('');
       setFormData((prev) => ({ ...prev, image: file }));
     }
   };
 
   const handleOpenDialog = (news = null) => {
+    setDialogError('');
     if (news) {
       setEditingNews(news);
       setFormData({
@@ -129,13 +147,23 @@ export default function NewsManagementPage() {
 
   const handleSave = async () => {
     if (!formData.title.trim()) {
-      setMessage('Title is required');
+      setDialogError('Title is required.');
+      return;
+    }
+    if (!formData.content.trim()) {
+      setDialogError('Content is required.');
       return;
     }
 
     setSaving(true);
     try {
-      const data = { ...formData };
+      const data = {
+        ...formData,
+        title: formData.title.trim(),
+        slug: formData.slug.trim(),
+        excerpt: formData.excerpt.trim(),
+        content: formData.content.trim(),
+      };
 
       if (editingNews) {
         await newsAdminAPI.update(editingNews.id, data);
@@ -158,7 +186,7 @@ export default function NewsManagementPage() {
       setTimeout(() => setMessage(''), 3000);
       fetchNews();
     } catch (err) {
-      setMessage(err.response?.data?.detail || 'Error saving news');
+      setDialogError(formatApiError(err.response?.data));
       console.error(err);
     } finally {
       setSaving(false);
@@ -393,6 +421,11 @@ export default function NewsManagementPage() {
           {editingNews ? 'Edit News' : 'Add New News'}
         </DialogTitle>
         <DialogContent dividers sx={{ pt: 3 }}>
+          {dialogError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {dialogError}
+            </Alert>
+          )}
           <Grid container spacing={2.5}>
             <Grid item xs={12}>
               <TextField
@@ -439,6 +472,7 @@ export default function NewsManagementPage() {
                 onChange={(e) => handleChange('content', e.target.value)}
                 variant="outlined"
                 size="small"
+                required
               />
             </Grid>
             <Grid item xs={12}>

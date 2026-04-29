@@ -3,6 +3,7 @@ Serializers for Public Site.
 """
 from rest_framework import serializers
 from django.utils import timezone
+from django.utils.text import slugify
 from .models import PublicSettings, News, Complaint, ComplaintUpdate, CitizenFeedback
 
 
@@ -130,7 +131,11 @@ class ComplaintSerializer(serializers.ModelSerializer):
             'id',
             'tracking_number',
             'name',
+            'father_name',
+            'village',
+            'union_council',
             'cnic',
+            'department',
             'phone',
             'category',
             'description',
@@ -143,6 +148,12 @@ class ComplaintSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['id', 'tracking_number', 'status', 'admin_remarks', 'admin_attachment', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'father_name': {'required': True, 'allow_blank': False},
+            'village': {'required': True, 'allow_blank': False},
+            'union_council': {'required': True, 'allow_blank': False},
+            'department': {'required': False, 'allow_blank': True},
+        }
 
 
 class ComplaintAdminSerializer(serializers.ModelSerializer):
@@ -155,7 +166,11 @@ class ComplaintAdminSerializer(serializers.ModelSerializer):
             'id',
             'tracking_number',
             'name',
+            'father_name',
+            'village',
+            'union_council',
             'cnic',
+            'department',
             'phone',
             'category',
             'description',
@@ -172,6 +187,29 @@ class ComplaintAdminSerializer(serializers.ModelSerializer):
 
 class NewsAdminSerializer(serializers.ModelSerializer):
     """Serializer for news admin view (full CRUD)."""
+
+    def _build_unique_slug(self, title, requested_slug=''):
+        max_length = News._meta.get_field('slug').max_length
+        base_slug = (slugify(requested_slug or title) or 'news-update')[:max_length].strip('-') or 'news-update'
+        candidate = base_slug
+        suffix = 2
+        queryset = News.objects.all()
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        while queryset.filter(slug=candidate).exists():
+            suffix_text = f'-{suffix}'
+            candidate = f'{base_slug[:max_length - len(suffix_text)].strip("-")}{suffix_text}'
+            suffix += 1
+        return candidate
+
+    def validate(self, attrs):
+        title = attrs.get('title') or getattr(self.instance, 'title', '')
+        requested_slug = attrs.get('slug') or ''
+        if not requested_slug and self.instance:
+            requested_slug = self.instance.slug
+        attrs['slug'] = self._build_unique_slug(title, requested_slug)
+        return attrs
     
     def create(self, validated_data):
         if validated_data.get('status') == 'published' and not validated_data.get('published_at'):
@@ -199,3 +237,8 @@ class NewsAdminSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'slug': {'required': False, 'allow_blank': True, 'validators': []},
+            'content': {'required': False, 'allow_blank': True},
+            'image': {'required': False, 'allow_null': True},
+        }

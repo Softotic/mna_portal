@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Box,
+  Button,
   Card,
   CardContent,
   CardMedia,
@@ -12,16 +13,18 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { ArrowOutward, Search } from '@mui/icons-material';
+import { ArrowOutward, Article, ExpandMore, Search } from '@mui/icons-material';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { publicNewsAPI } from '../api/index.js';
 
 export default function PublicNewsPage() {
+  const PAGE_SIZE = 3;
   const navigate = useNavigate();
   const { settings } = useOutletContext();
   const [newsList, setNewsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [archiveVisibleCount, setArchiveVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     let active = true;
@@ -55,8 +58,15 @@ export default function PublicNewsPage() {
   }, [newsList, searchQuery]);
 
   const leadStory = filteredNews[0];
-  const supportingStories = filteredNews.slice(1, 5);
-  const archiveStories = filteredNews.slice(5);
+  const supportingStories = filteredNews.slice(1, 3);
+  const archiveStories = filteredNews.slice(3);
+  const visibleArchiveStories = archiveStories.slice(0, archiveVisibleCount);
+  const hasMoreArchiveStories = archiveVisibleCount < archiveStories.length;
+
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
+    setArchiveVisibleCount(PAGE_SIZE);
+  };
 
   if (loading) {
     return <LinearProgress color="secondary" />;
@@ -89,7 +99,7 @@ export default function PublicNewsPage() {
               fullWidth
               placeholder="Search headlines or summaries"
               value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
+              onChange={handleSearchChange}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -127,7 +137,7 @@ export default function PublicNewsPage() {
                   {leadStory.image ? (
                     <CardMedia component="img" image={leadStory.image} alt={leadStory.title} sx={{ height: { xs: 260, md: 470 }, objectFit: 'cover' }} />
                   ) : (
-                    <Box sx={{ height: { xs: 260, md: 470 }, bgcolor: alpha('#1f5f46', 0.08) }} />
+                    <NewsImagePlaceholder height={{ xs: 260, md: 470 }} title={leadStory.title} />
                   )}
                   <CardContent sx={{ p: { xs: 3, md: 4 } }}>
                     <Typography variant="overline" color="secondary.main">
@@ -151,11 +161,11 @@ export default function PublicNewsPage() {
               <StackedPaperList items={supportingStories} navigate={navigate} />
             </Box>
 
-            {archiveStories.length > 0 && (
+            {visibleArchiveStories.length > 0 && (
               <Box sx={{ gridColumn: '1 / -1', mt: { xs: 2, md: 4 } }}>
                 <Box sx={{ mb: 2.5 }}>
                   <Typography variant="overline" color="secondary.main">
-                    Archive
+                    More Updates
                   </Typography>
                   <Typography variant="h4" sx={{ mt: 0.8 }}>
                     More published updates
@@ -168,13 +178,13 @@ export default function PublicNewsPage() {
                     gap: 3,
                   }}
                 >
-                  {archiveStories.map((item) => (
+                  {visibleArchiveStories.map((item) => (
                     <Box key={item.id}>
                       <Card sx={{ height: '100%', cursor: 'pointer' }} onClick={() => navigate(`/news/${item.id}`)}>
                         {item.image ? (
                           <CardMedia component="img" image={item.image} alt={item.title} sx={{ height: 220, objectFit: 'cover' }} />
                         ) : (
-                          <Box sx={{ height: 220, bgcolor: alpha('#1f5f46', 0.08) }} />
+                          <NewsImagePlaceholder height={220} title={item.title} compact />
                         )}
                         <CardContent sx={{ p: 3 }}>
                           <Typography variant="overline" color="secondary.main">
@@ -191,6 +201,17 @@ export default function PublicNewsPage() {
                     </Box>
                   ))}
                 </Box>
+                {hasMoreArchiveStories && (
+                  <Box sx={{ mt: 4, textAlign: 'center' }}>
+                    <Button
+                      variant="outlined"
+                      endIcon={<ExpandMore />}
+                      onClick={() => setArchiveVisibleCount((count) => count + PAGE_SIZE)}
+                    >
+                      Load more updates
+                    </Button>
+                  </Box>
+                )}
               </Box>
             )}
           </Box>
@@ -200,18 +221,50 @@ export default function PublicNewsPage() {
   );
 }
 
+function NewsImagePlaceholder({ height, title, compact = false }) {
+  return (
+    <Box
+      sx={{
+        height,
+        p: compact ? 2.5 : { xs: 3, md: 4 },
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        color: 'primary.main',
+        background:
+          'linear-gradient(135deg, rgba(220,235,220,0.88) 0%, rgba(255,253,248,0.96) 58%, rgba(180,138,67,0.18) 100%)',
+      }}
+    >
+      <Box
+        sx={{
+          width: compact ? 42 : 54,
+          height: compact ? 42 : 54,
+          borderRadius: '50%',
+          display: 'grid',
+          placeItems: 'center',
+          bgcolor: alpha('#1f5f46', 0.10),
+          color: 'primary.main',
+        }}
+      >
+        <Article fontSize={compact ? 'small' : 'medium'} />
+      </Box>
+      <Box>
+        <Typography variant="overline" color="secondary.main">
+          Official update
+        </Typography>
+        {!compact && (
+          <Typography variant="h5" sx={{ mt: 1, maxWidth: 520 }}>
+            {title}
+          </Typography>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
 function StackedPaperList({ items, navigate }) {
   if (!items.length) {
-    return (
-      <Paper sx={{ p: 3.5, border: '1px solid rgba(16,36,27,0.08)' }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          Newsroom ready
-        </Typography>
-        <Typography color="text.secondary">
-          Additional published updates will appear here automatically.
-        </Typography>
-      </Paper>
-    );
+    return null;
   }
 
   return (
