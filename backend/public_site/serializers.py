@@ -4,7 +4,19 @@ Serializers for Public Site.
 from rest_framework import serializers
 from django.utils import timezone
 from django.utils.text import slugify
-from .models import PublicSettings, News, Complaint, ComplaintUpdate, CitizenFeedback
+from .models import (
+    PublicSettings,
+    News,
+    Complaint,
+    ComplaintUpdate,
+    CitizenFeedback,
+    TeamMember,
+    PortfolioUnionCouncil,
+    PortfolioCategory,
+    PortfolioScheme,
+    PortfolioSchemeImage,
+    NewsImage,
+)
 
 
 class PublicSettingsSerializer(serializers.ModelSerializer):
@@ -61,8 +73,123 @@ class CitizenFeedbackSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
+class TeamMemberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TeamMember
+        fields = [
+            'id',
+            'name',
+            'photo',
+            'designation',
+            'email',
+            'phone',
+            'union_council',
+            'department',
+            'bio',
+            'status',
+            'featured',
+            'sort_order',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'name': {'required': True, 'allow_blank': False},
+            'photo': {'required': True, 'allow_null': False},
+            'designation': {'required': True, 'allow_blank': False},
+            'email': {'required': False, 'allow_blank': True},
+            'phone': {'required': False, 'allow_blank': True},
+            'union_council': {'required': False, 'allow_blank': True},
+            'department': {'required': False, 'allow_blank': True},
+            'bio': {'required': False, 'allow_blank': True},
+        }
+
+
+class PortfolioUnionCouncilSerializer(serializers.ModelSerializer):
+    category_count = serializers.SerializerMethodField()
+    scheme_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PortfolioUnionCouncil
+        fields = ['id', 'name', 'description', 'sort_order', 'category_count', 'scheme_count', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_category_count(self, obj):
+        return obj.categories.count()
+
+    def get_scheme_count(self, obj):
+        return obj.schemes.count()
+
+
+class PortfolioCategorySerializer(serializers.ModelSerializer):
+    union_council_name = serializers.CharField(source='union_council.name', read_only=True)
+    scheme_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PortfolioCategory
+        fields = [
+            'id',
+            'union_council',
+            'union_council_name',
+            'name',
+            'description',
+            'sort_order',
+            'scheme_count',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_scheme_count(self, obj):
+        return obj.schemes.count()
+
+
+class PortfolioSchemeSerializer(serializers.ModelSerializer):
+    union_council_name = serializers.CharField(source='union_council.name', read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    tag_list = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PortfolioScheme
+        fields = [
+            'id',
+            'union_council',
+            'union_council_name',
+            'category',
+            'category_name',
+            'name',
+            'description',
+            'status',
+            'image',
+            'images',
+            'attachment',
+            'tags',
+            'tag_list',
+            'notes',
+            'sort_order',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'tag_list']
+
+    def get_tag_list(self, obj):
+        return [tag.strip() for tag in (obj.tags or '').split(',') if tag.strip()]
+
+    def get_images(self, obj):
+        return [{'id': item.id, 'image': item.image.url, 'sort_order': item.sort_order} for item in obj.images.all()]
+
+    def validate(self, attrs):
+        union_council = attrs.get('union_council') or getattr(self.instance, 'union_council', None)
+        category = attrs.get('category') or getattr(self.instance, 'category', None)
+        if union_council and category and category.union_council_id != union_council.id:
+            raise serializers.ValidationError({'category': 'Category must belong to the selected union council.'})
+        return attrs
+
+
 class NewsListSerializer(serializers.ModelSerializer):
     """Serializer for news list view (public)."""
+    images = serializers.SerializerMethodField()
     
     class Meta:
         model = News
@@ -72,14 +199,19 @@ class NewsListSerializer(serializers.ModelSerializer):
             'slug',
             'excerpt',
             'image',
+            'images',
             'featured',
             'published_at',
         ]
         read_only_fields = ['id', 'published_at']
 
+    def get_images(self, obj):
+        return [{'id': item.id, 'image': item.image.url, 'sort_order': item.sort_order} for item in obj.images.all()]
+
 
 class NewsDetailSerializer(serializers.ModelSerializer):
     """Serializer for news detail view (public)."""
+    images = serializers.SerializerMethodField()
     
     class Meta:
         model = News
@@ -90,6 +222,7 @@ class NewsDetailSerializer(serializers.ModelSerializer):
             'content',
             'excerpt',
             'image',
+            'images',
             'status',
             'featured',
             'published_at',
@@ -97,6 +230,9 @@ class NewsDetailSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['id', 'published_at', 'created_at', 'updated_at']
+
+    def get_images(self, obj):
+        return [{'id': item.id, 'image': item.image.url, 'sort_order': item.sort_order} for item in obj.images.all()]
 
 
 class ComplaintUpdateSerializer(serializers.ModelSerializer):
@@ -187,6 +323,7 @@ class ComplaintAdminSerializer(serializers.ModelSerializer):
 
 class NewsAdminSerializer(serializers.ModelSerializer):
     """Serializer for news admin view (full CRUD)."""
+    images = serializers.SerializerMethodField()
 
     def _build_unique_slug(self, title, requested_slug=''):
         max_length = News._meta.get_field('slug').max_length
@@ -230,6 +367,7 @@ class NewsAdminSerializer(serializers.ModelSerializer):
             'content',
             'excerpt',
             'image',
+            'images',
             'status',
             'featured',
             'published_at',
@@ -242,3 +380,6 @@ class NewsAdminSerializer(serializers.ModelSerializer):
             'content': {'required': False, 'allow_blank': True},
             'image': {'required': False, 'allow_null': True},
         }
+
+    def get_images(self, obj):
+        return [{'id': item.id, 'image': item.image.url, 'sort_order': item.sort_order} for item in obj.images.all()]

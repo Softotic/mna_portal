@@ -6,6 +6,10 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     PublicSettingsViewSet,
     CitizenFeedbackViewSet,
+    TeamMemberViewSet,
+    PortfolioUnionCouncilViewSet,
+    PortfolioCategoryViewSet,
+    PortfolioSchemeViewSet,
     news_list,
     news_detail,
     news_featured,
@@ -16,6 +20,10 @@ from .views import (
 router = DefaultRouter()
 router.register(r'settings', PublicSettingsViewSet, basename='settings')
 router.register(r'feedbacks', CitizenFeedbackViewSet, basename='feedbacks')
+router.register(r'team', TeamMemberViewSet, basename='team')
+router.register(r'portfolio/union-councils', PortfolioUnionCouncilViewSet, basename='portfolio-union-councils')
+router.register(r'portfolio/categories', PortfolioCategoryViewSet, basename='portfolio-categories')
+router.register(r'portfolio/schemes', PortfolioSchemeViewSet, basename='portfolio-schemes')
 router.register(r'admin/news', NewsAdminViewSet, basename='news-admin')
 router.register(r'complaints', ComplaintViewSet, basename='complaints')
 

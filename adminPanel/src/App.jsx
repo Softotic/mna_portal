@@ -18,6 +18,8 @@ import PublicWebsiteSettingsPage from './pages/PublicWebsiteSettingsPage';
 import NewsManagementPage from './pages/NewsManagementPage';
 import ComplaintsManagementPage from './pages/ComplaintsManagementPage';
 import FeedbackManagementPage from './pages/FeedbackManagementPage';
+import TeamManagementPage from './pages/TeamManagementPage';
+import PortfolioSchemesManagementPage from './pages/PortfolioSchemesManagementPage';
 
 function App() {
   const basename = window.location.pathname.startsWith('/admin') ? '/admin' : '';
@@ -95,6 +97,14 @@ function App() {
               <Route
                 path="feedback-management"
                 element={<FeedbackManagementPage />}
+              />
+              <Route
+                path="team-management"
+                element={<TeamManagementPage />}
+              />
+              <Route
+                path="portfolio-schemes"
+                element={<PortfolioSchemesManagementPage />}
               />
               <Route 
                 path="complaints-management"

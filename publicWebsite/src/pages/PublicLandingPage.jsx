@@ -16,6 +16,7 @@ import {
   ArrowOutward,
   Campaign,
   Feedback,
+  Groups,
   Newspaper,
   Public,
   Room,
@@ -152,6 +153,9 @@ export default function PublicLandingPage() {
                 <Button component={RouterLink} to="/news" variant="outlined" endIcon={<ArrowOutward />} sx={{ minWidth: 0 }}>
                   Read News Updates
                 </Button>
+                <Button component={RouterLink} to="/team" variant="outlined" endIcon={<ArrowOutward />} sx={{ minWidth: 0 }}>
+                  Meet the Team
+                </Button>
               </Stack>
               {socials.length > 0 && (
                 <Stack direction="row" spacing={1.2} sx={{ mt: 3, flexWrap: 'wrap' }} useFlexGap>
@@ -187,7 +191,7 @@ export default function PublicLandingPage() {
                     component="img"
                     image={settings.intro_image}
                     alt={settings?.leader_name || settings?.site_name || 'MNA portrait'}
-                    sx={{ borderRadius: { xs: 3, md: 5 }, aspectRatio: { xs: '4 / 4.15', md: '4 / 4.7' }, objectFit: 'cover', mb: 3 }}
+                    sx={{ borderRadius: { xs: 3, md: 5 }, aspectRatio: { xs: '4 / 4.15', md: '4 / 4.7' }, objectFit: 'cover' }}
                   />
                 ) : (
                   <Box
@@ -219,7 +223,7 @@ export default function PublicLandingPage() {
                   </Box>
                 )}
 
-                <Box
+                {/* <Box
                   sx={{
                     display: 'grid',
                     gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
@@ -248,7 +252,7 @@ export default function PublicLandingPage() {
                       </Box>
                     </Box>
                   ))}
-                </Box>
+                </Box> */}
               </Paper>
             </Box>
           </Box>
@@ -398,6 +402,12 @@ export default function PublicLandingPage() {
                     <Button component={RouterLink} to="/news" variant="outlined" startIcon={<Newspaper />}>
                       Newsroom
                     </Button>
+                    <Button component={RouterLink} to="/team" variant="outlined" startIcon={<Groups />}>
+                      Team Directory
+                    </Button>
+                    <Button component={RouterLink} to="/schemes" variant="outlined" startIcon={<Public />}>
+                      Schemes
+                    </Button>
                   </Stack>
                 </CardContent>
               </Card>
@@ -432,8 +442,8 @@ export default function PublicLandingPage() {
             {featuredNews.slice(0, 3).map((item, index) => (
               <Box key={item.id} sx={{ gridColumn: { xs: 'auto', md: index === 0 ? 'span 2' : 'span 1' } }}>
                 <Card sx={{ height: '100%' }}>
-                  {item.image ? (
-                    <CardMedia component="img" image={item.image} alt={item.title} sx={{ height: index === 0 ? 320 : 220, objectFit: 'cover' }} />
+                  {getNewsImage(item) ? (
+                    <CardMedia component="img" image={getNewsImage(item)} alt={item.title} sx={{ height: index === 0 ? 320 : 220, objectFit: 'cover' }} />
                   ) : (
                     <Box sx={{ height: index === 0 ? 320 : 220, bgcolor: alpha('#1f5f46', 0.08) }} />
                   )}
@@ -537,4 +547,8 @@ export default function PublicLandingPage() {
       </Container>
     </Box>
   );
+}
+
+function getNewsImage(item) {
+  return item.image || item.images?.[0]?.image || '';
 }

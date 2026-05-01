@@ -134,8 +134,8 @@ export default function PublicNewsPage() {
             {leadStory && (
               <Box>
                 <Card sx={{ cursor: 'pointer', overflow: 'hidden' }} onClick={() => navigate(`/news/${leadStory.id}`)}>
-                  {leadStory.image ? (
-                    <CardMedia component="img" image={leadStory.image} alt={leadStory.title} sx={{ height: { xs: 260, md: 470 }, objectFit: 'cover' }} />
+                  {getNewsImage(leadStory) ? (
+                    <CardMedia component="img" image={getNewsImage(leadStory)} alt={leadStory.title} sx={{ height: { xs: 260, md: 470 }, objectFit: 'cover' }} />
                   ) : (
                     <NewsImagePlaceholder height={{ xs: 260, md: 470 }} title={leadStory.title} />
                   )}
@@ -181,8 +181,8 @@ export default function PublicNewsPage() {
                   {visibleArchiveStories.map((item) => (
                     <Box key={item.id}>
                       <Card sx={{ height: '100%', cursor: 'pointer' }} onClick={() => navigate(`/news/${item.id}`)}>
-                        {item.image ? (
-                          <CardMedia component="img" image={item.image} alt={item.title} sx={{ height: 220, objectFit: 'cover' }} />
+                        {getNewsImage(item) ? (
+                          <CardMedia component="img" image={getNewsImage(item)} alt={item.title} sx={{ height: 220, objectFit: 'cover' }} />
                         ) : (
                           <NewsImagePlaceholder height={220} title={item.title} compact />
                         )}
@@ -219,6 +219,10 @@ export default function PublicNewsPage() {
       </Container>
     </Box>
   );
+}
+
+function getNewsImage(item) {
+  return item.image || item.images?.[0]?.image || '';
 }
 
 function NewsImagePlaceholder({ height, title, compact = false }) {

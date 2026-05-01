@@ -2,7 +2,19 @@
 Admin panel configuration for Public Site.
 """
 from django.contrib import admin
-from .models import PublicSettings, News, Complaint, ComplaintUpdate, CitizenFeedback
+from .models import (
+    PublicSettings,
+    News,
+    Complaint,
+    ComplaintUpdate,
+    CitizenFeedback,
+    TeamMember,
+    PortfolioUnionCouncil,
+    PortfolioCategory,
+    PortfolioScheme,
+    PortfolioSchemeImage,
+    NewsImage,
+)
 
 
 @admin.register(PublicSettings)
@@ -41,6 +53,11 @@ class PublicSettingsAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at', 'updated_at')
 
 
+class NewsImageInline(admin.TabularInline):
+    model = NewsImage
+    extra = 1
+
+
 @admin.register(News)
 class NewsAdmin(admin.ModelAdmin):
     """Admin interface for news management."""
@@ -66,6 +83,7 @@ class NewsAdmin(admin.ModelAdmin):
         }),
     )
     readonly_fields = ('created_at', 'updated_at')
+    inlines = [NewsImageInline]
 
 
 @admin.register(Complaint)
@@ -114,3 +132,41 @@ class CitizenFeedbackAdmin(admin.ModelAdmin):
     list_filter = ('status', 'featured')
     search_fields = ('name', 'location', 'quote')
     list_editable = ('status', 'featured', 'sort_order')
+
+
+@admin.register(TeamMember)
+class TeamMemberAdmin(admin.ModelAdmin):
+    list_display = ('name', 'designation', 'department', 'union_council', 'status', 'featured', 'sort_order', 'updated_at')
+    list_filter = ('status', 'featured', 'department', 'union_council')
+    search_fields = ('name', 'designation', 'email', 'phone', 'union_council', 'department', 'bio')
+    list_editable = ('status', 'featured')
+    readonly_fields = ('created_at', 'updated_at')
+
+
+@admin.register(PortfolioUnionCouncil)
+class PortfolioUnionCouncilAdmin(admin.ModelAdmin):
+    list_display = ('name', 'sort_order', 'updated_at')
+    search_fields = ('name', 'description')
+    readonly_fields = ('created_at', 'updated_at')
+
+
+@admin.register(PortfolioCategory)
+class PortfolioCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'union_council', 'sort_order', 'updated_at')
+    list_filter = ('union_council',)
+    search_fields = ('name', 'description', 'union_council__name')
+    readonly_fields = ('created_at', 'updated_at')
+
+
+class PortfolioSchemeImageInline(admin.TabularInline):
+    model = PortfolioSchemeImage
+    extra = 1
+
+
+@admin.register(PortfolioScheme)
+class PortfolioSchemeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'union_council', 'category', 'status', 'sort_order', 'updated_at')
+    list_filter = ('status', 'union_council', 'category')
+    search_fields = ('name', 'description', 'tags', 'notes', 'union_council__name', 'category__name')
+    readonly_fields = ('created_at', 'updated_at')
+    inlines = [PortfolioSchemeImageInline]

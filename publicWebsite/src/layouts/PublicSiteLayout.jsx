@@ -30,6 +30,8 @@ import { publicSettingsAPI } from '../api/index.js';
 
 const navItems = [
   { label: 'Home', path: '/' },
+  { label: 'Team', path: '/team' },
+  { label: 'Schemes', path: '/schemes' },
   { label: 'News Updates', path: '/news' },
   { label: 'Complaints', path: '/complaints' },
 ];

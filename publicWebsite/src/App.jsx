@@ -4,6 +4,9 @@ import PublicLandingPage from './pages/PublicLandingPage.jsx';
 import PublicNewsPage from './pages/PublicNewsPage.jsx';
 import PublicNewsDetailPage from './pages/PublicNewsDetailPage.jsx';
 import PublicComplaintPage from './pages/PublicComplaintPage.jsx';
+import PublicTeamPage from './pages/PublicTeamPage.jsx';
+import PublicSchemesPage from './pages/PublicSchemesPage.jsx';
+import PublicSchemeDetailPage from './pages/PublicSchemeDetailPage.jsx';
 import PublicSiteLayout from './layouts/PublicSiteLayout.jsx';
 import theme from './theme.js';
 
@@ -15,6 +18,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<PublicSiteLayout />}>
             <Route index element={<PublicLandingPage />} />
+            <Route path="team" element={<PublicTeamPage />} />
+            <Route path="schemes" element={<PublicSchemesPage />} />
+            <Route path="schemes/:id" element={<PublicSchemeDetailPage />} />
             <Route path="news" element={<PublicNewsPage />} />
             <Route path="news/:id" element={<PublicNewsDetailPage />} />
             <Route path="complaints" element={<PublicComplaintPage />} />

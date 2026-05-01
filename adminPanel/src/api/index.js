@@ -161,6 +161,75 @@ export const feedbacksAPI = {
   delete: (id) => api.delete(`/public/feedbacks/${id}/`),
 };
 
+export const teamMembersAPI = {
+  list: (params) => api.get('/public/team/', { params }),
+  get: (id) => api.get(`/public/team/${id}/`),
+  create: (data) => {
+    const formData = new FormData();
+    Object.keys(data).forEach((key) => {
+      if (data[key] !== null && data[key] !== undefined) {
+        formData.append(key, data[key]);
+      }
+    });
+    return api.post('/public/team/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  update: (id, data) => {
+    const formData = new FormData();
+    Object.keys(data).forEach((key) => {
+      if (data[key] !== null && data[key] !== undefined) {
+        formData.append(key, data[key]);
+      }
+    });
+    return api.patch(`/public/team/${id}/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  delete: (id) => api.delete(`/public/team/${id}/`),
+};
+
+const toFormData = (data) => {
+  const formData = new FormData();
+  Object.keys(data).forEach((key) => {
+    const value = data[key];
+    if (value !== null && value !== undefined) {
+      if (Array.isArray(value)) {
+        value.forEach((item) => formData.append(key, item));
+      } else {
+        formData.append(key, value);
+      }
+    }
+  });
+  return formData;
+};
+
+export const portfolioUcsAPI = {
+  list: (params) => api.get('/public/portfolio/union-councils/', { params }),
+  create: (data) => api.post('/public/portfolio/union-councils/', data),
+  update: (id, data) => api.patch(`/public/portfolio/union-councils/${id}/`, data),
+  delete: (id) => api.delete(`/public/portfolio/union-councils/${id}/`),
+};
+
+export const portfolioCategoriesAPI = {
+  list: (params) => api.get('/public/portfolio/categories/', { params }),
+  create: (data) => api.post('/public/portfolio/categories/', data),
+  update: (id, data) => api.patch(`/public/portfolio/categories/${id}/`, data),
+  delete: (id) => api.delete(`/public/portfolio/categories/${id}/`),
+};
+
+export const portfolioSchemesAPI = {
+  list: (params) => api.get('/public/portfolio/schemes/', { params }),
+  get: (id) => api.get(`/public/portfolio/schemes/${id}/`),
+  create: (data) => api.post('/public/portfolio/schemes/', toFormData(data), {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  update: (id, data) => api.patch(`/public/portfolio/schemes/${id}/`, toFormData(data), {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  delete: (id) => api.delete(`/public/portfolio/schemes/${id}/`),
+};
+
 // ─── News Admin API (Admin - Auth Required) ───
 export const newsAdminAPI = {
   list: (params) => api.get('/public/admin/news/', { params }),
@@ -168,8 +237,13 @@ export const newsAdminAPI = {
   create: (data) => {
     const formData = new FormData();
     Object.keys(data).forEach((key) => {
-      if (data[key] !== null && data[key] !== undefined) {
-        formData.append(key, data[key]);
+      const value = data[key];
+      if (value !== null && value !== undefined) {
+        if (Array.isArray(value)) {
+          value.forEach((item) => formData.append(key, item));
+        } else {
+          formData.append(key, value);
+        }
       }
     });
     return api.post('/public/admin/news/', formData, {
@@ -179,8 +253,13 @@ export const newsAdminAPI = {
   update: (id, data) => {
     const formData = new FormData();
     Object.keys(data).forEach((key) => {
-      if (data[key] !== null && data[key] !== undefined) {
-        formData.append(key, data[key]);
+      const value = data[key];
+      if (value !== null && value !== undefined) {
+        if (Array.isArray(value)) {
+          value.forEach((item) => formData.append(key, item));
+        } else {
+          formData.append(key, value);
+        }
       }
     });
     return api.patch(`/public/admin/news/${id}/`, formData, {

@@ -53,6 +53,7 @@ export default function NewsManagementPage() {
     excerpt: '',
     content: '',
     image: null,
+    images: [],
     status: 'draft',
     featured: false,
   });
@@ -117,6 +118,11 @@ export default function NewsManagementPage() {
     }
   };
 
+  const handleGalleryChange = (files) => {
+    setDialogError('');
+    setFormData((prev) => ({ ...prev, images: Array.from(files || []) }));
+  };
+
   const handleOpenDialog = (news = null) => {
     setDialogError('');
     if (news) {
@@ -127,6 +133,7 @@ export default function NewsManagementPage() {
         excerpt: news.excerpt,
         content: news.content,
         image: null,
+        images: [],
         status: news.status,
         featured: news.featured,
       });
@@ -138,6 +145,7 @@ export default function NewsManagementPage() {
         excerpt: '',
         content: '',
         image: null,
+        images: [],
         status: 'draft',
         featured: false,
       });
@@ -180,6 +188,7 @@ export default function NewsManagementPage() {
         excerpt: '',
         content: '',
         image: null,
+        images: [],
         status: 'draft',
         featured: false,
       });
@@ -485,6 +494,22 @@ export default function NewsManagementPage() {
                   accept="image/*"
                   onChange={(e) => handleFileChange(e.target.files?.[0])}
                 />
+              </Box>
+            </Grid>
+            <Grid item xs={12}>
+              <Box>
+                <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
+                  Additional News Images
+                </Typography>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleGalleryChange(e.target.files)}
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.7 }}>
+                  Select one or more images. If multiple images exist, the public article shows a slideshow.
+                </Typography>
               </Box>
             </Grid>
           </Grid>

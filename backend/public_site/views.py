@@ -8,10 +8,26 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.utils import timezone
 from django.db.models import Q
-from .models import PublicSettings, News, Complaint, ComplaintUpdate, CitizenFeedback
+from .models import (
+    PublicSettings,
+    News,
+    Complaint,
+    ComplaintUpdate,
+    CitizenFeedback,
+    TeamMember,
+    PortfolioUnionCouncil,
+    PortfolioCategory,
+    PortfolioScheme,
+    PortfolioSchemeImage,
+    NewsImage,
+)
 from .serializers import (
     PublicSettingsSerializer,
     CitizenFeedbackSerializer,
+    TeamMemberSerializer,
+    PortfolioUnionCouncilSerializer,
+    PortfolioCategorySerializer,
+    PortfolioSchemeSerializer,
     NewsListSerializer,
     NewsDetailSerializer,
     NewsAdminSerializer,
@@ -72,6 +88,115 @@ class CitizenFeedbackViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+class TeamMemberViewSet(viewsets.ModelViewSet):
+    """Public team listing and admin team management."""
+
+    queryset = TeamMember.objects.all().order_by('sort_order', 'name')
+    serializer_class = TeamMemberSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    filterset_fields = ['status', 'featured', 'department', 'union_council']
+    search_fields = ['name', 'designation', 'email', 'phone', 'union_council', 'department', 'bio']
+    ordering_fields = ['sort_order', 'name', 'created_at', 'updated_at']
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve', 'featured']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        queryset = TeamMember.objects.all().order_by('sort_order', 'name')
+        if self.action in ['list', 'retrieve', 'featured'] and not getattr(self.request, 'user', None).is_authenticated:
+            return queryset.filter(status='published')
+        return queryset
+
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    def featured(self, request):
+        members = self.get_queryset().filter(featured=True)[:8]
+        serializer = self.get_serializer(members, many=True)
+        return Response(serializer.data)
+
+
+class PortfolioUnionCouncilViewSet(viewsets.ModelViewSet):
+    """Public portfolio union councils and admin management."""
+
+    queryset = PortfolioUnionCouncil.objects.all().order_by('sort_order', 'name')
+    serializer_class = PortfolioUnionCouncilSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    search_fields = ['name', 'description']
+    ordering_fields = ['sort_order', 'name', 'created_at', 'updated_at']
+    pagination_class = None
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+
+class PortfolioCategoryViewSet(viewsets.ModelViewSet):
+    """Public portfolio categories and admin management."""
+
+    queryset = PortfolioCategory.objects.select_related('union_council').all().order_by('sort_order', 'name')
+    serializer_class = PortfolioCategorySerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    filterset_fields = ['union_council']
+    search_fields = ['name', 'description', 'union_council__name']
+    ordering_fields = ['sort_order', 'name', 'created_at', 'updated_at']
+    pagination_class = None
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        queryset = PortfolioCategory.objects.select_related('union_council').all().order_by('sort_order', 'name')
+        union_council = self.request.query_params.get('union_council')
+        if union_council:
+            queryset = queryset.filter(union_council_id=union_council)
+        return queryset
+
+
+class PortfolioSchemeViewSet(viewsets.ModelViewSet):
+    """Public portfolio schemes and admin management."""
+
+    queryset = PortfolioScheme.objects.select_related('union_council', 'category').all().order_by('sort_order', 'name')
+    serializer_class = PortfolioSchemeSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    filterset_fields = ['union_council', 'category', 'status']
+    search_fields = ['name', 'description', 'tags', 'notes', 'union_council__name', 'category__name']
+    ordering_fields = ['sort_order', 'name', 'created_at', 'updated_at', 'status']
+    pagination_class = None
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        queryset = PortfolioScheme.objects.select_related('union_council', 'category').prefetch_related('images').all().order_by('sort_order', 'name')
+        union_council = self.request.query_params.get('union_council')
+        category = self.request.query_params.get('category')
+        status_filter = self.request.query_params.get('status')
+        if union_council:
+            queryset = queryset.filter(union_council_id=union_council)
+        if category:
+            queryset = queryset.filter(category_id=category)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        return queryset
+
+    def perform_create(self, serializer):
+        scheme = serializer.save()
+        for index, image in enumerate(self.request.FILES.getlist('images')):
+            PortfolioSchemeImage.objects.create(scheme=scheme, image=image, sort_order=index)
+
+    def perform_update(self, serializer):
+        scheme = serializer.save()
+        start_order = scheme.images.count()
+        for index, image in enumerate(self.request.FILES.getlist('images'), start=start_order):
+            PortfolioSchemeImage.objects.create(scheme=scheme, image=image, sort_order=index)
+
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -83,7 +208,7 @@ def news_list(request):
     from .models import News
     from .serializers import NewsListSerializer
     
-    news = News.objects.filter(
+    news = News.objects.prefetch_related('images').filter(
         status='published',
         published_at__isnull=False
     ).order_by('-published_at')
@@ -98,7 +223,7 @@ def news_featured(request):
     from .models import News
     from .serializers import NewsListSerializer
     
-    news = News.objects.filter(
+    news = News.objects.prefetch_related('images').filter(
         status='published',
         published_at__isnull=False,
         featured=True
@@ -112,7 +237,7 @@ def news_featured(request):
 @permission_classes([AllowAny])
 def news_detail(request, pk):
     """Public detail view for a single published news item."""
-    news = News.objects.filter(
+    news = News.objects.prefetch_related('images').filter(
         pk=pk,
         status='published',
         published_at__isnull=False,
@@ -129,10 +254,21 @@ class NewsAdminViewSet(viewsets.ModelViewSet):
     Admin API for managing news and updates.
     Full CRUD operations for authenticated admins.
     """
-    queryset = News.objects.all().order_by('-created_at')
+    queryset = News.objects.prefetch_related('images').all().order_by('-created_at')
     serializer_class = NewsAdminSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def perform_create(self, serializer):
+        news = serializer.save()
+        for index, image in enumerate(self.request.FILES.getlist('images')):
+            NewsImage.objects.create(news=news, image=image, sort_order=index)
+
+    def perform_update(self, serializer):
+        news = serializer.save()
+        start_order = news.images.count()
+        for index, image in enumerate(self.request.FILES.getlist('images'), start=start_order):
+            NewsImage.objects.create(news=news, image=image, sort_order=index)
     
     @action(detail=True, methods=['post'])
     def publish(self, request, pk=None):

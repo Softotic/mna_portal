@@ -5,13 +5,14 @@ import {
   CardMedia,
   Chip,
   Container,
+  IconButton,
   LinearProgress,
   Paper,
   Stack,
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { ArrowBack, ArrowOutward, Article, CalendarToday, SupportAgent, Update } from '@mui/icons-material';
+import { ArrowBack, ArrowOutward, Article, CalendarToday, ChevronLeft, ChevronRight, SupportAgent, Update } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { publicNewsAPI } from '../api/index.js';
 
@@ -19,6 +20,7 @@ export default function PublicNewsDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [news, setNews] = useState(null);
+  const [activeImage, setActiveImage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -70,6 +72,11 @@ export default function PublicNewsDetailPage() {
       </Container>
     );
   }
+
+  const gallery = [
+    ...(news.image ? [{ id: 'primary', image: news.image }] : []),
+    ...(news.images || []),
+  ];
 
   return (
     <Box sx={{ pb: { xs: 6, md: 10 }, px: { xs: 2, sm: 3, md: 6 } }}>
@@ -161,13 +168,8 @@ export default function PublicNewsDetailPage() {
             bgcolor: alpha('#1f5f46', 0.06),
           }}
         >
-          {news.image ? (
-            <CardMedia
-              component="img"
-              image={news.image}
-              alt={news.title}
-              sx={{ width: '100%', height: { xs: 250, sm: 380, md: 560 }, objectFit: 'cover' }}
-            />
+          {gallery.length > 0 ? (
+            <NewsImageGallery images={gallery} title={news.title} activeImage={activeImage} setActiveImage={setActiveImage} />
           ) : (
             <Box
               sx={{
@@ -259,6 +261,65 @@ export default function PublicNewsDetailPage() {
           </Box>
         </Box>
       </Container>
+    </Box>
+  );
+}
+
+function NewsImageGallery({ images, title, activeImage, setActiveImage }) {
+  const hasSlideshow = images.length > 1;
+  const current = images[activeImage] || images[0];
+  const move = (direction) => {
+    setActiveImage((index) => (index + direction + images.length) % images.length);
+  };
+
+  return (
+    <Box sx={{ position: 'relative' }}>
+      <CardMedia
+        component="img"
+        image={current.image}
+        alt={title}
+        sx={{ width: '100%', height: { xs: 250, sm: 380, md: 560 }, objectFit: 'cover' }}
+      />
+      {hasSlideshow && (
+        <>
+          <IconButton
+            aria-label="Previous image"
+            onClick={() => move(-1)}
+            sx={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', bgcolor: 'rgba(255,255,255,0.88)' }}
+          >
+            <ChevronLeft />
+          </IconButton>
+          <IconButton
+            aria-label="Next image"
+            onClick={() => move(1)}
+            sx={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', bgcolor: 'rgba(255,255,255,0.88)' }}
+          >
+            <ChevronRight />
+          </IconButton>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ position: 'absolute', left: 0, right: 0, bottom: 16, justifyContent: 'center' }}
+          >
+            {images.map((image, index) => (
+              <Box
+                key={image.id || image.image}
+                component="button"
+                aria-label={`Show image ${index + 1}`}
+                onClick={() => setActiveImage(index)}
+                sx={{
+                  width: index === activeImage ? 26 : 9,
+                  height: 9,
+                  borderRadius: 999,
+                  border: 0,
+                  bgcolor: index === activeImage ? 'white' : 'rgba(255,255,255,0.58)',
+                  cursor: 'pointer',
+                }}
+              />
+            ))}
+          </Stack>
+        </>
+      )}
     </Box>
   );
 }

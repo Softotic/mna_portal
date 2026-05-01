@@ -22,6 +22,18 @@ export const publicFeedbacksAPI = {
   featured: () => api.get('/public/feedbacks/featured/'),
 };
 
+export const publicTeamAPI = {
+  list: (params) => api.get('/public/team/', { params }),
+  featured: () => api.get('/public/team/featured/'),
+};
+
+export const publicPortfolioAPI = {
+  unionCouncils: (params) => api.get('/public/portfolio/union-councils/', { params }),
+  categories: (params) => api.get('/public/portfolio/categories/', { params }),
+  schemes: (params) => api.get('/public/portfolio/schemes/', { params }),
+  scheme: (id) => api.get(`/public/portfolio/schemes/${id}/`),
+};
+
 export const publicComplaintsAPI = {
   create: (data) => {
     const formData = new FormData();

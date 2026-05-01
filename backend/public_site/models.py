@@ -6,6 +6,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.core.validators import FileExtensionValidator
 from django.db import models
+from django.db.models import Max
 
 
 class PublicSettings(models.Model):
@@ -84,6 +85,169 @@ class CitizenFeedback(models.Model):
         return f"{self.name} feedback"
 
 
+class TeamMember(models.Model):
+    """Public team members shown on the public website."""
+
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('published', 'Published'),
+    ]
+
+    name = models.CharField(max_length=255)
+    designation = models.CharField(max_length=255)
+    photo = models.FileField(
+        upload_to='public/team/',
+        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])],
+    )
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=50, blank=True)
+    union_council = models.CharField(max_length=255, blank=True)
+    department = models.CharField(max_length=255, blank=True)
+    bio = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='published')
+    featured = models.BooleanField(default=False)
+    sort_order = models.PositiveIntegerField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sort_order', 'name']
+        indexes = [
+            models.Index(fields=['status', 'sort_order']),
+            models.Index(fields=['featured', 'sort_order']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} - {self.designation}"
+
+    def save(self, *args, **kwargs):
+        if self.sort_order is None:
+            max_order = TeamMember.objects.aggregate(max_order=Max('sort_order'))['max_order']
+            self.sort_order = 0 if max_order is None else max_order + 1
+
+        super().save(*args, **kwargs)
+
+        if self.featured:
+            TeamMember.objects.exclude(pk=self.pk).filter(featured=True).update(featured=False)
+
+
+class PortfolioUnionCouncil(models.Model):
+    """Union council grouping for the public portfolio schemes page."""
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    sort_order = models.PositiveIntegerField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sort_order', 'name']
+        verbose_name = 'Portfolio Union Council'
+        verbose_name_plural = 'Portfolio Union Councils'
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if self.sort_order is None:
+            max_order = PortfolioUnionCouncil.objects.aggregate(max_order=Max('sort_order'))['max_order']
+            self.sort_order = 0 if max_order is None else max_order + 1
+        super().save(*args, **kwargs)
+
+
+class PortfolioCategory(models.Model):
+    """Category within a portfolio union council."""
+
+    union_council = models.ForeignKey(PortfolioUnionCouncil, related_name='categories', on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    sort_order = models.PositiveIntegerField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sort_order', 'name']
+        verbose_name = 'Portfolio Category'
+        verbose_name_plural = 'Portfolio Categories'
+
+    def __str__(self):
+        return f"{self.union_council.name} - {self.name}"
+
+    def save(self, *args, **kwargs):
+        if self.sort_order is None:
+            max_order = PortfolioCategory.objects.filter(union_council=self.union_council).aggregate(max_order=Max('sort_order'))['max_order']
+            self.sort_order = 0 if max_order is None else max_order + 1
+        super().save(*args, **kwargs)
+
+
+class PortfolioScheme(models.Model):
+    """Public portfolio scheme displayed on the public website."""
+
+    STATUS_CHOICES = [
+        ('ongoing', 'Ongoing'),
+        ('past', 'Past'),
+        ('future', 'Future'),
+    ]
+
+    union_council = models.ForeignKey(PortfolioUnionCouncil, related_name='schemes', on_delete=models.CASCADE)
+    category = models.ForeignKey(PortfolioCategory, related_name='schemes', on_delete=models.CASCADE)
+    name = models.CharField(max_length=500)
+    description = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ongoing')
+    image = models.FileField(
+        upload_to='public/portfolio/images/',
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])],
+    )
+    attachment = models.FileField(upload_to='public/portfolio/attachments/', blank=True, null=True)
+    tags = models.CharField(max_length=500, blank=True, help_text='Comma-separated tags')
+    notes = models.TextField(blank=True)
+    sort_order = models.PositiveIntegerField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sort_order', 'name']
+        indexes = [
+            models.Index(fields=['status', 'sort_order']),
+            models.Index(fields=['union_council', 'category', 'sort_order']),
+        ]
+        verbose_name = 'Portfolio Scheme'
+        verbose_name_plural = 'Portfolio Schemes'
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if self.sort_order is None:
+            max_order = PortfolioScheme.objects.filter(
+                union_council=self.union_council,
+                category=self.category,
+            ).aggregate(max_order=Max('sort_order'))['max_order']
+            self.sort_order = 0 if max_order is None else max_order + 1
+        super().save(*args, **kwargs)
+
+
+class PortfolioSchemeImage(models.Model):
+    """Additional images for a public portfolio scheme."""
+
+    scheme = models.ForeignKey(PortfolioScheme, related_name='images', on_delete=models.CASCADE)
+    image = models.FileField(
+        upload_to='public/portfolio/images/',
+        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])],
+    )
+    sort_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sort_order', 'id']
+
+    def __str__(self):
+        return f"{self.scheme.name} image {self.id}"
+
+
 class News(models.Model):
     """News and updates for the public website."""
     STATUS_CHOICES = [
@@ -118,6 +282,24 @@ class News(models.Model):
     
     def __str__(self):
         return self.title
+
+
+class NewsImage(models.Model):
+    """Additional images for news and updates."""
+
+    news = models.ForeignKey(News, related_name='images', on_delete=models.CASCADE)
+    image = models.FileField(
+        upload_to='public/news/',
+        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])],
+    )
+    sort_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sort_order', 'id']
+
+    def __str__(self):
+        return f"{self.news.title} image {self.id}"
 
 class Complaint(models.Model):
     """Public-facing complaints / service requests submitted by citizens."""

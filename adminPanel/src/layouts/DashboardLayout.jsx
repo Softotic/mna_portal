@@ -22,6 +22,8 @@ const STATIC_MENU_ITEMS = [
   { text: 'Website Settings', icon: <Language />, path: '/website-settings' },
   { text: 'News Management', icon: <Newspaper />, path: '/news-management' },
   { text: 'Feedback Management', icon: <Forum />, path: '/feedback-management' },
+  { text: 'Team Management', icon: <Group />, path: '/team-management' },
+  { text: 'Portfolio Schemes', icon: <AccountTree />, path: '/portfolio-schemes' },
   { text: 'Complaints Management', icon: <Settings />, path: '/complaints-management' },
   { text: 'Settings', icon: <Settings />, path: '/settings' },
 ];
