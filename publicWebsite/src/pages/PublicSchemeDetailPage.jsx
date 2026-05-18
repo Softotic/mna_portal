@@ -16,7 +16,7 @@ import { alpha } from '@mui/material/styles';
 import { publicPortfolioAPI } from '../api/index.js';
 
 function statusColor(status) {
-  if (status === 'ongoing') return 'success';
+  if (status === 'ongoing') return 'success'; ///// green
   if (status === 'future') return 'info';
   return 'default';
 }
