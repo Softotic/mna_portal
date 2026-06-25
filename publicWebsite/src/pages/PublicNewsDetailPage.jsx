@@ -88,34 +88,47 @@ export default function PublicNewsDetailPage() {
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 0.9fr) minmax(320px, 0.36fr)' },
-            gap: { xs: 3, md: 5 },
-            alignItems: 'end',
+            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 0.96fr) minmax(280px, 0.32fr)' },
+            gap: { xs: 3, md: 4.5 },
+            alignItems: 'start',
           }}
         >
           <Box sx={{ minWidth: 0 }}>
-            <Chip
-              label="Official Article"
-              sx={{
-                bgcolor: alpha('#1f5f46', 0.10),
-                color: 'primary.main',
-                fontWeight: 800,
-                mb: 2.5,
-              }}
-            />
+            <Stack direction="row" spacing={1.2} sx={{ alignItems: 'center', flexWrap: 'wrap', mb: 2.4 }} useFlexGap>
+              <Chip
+                label="Official Article"
+                sx={{
+                  bgcolor: alpha('#1f5f46', 0.10),
+                  color: 'primary.main',
+                  fontWeight: 800,
+                }}
+              />
+              <Typography variant="overline" sx={{ color: 'text.secondary' }}>
+                Public news and updates
+              </Typography>
+            </Stack>
             <Typography
-              variant="h1"
+              variant="h2"
               sx={{
-                maxWidth: 980,
-                fontSize: { xs: '2.25rem', sm: '3.2rem', md: '4.5rem' },
-                lineHeight: { xs: 1.08, md: 1.02 },
+                maxWidth: 920,
+                fontSize: { xs: '2.15rem', sm: '2.8rem', md: '3.55rem' },
+                lineHeight: { xs: 1.1, md: 1.05 },
+                letterSpacing: '-0.03em',
                 overflowWrap: 'anywhere',
               }}
             >
               {news.title}
             </Typography>
             {news.excerpt && (
-              <Typography color="text.secondary" sx={{ mt: 2.4, maxWidth: 820, fontSize: { xs: '1rem', md: '1.12rem' } }}>
+              <Typography
+                color="text.secondary"
+                sx={{
+                  mt: 2.2,
+                  maxWidth: 760,
+                  fontSize: { xs: '1rem', md: '1.08rem' },
+                  lineHeight: 1.8,
+                }}
+              >
                 {news.excerpt}
               </Typography>
             )}
@@ -212,7 +225,7 @@ export default function PublicNewsDetailPage() {
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 900px) minmax(280px, 360px)' },
+            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 860px) minmax(280px, 340px)' },
             gap: { xs: 4, md: 5 },
             alignItems: 'start',
             justifyContent: 'center',
@@ -228,8 +241,8 @@ export default function PublicNewsDetailPage() {
             <Typography
               sx={{
                 color: 'text.primary',
-                lineHeight: { xs: 1.85, md: 2 },
-                fontSize: { xs: '1rem', md: '1.11rem' },
+                lineHeight: { xs: 1.9, md: 1.95 },
+                fontSize: { xs: '1rem', md: '1.08rem' },
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
               }}

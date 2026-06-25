@@ -16,11 +16,14 @@ import {
   ArrowOutward,
   Campaign,
   Feedback,
+  Flag,
   Groups,
+  MilitaryTech,
   Newspaper,
   Public,
   Room,
   SupportAgent,
+  TrackChanges,
 } from '@mui/icons-material';
 import { Facebook, Instagram, Language, YouTube } from '@mui/icons-material';
 import { Link as RouterLink, useOutletContext } from 'react-router-dom';
@@ -32,6 +35,14 @@ function toList(value, fallback) {
     .map((item) => item.trim())
     .filter(Boolean);
   return list?.length ? list : fallback;
+}
+
+function summarizeNews(item) {
+  const source = item?.excerpt || item?.content || '';
+  const text = source.replace(/\s+/g, ' ').trim();
+  if (!text) return 'Open the full story to continue reading.';
+  if (text.length <= 140) return text;
+  return `${text.slice(0, 137).trimEnd()}...`;
 }
 
 export default function PublicLandingPage() {
@@ -82,6 +93,24 @@ export default function PublicLandingPage() {
         'Service to the people',
         'Transparency and accountability',
         'Local representation with dignity',
+      ]),
+    [settings],
+  );
+
+  const missionPoints = useMemo(
+    () =>
+      toList(settings?.mission, [
+        'Deliver responsive constituency support with clear public-service channels.',
+        'Improve access to core services, development work, and local representation.',
+      ]),
+    [settings],
+  );
+
+  const visionPoints = useMemo(
+    () =>
+      toList(settings?.vision, [
+        'Build a public office that is transparent, accessible, and grounded in citizen trust.',
+        'Support long-term local development through accountable representation.',
       ]),
     [settings],
   );
@@ -300,13 +329,94 @@ export default function PublicLandingPage() {
         </Box>
       </Container>
 
+      {featuredNews.length > 0 && (
+        <Container sx={{ py: { xs: 6, md: 8 }, px: { xs: 3, md: 8 } }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'end', flexWrap: 'wrap', mb: 3 }}>
+            <Box>
+              <Typography variant="overline" color="secondary.main">
+                Latest Updates
+              </Typography>
+              <Typography variant="h3" sx={{ mt: 1.2 }}>
+                News from the constituency and public office
+              </Typography>
+            </Box>
+            <Button component={RouterLink} to="/news" variant="outlined" endIcon={<ArrowOutward />}>
+              View all news
+            </Button>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
+              gap: 3,
+            }}
+          >
+            {featuredNews.slice(0, 3).map((item, index) => (
+              <Box key={item.id}>
+                <Card sx={{ height: '100%' }}>
+                  {getNewsImage(item) ? (
+                    <CardMedia
+                      component="img"
+                      image={getNewsImage(item)}
+                      alt={item.title}
+                      sx={{
+                        height: { xs: 240, md: 220 },
+                        objectFit: 'cover',
+                      }}
+                    />
+                  ) : (
+                    <Box sx={{ height: { xs: 240, md: 220 }, bgcolor: alpha('#1f5f46', 0.08) }} />
+                  )}
+                  <CardContent sx={{ p: 3 }}>
+                    <Typography variant="overline" color="secondary.main">
+                      {item.published_at ? new Date(item.published_at).toLocaleDateString() : 'Official update'}
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        mt: 1,
+                        mb: 1.2,
+                        minHeight: { md: 64 },
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {item.title}
+                    </Typography>
+                    <Typography
+                      color="text.secondary"
+                      sx={{
+                        mb: 2,
+                        minHeight: { md: 78 },
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {summarizeNews(item)}
+                    </Typography>
+                    <Button component={RouterLink} to={`/news/${item.id}`} endIcon={<ArrowOutward />}>
+                      Read update
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Box>
+            ))}
+          </Box>
+        </Container>
+      )}
+
       <Container sx={{ pb: { xs: 5, md: 7 }, px: { xs: 3, md: 8 } }}>
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) minmax(300px, 420px)' },
+            gridTemplateColumns: { xs: '1fr', xl: 'minmax(0, 1.08fr) minmax(360px, 0.92fr)' },
             gap: { xs: 3, md: 5 },
-            alignItems: 'center',
+            alignItems: 'start',
           }}
         >
           <Box sx={{ minWidth: 0 }}>
@@ -316,32 +426,155 @@ export default function PublicLandingPage() {
             <Typography variant="h3" sx={{ mt: 1.3, mb: 2.2, maxWidth: 740 }}>
               A public-facing office for representation, responsiveness, and measurable local service
             </Typography>
-            <Typography color="text.secondary" sx={{ maxWidth: 760 }}>
+            <Typography color="text.secondary" sx={{ maxWidth: 760, lineHeight: 1.9 }}>
               {settings?.about ||
                 settings?.intro ||
                 'This website is designed to help citizens stay connected with the work of their elected representative, access the office more easily, and receive responses through structured public-service channels.'}
             </Typography>
+
+            <Box
+              sx={{
+                mt: 4,
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
+                gap: 2.2,
+              }}
+            >
+              <Paper
+                sx={{
+                  p: { xs: 2.5, md: 3 },
+                  border: '1px solid rgba(16,36,27,0.08)',
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(220,235,220,0.54) 100%)',
+                }}
+              >
+                <Stack direction="row" spacing={1.1} sx={{ alignItems: 'center', mb: 1.5 }}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      display: 'grid',
+                      placeItems: 'center',
+                      bgcolor: alpha('#1f5f46', 0.10),
+                      color: 'primary.main',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <TrackChanges fontSize="small" />
+                  </Box>
+                  <Typography variant="h6">Mission</Typography>
+                </Stack>
+                <Stack spacing={1}>
+                  {missionPoints.slice(0, 3).map((item) => (
+                    <Typography key={item} color="text.secondary" sx={{ lineHeight: 1.8 }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Stack>
+              </Paper>
+
+              <Paper
+                sx={{
+                  p: { xs: 2.5, md: 3 },
+                  border: '1px solid rgba(16,36,27,0.08)',
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(180,138,67,0.10) 100%)',
+                }}
+              >
+                <Stack direction="row" spacing={1.1} sx={{ alignItems: 'center', mb: 1.5 }}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      display: 'grid',
+                      placeItems: 'center',
+                      bgcolor: alpha('#b48a43', 0.16),
+                      color: 'secondary.main',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Flag fontSize="small" />
+                  </Box>
+                  <Typography variant="h6">Vision</Typography>
+                </Stack>
+                <Stack spacing={1}>
+                  {visionPoints.slice(0, 3).map((item) => (
+                    <Typography key={item} color="text.secondary" sx={{ lineHeight: 1.8 }}>
+                      {item}
+                    </Typography>
+                  ))}
+                </Stack>
+              </Paper>
+            </Box>
           </Box>
+
           <Box sx={{ minWidth: 0 }}>
-            <Paper sx={{ p: 3.2, border: '1px solid rgba(16,36,27,0.08)' }}>
-              <Typography variant="overline" color="secondary.main">
-                Public Priorities
-              </Typography>
-              <Stack spacing={1.4} sx={{ mt: 2 }}>
-                {achievements.map((item) => (
+            <Paper
+              sx={{
+                p: { xs: 2.8, md: 3.2 },
+                border: '1px solid rgba(16,36,27,0.08)',
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(247,244,237,0.98) 100%)',
+              }}
+            >
+              <Stack direction="row" spacing={1.2} sx={{ alignItems: 'center', mb: 2.2 }}>
+                <Box
+                  sx={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 2.5,
+                    display: 'grid',
+                    placeItems: 'center',
+                    bgcolor: alpha('#1f5f46', 0.08),
+                    color: 'primary.main',
+                    flexShrink: 0,
+                  }}
+                >
+                  <MilitaryTech fontSize="small" />
+                </Box>
+                <Box>
+                  <Typography variant="overline" color="secondary.main">
+                    Public Priorities
+                  </Typography>
+                  <Typography variant="h5" sx={{ mt: 0.2 }}>
+                    Experience and public record
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+                  gap: 1.4,
+                }}
+              >
+                {achievements.map((item, index) => (
                   <Box
                     key={item}
                     sx={{
-                      p: 2,
+                      p: 2.2,
                       borderRadius: 3,
-                      bgcolor: alpha('#1f5f46', 0.05),
-                      borderLeft: '3px solid rgba(180,138,67,0.76)',
+                      bgcolor: index === 0 ? alpha('#1f5f46', 0.08) : 'rgba(255,255,255,0.78)',
+                      border: '1px solid rgba(16,36,27,0.08)',
+                      boxShadow: '0 14px 28px rgba(16,36,27,0.05)',
                     }}
                   >
-                    <Typography sx={{ fontWeight: 700 }}>{item}</Typography>
+                    <Typography
+                      sx={{
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.14em',
+                        textTransform: 'uppercase',
+                        color: 'secondary.main',
+                        mb: 1,
+                      }}
+                    >
+                      {String(index + 1).padStart(2, '0')}
+                    </Typography>
+                    <Typography sx={{ fontWeight: 700, lineHeight: 1.65 }}>{item}</Typography>
                   </Box>
                 ))}
-              </Stack>
+              </Box>
             </Paper>
           </Box>
         </Box>
@@ -415,58 +648,6 @@ export default function PublicLandingPage() {
           </Box>
         </Container>
       </Box>
-
-      {featuredNews.length > 0 && (
-        <Container sx={{ py: { xs: 6, md: 8 }, px: { xs: 3, md: 8 } }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'end', flexWrap: 'wrap', mb: 3 }}>
-            <Box>
-              <Typography variant="overline" color="secondary.main">
-                Latest Updates
-              </Typography>
-              <Typography variant="h3" sx={{ mt: 1.2 }}>
-                News from the constituency and public office
-              </Typography>
-            </Box>
-            <Button component={RouterLink} to="/news" variant="outlined" endIcon={<ArrowOutward />}>
-              View all news
-            </Button>
-          </Box>
-
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'repeat(4, minmax(0, 1fr))' },
-              gap: 3,
-            }}
-          >
-            {featuredNews.slice(0, 3).map((item, index) => (
-              <Box key={item.id} sx={{ gridColumn: { xs: 'auto', md: index === 0 ? 'span 2' : 'span 1' } }}>
-                <Card sx={{ height: '100%' }}>
-                  {getNewsImage(item) ? (
-                    <CardMedia component="img" image={getNewsImage(item)} alt={item.title} sx={{ height: index === 0 ? 320 : 220, objectFit: 'cover' }} />
-                  ) : (
-                    <Box sx={{ height: index === 0 ? 320 : 220, bgcolor: alpha('#1f5f46', 0.08) }} />
-                  )}
-                  <CardContent sx={{ p: 3 }}>
-                    <Typography variant="overline" color="secondary.main">
-                      {item.published_at ? new Date(item.published_at).toLocaleDateString() : 'Official update'}
-                    </Typography>
-                    <Typography variant={index === 0 ? 'h5' : 'h6'} sx={{ mt: 1, mb: 1.2 }}>
-                      {item.title}
-                    </Typography>
-                    <Typography color="text.secondary" sx={{ mb: 2 }}>
-                      {item.excerpt || 'Open the full story to continue reading.'}
-                    </Typography>
-                    <Button component={RouterLink} to={`/news/${item.id}`} endIcon={<ArrowOutward />}>
-                      Read update
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Box>
-            ))}
-          </Box>
-        </Container>
-      )}
 
       {feedbacks.length > 0 && (
         <Container sx={{ pb: 8, px: { xs: 3, md: 8 } }}>
