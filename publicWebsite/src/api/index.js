@@ -1,11 +1,22 @@
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_ORIGIN = new URL(API_BASE_URL, window.location.origin).origin;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
+
+export function resolveMediaUrl(value) {
+  if (!value) return '';
+
+  try {
+    return new URL(value, API_ORIGIN).toString();
+  } catch {
+    return value;
+  }
+}
 
 export const publicSettingsAPI = {
   current: () => api.get('/public/settings/current/'),

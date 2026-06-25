@@ -15,7 +15,7 @@ import {
 import { alpha } from '@mui/material/styles';
 import { ArrowOutward, Category, Image, LocationCity } from '@mui/icons-material';
 import { Link as RouterLink, useOutletContext } from 'react-router-dom';
-import { publicPortfolioAPI } from '../api/index.js';
+import { publicPortfolioAPI, resolveMediaUrl } from '../api/index.js';
 
 const statuses = ['all', 'ongoing', 'future', 'past'];
 
@@ -179,7 +179,7 @@ export default function PublicSchemesPage() {
 }
 
 function getSchemeImage(scheme) {
-  return scheme.image || scheme.images?.[0]?.image || '';
+  return resolveMediaUrl(scheme.image || scheme.images?.[0]?.image || '');
 }
 
 function SidePanel({ title, icon, children }) {

@@ -26,7 +26,7 @@ import {
   YouTube,
 } from '@mui/icons-material';
 import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
-import { publicSettingsAPI } from '../api/index.js';
+import { publicSettingsAPI, resolveMediaUrl } from '../api/index.js';
 
 const navItems = [
   { label: 'Home', path: '/' },
@@ -80,7 +80,7 @@ export default function PublicSiteLayout() {
   const brandName = settings?.leader_name || settings?.site_name || 'MNA Portal';
   const brandSubline = settings?.designation || 'Member of the National Assembly';
   const brandInitial = brandName.trim().charAt(0) || 'M';
-  const logoUrl = settings?.logo;
+  const logoUrl = resolveMediaUrl(settings?.logo);
 
   const navLinks = (
     <>

@@ -17,7 +17,7 @@ import {
 import { alpha } from '@mui/material/styles';
 import { Attachment, Gavel, ManageSearch, ReceiptLong, Shield, Timeline } from '@mui/icons-material';
 import { useOutletContext } from 'react-router-dom';
-import { publicComplaintsAPI } from '../api/index.js';
+import { publicComplaintsAPI, resolveMediaUrl } from '../api/index.js';
 
 const complaintCategories = [
   'Community Issue',
@@ -107,7 +107,7 @@ function TrackingCard({ complaint }) {
               {complaint.admin_attachment && (
                 <Typography
                   component="a"
-                  href={complaint.admin_attachment}
+                  href={resolveMediaUrl(complaint.admin_attachment)}
                   target="_blank"
                   rel="noreferrer"
                   sx={{ display: 'inline-flex', mt: 1.6, color: 'primary.main', fontWeight: 700 }}
@@ -143,7 +143,7 @@ function TrackingCard({ complaint }) {
                 {update.attachment && (
                   <Typography
                     component="a"
-                    href={update.attachment}
+                    href={resolveMediaUrl(update.attachment)}
                     target="_blank"
                     rel="noreferrer"
                     sx={{ display: 'inline-flex', mt: 1.3, color: 'primary.main', fontWeight: 700 }}

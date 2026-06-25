@@ -14,7 +14,7 @@ import {
 import { alpha } from '@mui/material/styles';
 import { ArrowBack, ArrowOutward, Article, CalendarToday, ChevronLeft, ChevronRight, SupportAgent, Update } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
-import { publicNewsAPI } from '../api/index.js';
+import { publicNewsAPI, resolveMediaUrl } from '../api/index.js';
 
 export default function PublicNewsDetailPage() {
   const { id } = useParams();
@@ -74,7 +74,7 @@ export default function PublicNewsDetailPage() {
   }
 
   const gallery = [
-    ...(news.image ? [{ id: 'primary', image: news.image }] : []),
+    ...(news.image ? [{ id: 'primary', image: resolveMediaUrl(news.image) }] : []),
     ...(news.images || []),
   ];
 
@@ -276,7 +276,7 @@ function NewsImageGallery({ images, title, activeImage, setActiveImage }) {
     <Box sx={{ position: 'relative' }}>
       <CardMedia
         component="img"
-        image={current.image}
+        image={resolveMediaUrl(current.image)}
         alt={title}
         sx={{ width: '100%', height: { xs: 250, sm: 380, md: 560 }, objectFit: 'cover' }}
       />

@@ -153,12 +153,21 @@ else:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
-if os.environ.get('VERCEL'):
-    MEDIA_ROOT = Path('/tmp/media')
-else:
-    MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = BASE_DIR / 'media'
+if not os.environ.get('VERCEL') or not os.environ.get('BLOB_READ_WRITE_TOKEN'):
+    MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
 
-MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+if os.environ.get('BLOB_READ_WRITE_TOKEN'):
+    STORAGES = {
+        'default': {
+            'BACKEND': 'config.storage.VercelBlobStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'
+            if os.environ.get('VERCEL')
+            else 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        },
+    }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

@@ -24,7 +24,7 @@ import {
 } from '@mui/icons-material';
 import { Facebook, Instagram, Language, YouTube } from '@mui/icons-material';
 import { Link as RouterLink, useOutletContext } from 'react-router-dom';
-import { publicFeedbacksAPI, publicNewsAPI } from '../api/index.js';
+import { publicFeedbacksAPI, publicNewsAPI, resolveMediaUrl } from '../api/index.js';
 
 function toList(value, fallback) {
   const list = value
@@ -189,7 +189,7 @@ export default function PublicLandingPage() {
                 {settings?.intro_image ? (
                   <CardMedia
                     component="img"
-                    image={settings.intro_image}
+                    image={resolveMediaUrl(settings.intro_image)}
                     alt={settings?.leader_name || settings?.site_name || 'MNA portrait'}
                     sx={{ borderRadius: { xs: 3, md: 5 }, aspectRatio: { xs: '4 / 4.15', md: '4 / 4.7' }, objectFit: 'cover' }}
                   />
@@ -550,5 +550,5 @@ export default function PublicLandingPage() {
 }
 
 function getNewsImage(item) {
-  return item.image || item.images?.[0]?.image || '';
+  return resolveMediaUrl(item.image || item.images?.[0]?.image || '');
 }

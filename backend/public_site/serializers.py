@@ -19,9 +19,29 @@ from .models import (
 )
 
 
+class SafeFileUrlField(serializers.FileField):
+    def to_representation(self, value):
+        if not value:
+            return ''
+
+        try:
+            if not value.name or not value.storage.exists(value.name):
+                return ''
+            url = value.url
+        except Exception:
+            return ''
+
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(url)
+        return url
+
+
 class PublicSettingsSerializer(serializers.ModelSerializer):
     """Serializer for public site settings."""
-    
+    intro_image = SafeFileUrlField(required=False, allow_null=True)
+    logo = SafeFileUrlField(required=False, allow_null=True)
+
     class Meta:
         model = PublicSettings
         fields = [
@@ -74,6 +94,8 @@ class CitizenFeedbackSerializer(serializers.ModelSerializer):
 
 
 class TeamMemberSerializer(serializers.ModelSerializer):
+    photo = SafeFileUrlField(required=False, allow_null=True)
+
     class Meta:
         model = TeamMember
         fields = [
@@ -145,6 +167,8 @@ class PortfolioCategorySerializer(serializers.ModelSerializer):
 
 
 class PortfolioSchemeSerializer(serializers.ModelSerializer):
+    image = SafeFileUrlField(required=False, allow_null=True)
+    attachment = SafeFileUrlField(required=False, allow_null=True)
     union_council_name = serializers.CharField(source='union_council.name', read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
     tag_list = serializers.SerializerMethodField()
@@ -177,7 +201,15 @@ class PortfolioSchemeSerializer(serializers.ModelSerializer):
         return [tag.strip() for tag in (obj.tags or '').split(',') if tag.strip()]
 
     def get_images(self, obj):
-        return [{'id': item.id, 'image': item.image.url, 'sort_order': item.sort_order} for item in obj.images.all()]
+        return [
+            {
+                'id': item.id,
+                'image': SafeFileUrlField(context=self.context).to_representation(item.image),
+                'sort_order': item.sort_order,
+            }
+            for item in obj.images.all()
+            if SafeFileUrlField(context=self.context).to_representation(item.image)
+        ]
 
     def validate(self, attrs):
         union_council = attrs.get('union_council') or getattr(self.instance, 'union_council', None)
@@ -189,6 +221,7 @@ class PortfolioSchemeSerializer(serializers.ModelSerializer):
 
 class NewsListSerializer(serializers.ModelSerializer):
     """Serializer for news list view (public)."""
+    image = SafeFileUrlField(required=False, allow_null=True)
     images = serializers.SerializerMethodField()
     
     class Meta:
@@ -206,11 +239,20 @@ class NewsListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'published_at']
 
     def get_images(self, obj):
-        return [{'id': item.id, 'image': item.image.url, 'sort_order': item.sort_order} for item in obj.images.all()]
+        return [
+            {
+                'id': item.id,
+                'image': SafeFileUrlField(context=self.context).to_representation(item.image),
+                'sort_order': item.sort_order,
+            }
+            for item in obj.images.all()
+            if SafeFileUrlField(context=self.context).to_representation(item.image)
+        ]
 
 
 class NewsDetailSerializer(serializers.ModelSerializer):
     """Serializer for news detail view (public)."""
+    image = SafeFileUrlField(required=False, allow_null=True)
     images = serializers.SerializerMethodField()
     
     class Meta:
@@ -232,10 +274,19 @@ class NewsDetailSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'published_at', 'created_at', 'updated_at']
 
     def get_images(self, obj):
-        return [{'id': item.id, 'image': item.image.url, 'sort_order': item.sort_order} for item in obj.images.all()]
+        return [
+            {
+                'id': item.id,
+                'image': SafeFileUrlField(context=self.context).to_representation(item.image),
+                'sort_order': item.sort_order,
+            }
+            for item in obj.images.all()
+            if SafeFileUrlField(context=self.context).to_representation(item.image)
+        ]
 
 
 class ComplaintUpdateSerializer(serializers.ModelSerializer):
+    attachment = SafeFileUrlField(required=False, allow_null=True)
     created_by_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -259,6 +310,8 @@ class ComplaintUpdateSerializer(serializers.ModelSerializer):
 
 class ComplaintSerializer(serializers.ModelSerializer):
     """Serializer for complaint submission and tracking."""
+    attachment = SafeFileUrlField(required=False, allow_null=True)
+    admin_attachment = SafeFileUrlField(required=False, allow_null=True)
     updates = ComplaintUpdateSerializer(many=True, read_only=True)
 
     class Meta:
@@ -294,6 +347,8 @@ class ComplaintSerializer(serializers.ModelSerializer):
 
 class ComplaintAdminSerializer(serializers.ModelSerializer):
     """Serializer for complaint management in admin panel."""
+    attachment = SafeFileUrlField(required=False, allow_null=True)
+    admin_attachment = SafeFileUrlField(required=False, allow_null=True)
     updates = ComplaintUpdateSerializer(many=True, read_only=True)
 
     class Meta:
@@ -323,6 +378,7 @@ class ComplaintAdminSerializer(serializers.ModelSerializer):
 
 class NewsAdminSerializer(serializers.ModelSerializer):
     """Serializer for news admin view (full CRUD)."""
+    image = SafeFileUrlField(required=False, allow_null=True)
     images = serializers.SerializerMethodField()
 
     def _build_unique_slug(self, title, requested_slug=''):

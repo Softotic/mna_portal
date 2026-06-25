@@ -8,4 +8,4 @@ django-ratelimit
 whitenoise
 gunicorn
 Pillow
-
+vercel>=0.5.7

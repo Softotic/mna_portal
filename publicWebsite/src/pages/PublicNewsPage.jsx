@@ -15,7 +15,7 @@ import {
 import { alpha } from '@mui/material/styles';
 import { ArrowOutward, Article, ExpandMore, Search } from '@mui/icons-material';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { publicNewsAPI } from '../api/index.js';
+import { publicNewsAPI, resolveMediaUrl } from '../api/index.js';
 
 export default function PublicNewsPage() {
   const PAGE_SIZE = 3;
@@ -222,7 +222,7 @@ export default function PublicNewsPage() {
 }
 
 function getNewsImage(item) {
-  return item.image || item.images?.[0]?.image || '';
+  return resolveMediaUrl(item.image || item.images?.[0]?.image || '');
 }
 
 function NewsImagePlaceholder({ height, title, compact = false }) {

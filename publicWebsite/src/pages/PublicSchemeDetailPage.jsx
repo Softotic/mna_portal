@@ -13,7 +13,7 @@ import {
 import { ArrowBack, AttachFile, ChevronLeft, ChevronRight, Image } from '@mui/icons-material';
 import { Link as RouterLink, useParams } from 'react-router-dom';
 import { alpha } from '@mui/material/styles';
-import { publicPortfolioAPI } from '../api/index.js';
+import { publicPortfolioAPI, resolveMediaUrl } from '../api/index.js';
 
 function statusColor(status) {
   if (status === 'ongoing') return 'success'; ///// green
@@ -55,7 +55,7 @@ export default function PublicSchemeDetailPage() {
   }
 
   const gallery = [
-    ...(scheme.image ? [{ id: 'primary', image: scheme.image }] : []),
+    ...(scheme.image ? [{ id: 'primary', image: resolveMediaUrl(scheme.image) }] : []),
     ...(scheme.images || []),
   ];
 
@@ -107,7 +107,7 @@ export default function PublicSchemeDetailPage() {
             )}
             {scheme.notes && <Info label="Notes" value={scheme.notes} multiline />}
             {scheme.attachment && (
-              <Button component="a" href={scheme.attachment} target="_blank" rel="noreferrer" variant="contained" startIcon={<AttachFile />} fullWidth sx={{ mt: 3 }}>
+              <Button component="a" href={resolveMediaUrl(scheme.attachment)} target="_blank" rel="noreferrer" variant="contained" startIcon={<AttachFile />} fullWidth sx={{ mt: 3 }}>
                 View Attachment
               </Button>
             )}
@@ -141,7 +141,7 @@ function ImageGallery({ images, title, activeImage, setActiveImage }) {
     <Box sx={{ position: 'relative', mb: 4 }}>
       <Box
         component="img"
-        src={current.image}
+        src={resolveMediaUrl(current.image)}
         alt={title}
         sx={{ width: '100%', maxHeight: 560, objectFit: 'cover', borderRadius: 3, display: 'block' }}
       />

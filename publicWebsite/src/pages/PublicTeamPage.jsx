@@ -26,7 +26,7 @@ import {
   SupportAgent,
 } from '@mui/icons-material';
 import { Link as RouterLink, useOutletContext } from 'react-router-dom';
-import { publicTeamAPI } from '../api/index.js';
+import { publicTeamAPI, resolveMediaUrl } from '../api/index.js';
 
 export default function PublicTeamPage() {
   const { settings } = useOutletContext();
@@ -204,12 +204,16 @@ export default function PublicTeamPage() {
           {leadMember && (
             <Box>
               <Card sx={{ overflow: 'hidden', border: '1px solid rgba(16,36,27,0.08)' }}>
-                <CardMedia
-                  component="img"
-                  image={leadMember.photo}
-                  alt={leadMember.name}
-                  sx={{ height: { xs: 360, md: 520 }, objectFit: 'cover', objectPosition: 'top center' }}
-                />
+                {resolveMediaUrl(leadMember.photo) ? (
+                  <CardMedia
+                    component="img"
+                    image={resolveMediaUrl(leadMember.photo)}
+                    alt={leadMember.name}
+                    sx={{ height: { xs: 360, md: 520 }, objectFit: 'cover', objectPosition: 'top center' }}
+                  />
+                ) : (
+                  <TeamImagePlaceholder height={{ xs: 360, md: 520 }} name={leadMember.name} />
+                )}
                 <CardContent sx={{ p: { xs: 3, md: 4 } }}>
                   <Typography variant="overline" color="secondary.main">
                     Team Member
@@ -274,12 +278,16 @@ function SummaryRow({ icon, label, value }) {
 function TeamCard({ member }) {
   return (
     <Card sx={{ height: '100%', overflow: 'hidden', border: '1px solid rgba(16,36,27,0.08)' }}>
-      <CardMedia
-        component="img"
-        image={member.photo}
-        alt={member.name}
-        sx={{ height: 380, objectFit: 'cover', objectPosition: 'top center' }}
-      />
+      {resolveMediaUrl(member.photo) ? (
+        <CardMedia
+          component="img"
+          image={resolveMediaUrl(member.photo)}
+          alt={member.name}
+          sx={{ height: 380, objectFit: 'cover', objectPosition: 'top center' }}
+        />
+      ) : (
+        <TeamImagePlaceholder height={380} name={member.name} compact />
+      )}
       <CardContent sx={{ p: 3 }}>
         <Typography variant="h5" sx={{ mb: 0.7 }}>
           {member.name}
@@ -295,6 +303,33 @@ function TeamCard({ member }) {
         <MemberDetails member={member} />
       </CardContent>
     </Card>
+  );
+}
+
+function TeamImagePlaceholder({ height, name, compact = false }) {
+  return (
+    <Box
+      sx={{
+        height,
+        p: compact ? 2.5 : { xs: 3, md: 4 },
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        color: 'primary.main',
+        background:
+          'linear-gradient(135deg, rgba(220,235,220,0.88) 0%, rgba(255,253,248,0.96) 58%, rgba(180,138,67,0.18) 100%)',
+      }}
+    >
+      <Groups sx={{ fontSize: compact ? 36 : 52 }} />
+      <Box>
+        <Typography variant="overline" color="secondary.main">
+          Team Member
+        </Typography>
+        <Typography variant={compact ? 'h5' : 'h4'} sx={{ mt: 1 }}>
+          {name}
+        </Typography>
+      </Box>
+    </Box>
   );
 }
 
