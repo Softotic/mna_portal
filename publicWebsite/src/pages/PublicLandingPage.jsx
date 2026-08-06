@@ -147,6 +147,9 @@ export default function PublicLandingPage() {
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [activeMandate, setActiveMandate] = useState('mission');
+  const [briefView, setBriefView] = useState('priorities');
+  const [activePrinciple, setActivePrinciple] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -478,12 +481,16 @@ export default function PublicLandingPage() {
                 sx={{
                   mt: { xs: 4, md: 5 },
                   display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: activeMandate === 'mission' ? '1.13fr 0.87fr' : '0.87fr 1.13fr',
+                  },
                   overflow: 'hidden',
                   borderRadius: 2,
                   bgcolor: 'primary.dark',
                   color: 'primary.contrastText',
                   position: 'relative',
+                  transition: 'grid-template-columns 420ms var(--site-ease)',
                   '&::before': {
                     content: '""',
                     position: 'absolute',
@@ -494,40 +501,78 @@ export default function PublicLandingPage() {
                 }}
               >
                 {[
-                  { title: 'Mission', points: missionPoints, icon: FlagOutlined },
-                  { title: 'Vision', points: visionPoints, icon: VisibilityOutlined },
+                  { id: 'mission', title: 'Mission', points: missionPoints, icon: FlagOutlined },
+                  { id: 'vision', title: 'Vision', points: visionPoints, icon: VisibilityOutlined },
                 ].map((item, index) => {
                   const Icon = item.icon;
+                  const isActive = activeMandate === item.id;
                   return (
                     <Box
-                      key={item.title}
+                      key={item.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={isActive}
+                      onMouseEnter={() => setActiveMandate(item.id)}
+                      onFocus={() => setActiveMandate(item.id)}
+                      onClick={() => setActiveMandate(item.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setActiveMandate(item.id);
+                        }
+                      }}
                       sx={{
                         p: { xs: 3, md: 3.5 },
                         pt: { xs: 3.5, md: 4 },
                         borderTop: { xs: index ? '1px solid rgba(255,255,255,0.13)' : 0, sm: 0 },
                         borderLeft: { xs: 0, sm: index ? '1px solid rgba(255,255,255,0.13)' : 0 },
+                        bgcolor: isActive ? 'rgba(255,255,255,0.065)' : 'transparent',
+                        cursor: 'pointer',
+                        outline: 0,
+                        transition: 'background-color 260ms var(--site-ease)',
+                        '&:focus-visible': { boxShadow: 'inset 0 0 0 3px rgba(214,154,53,0.72)' },
+                        '& .mandate-icon': {
+                          transform: isActive ? 'translateY(-2px) rotate(-4deg)' : 'none',
+                          bgcolor: isActive ? 'secondary.main' : 'rgba(255,255,255,0.1)',
+                          color: isActive ? 'secondary.contrastText' : 'secondary.light',
+                        },
+                        '& .mandate-arrow': {
+                          opacity: isActive ? 1 : 0.35,
+                          transform: isActive ? 'translateX(4px)' : 'translateX(0)',
+                        },
                       }}
                     >
                       <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
                         <Box
+                          className="mandate-icon"
                           sx={{
                             width: 42,
                             height: 42,
                             display: 'grid',
                             placeItems: 'center',
                             borderRadius: 1.25,
-                            bgcolor: 'rgba(255,255,255,0.1)',
-                            color: 'secondary.light',
                             flexShrink: 0,
+                            transition: 'transform 260ms var(--site-ease), background-color 260ms var(--site-ease), color 260ms var(--site-ease)',
                           }}
                         >
                           <Icon fontSize="small" />
                         </Box>
                         <Typography variant="h5" sx={{ color: 'inherit' }}>{item.title}</Typography>
+                        <ArrowForward
+                          className="mandate-arrow"
+                          sx={{ ml: 'auto !important', fontSize: 19, color: 'secondary.light', transition: 'transform 260ms var(--site-ease), opacity 260ms var(--site-ease)' }}
+                        />
                       </Stack>
                       <Stack spacing={1.4} sx={{ mt: 2.2 }}>
                         {item.points.slice(0, 2).map((point) => (
-                          <Typography key={point} sx={{ color: 'rgba(248,251,249,0.76)', lineHeight: 1.65 }}>
+                          <Typography
+                            key={point}
+                            sx={{
+                              color: isActive ? 'rgba(248,251,249,0.88)' : 'rgba(248,251,249,0.65)',
+                              lineHeight: 1.65,
+                              transition: 'color 260ms var(--site-ease)',
+                            }}
+                          >
                             {trimWords(point, 36)}
                           </Typography>
                         ))}
@@ -551,65 +596,199 @@ export default function PublicLandingPage() {
             >
               <Box sx={{ width: 48, height: 4, bgcolor: 'secondary.main', mb: 2.5 }} />
               <Typography id="priorities-heading" variant="h3" sx={{ fontSize: { xs: '1.8rem', md: '2.15rem' } }}>
-                Public priorities
+                Office commitments
               </Typography>
               <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 480 }}>
-                The commitments guiding representation, public service, and national policy work.
+                Explore the priorities and principles shaping public service and national policy work.
               </Typography>
 
-              <Stack spacing={0} sx={{ mt: 2.5 }}>
-                {achievements.slice(0, 5).map((item) => (
-                  <Box
-                    key={item}
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: '38px minmax(0, 1fr)',
-                      gap: 1.5,
-                      alignItems: 'start',
-                      py: 1.8,
-                      borderBottom: '1px solid',
-                      borderColor: 'divider',
-                    }}
-                  >
+              <Box
+                role="tablist"
+                aria-label="Office commitments"
+                sx={{
+                  mt: 2.8,
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gap: 0.5,
+                  p: 0.5,
+                  borderRadius: 999,
+                  bgcolor: alpha('#176044', 0.075),
+                }}
+              >
+                {[
+                  { id: 'priorities', label: 'Priorities' },
+                  { id: 'principles', label: 'Principles' },
+                ].map((tab) => {
+                  const isSelected = briefView === tab.id;
+                  return (
                     <Box
+                      key={tab.id}
+                      component="button"
+                      type="button"
+                      role="tab"
+                      id={`office-tab-${tab.id}`}
+                      aria-selected={isSelected}
+                      aria-controls={`office-panel-${tab.id}`}
+                      tabIndex={isSelected ? 0 : -1}
+                      onClick={() => setBriefView(tab.id)}
+                      onFocus={() => setBriefView(tab.id)}
+                      onMouseEnter={() => setBriefView(tab.id)}
+                      onKeyDown={(event) => {
+                        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+                        event.preventDefault();
+                        const nextView = tab.id === 'priorities' ? 'principles' : 'priorities';
+                        setBriefView(nextView);
+                        window.requestAnimationFrame(() => document.getElementById(`office-tab-${nextView}`)?.focus());
+                      }}
                       sx={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: '50%',
-                        display: 'grid',
-                        placeItems: 'center',
-                        bgcolor: alpha('#176044', 0.09),
-                        color: 'primary.main',
+                        minHeight: 42,
+                        border: 0,
+                        borderRadius: 999,
+                        px: 2,
+                        bgcolor: isSelected ? 'primary.main' : 'transparent',
+                        color: isSelected ? 'primary.contrastText' : 'primary.dark',
+                        font: 'inherit',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        transition: 'background-color 220ms var(--site-ease), color 220ms var(--site-ease), transform 220ms var(--site-ease)',
+                        '&:hover': { transform: 'translateY(-1px)' },
+                        '&:focus-visible': { outline: '3px solid', outlineColor: alpha('#d69a35', 0.5), outlineOffset: 2 },
                       }}
                     >
-                      <ArrowForward sx={{ fontSize: 18 }} />
+                      {tab.label}
                     </Box>
-                    <Typography sx={{ pt: 0.45, fontWeight: 680, lineHeight: 1.55, minWidth: 0 }}>
-                      {trimWords(item, 20)}
-                    </Typography>
-                  </Box>
-                ))}
-              </Stack>
+                  );
+                })}
+              </Box>
 
-              <Stack direction="row" spacing={1.2} sx={{ mt: 3.5, alignItems: 'center', color: 'primary.dark' }}>
-                <VerifiedOutlined fontSize="small" />
-                <Typography variant="h6">Principles in practice</Typography>
-              </Stack>
-              <Stack spacing={1.8} sx={{ mt: 2 }}>
-                {principles.map((principle) => (
-                  <Box key={`${principle.title}-${principle.description}`} sx={{ display: 'grid', gridTemplateColumns: '10px minmax(0, 1fr)', gap: 1.25 }}>
-                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: 'secondary.main', mt: 0.95 }} />
-                    <Box>
-                      <Typography sx={{ fontWeight: 800, lineHeight: 1.45 }}>{principle.title}</Typography>
-                      {principle.description && (
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
-                          {principle.description}
+              <Box
+                key={briefView}
+                role="tabpanel"
+                id={`office-panel-${briefView}`}
+                aria-labelledby={`office-tab-${briefView}`}
+                sx={{
+                  mt: 2.2,
+                  animation: 'office-brief-enter 320ms var(--site-ease) both',
+                  '@keyframes office-brief-enter': {
+                    from: { opacity: 0, transform: 'translateX(12px)', filter: 'blur(2px)' },
+                    to: { opacity: 1, transform: 'translateX(0)', filter: 'blur(0)' },
+                  },
+                }}
+              >
+                {briefView === 'priorities' ? (
+                  <Stack spacing={0}>
+                    {achievements.slice(0, 5).map((item) => (
+                      <Box
+                        key={item}
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: '38px minmax(0, 1fr)',
+                          gap: 1.5,
+                          alignItems: 'start',
+                          py: 1.8,
+                          px: 0.5,
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                          transition: 'transform 240ms var(--site-ease), background-color 240ms var(--site-ease)',
+                          '&:hover': { transform: 'translateX(5px)', bgcolor: alpha('#176044', 0.035) },
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: '50%',
+                            display: 'grid',
+                            placeItems: 'center',
+                            bgcolor: alpha('#176044', 0.09),
+                            color: 'primary.main',
+                          }}
+                        >
+                          <ArrowForward sx={{ fontSize: 18 }} />
+                        </Box>
+                        <Typography sx={{ pt: 0.45, fontWeight: 680, lineHeight: 1.55, minWidth: 0 }}>
+                          {trimWords(item, 20)}
                         </Typography>
-                      )}
-                    </Box>
+                      </Box>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Box>
+                    <Stack direction="row" spacing={1.2} sx={{ mb: 1.2, alignItems: 'center', color: 'primary.dark' }}>
+                      <VerifiedOutlined fontSize="small" />
+                      <Typography variant="h6">Principles in practice</Typography>
+                    </Stack>
+                    <Stack spacing={0}>
+                      {principles.map((principle, index) => {
+                        const isExpanded = activePrinciple === index;
+                        const panelId = `principle-panel-${index}`;
+                        const triggerId = `principle-trigger-${index}`;
+                        return (
+                          <Box
+                            key={`${principle.title}-${principle.description}`}
+                            onMouseEnter={() => setActivePrinciple(index)}
+                            sx={{ borderBottom: '1px solid', borderColor: 'divider' }}
+                          >
+                            <Box
+                              component="button"
+                              type="button"
+                              id={triggerId}
+                              aria-expanded={isExpanded}
+                              aria-controls={panelId}
+                              onClick={() => setActivePrinciple(isExpanded ? -1 : index)}
+                              onFocus={() => setActivePrinciple(index)}
+                              sx={{
+                                width: '100%',
+                                display: 'grid',
+                                gridTemplateColumns: '10px minmax(0, 1fr) 28px',
+                                gap: 1.25,
+                                alignItems: 'center',
+                                py: 2,
+                                px: 0.5,
+                                border: 0,
+                                bgcolor: 'transparent',
+                                color: 'text.primary',
+                                font: 'inherit',
+                                textAlign: 'left',
+                                cursor: 'pointer',
+                                '&:focus-visible': { outline: '3px solid', outlineColor: alpha('#d69a35', 0.5), outlineOffset: -2 },
+                              }}
+                            >
+                              <Box component="span" sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: 'secondary.main' }} />
+                              <Box component="span" sx={{ fontWeight: 800, lineHeight: 1.45 }}>{principle.title}</Box>
+                              <ArrowForward
+                                sx={{
+                                  fontSize: 19,
+                                  color: 'primary.main',
+                                  transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                                  transition: 'transform 300ms var(--site-ease)',
+                                }}
+                              />
+                            </Box>
+                            <Box
+                              id={panelId}
+                              role="region"
+                              aria-labelledby={triggerId}
+                              sx={{
+                                display: 'grid',
+                                gridTemplateRows: isExpanded ? '1fr' : '0fr',
+                                opacity: isExpanded ? 1 : 0,
+                                transition: 'grid-template-rows 360ms var(--site-ease), opacity 220ms var(--site-ease)',
+                              }}
+                            >
+                              <Box sx={{ overflow: 'hidden' }}>
+                                <Typography variant="body2" color="text.secondary" sx={{ pb: 2.2, pl: 2.25, pr: 4.5 }}>
+                                  {principle.description || 'A commitment that guides constituency service and public decision-making.'}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Box>
+                        );
+                      })}
+                    </Stack>
                   </Box>
-                ))}
-              </Stack>
+                )}
+              </Box>
             </Box>
           </Box>
         </Container>
