@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import {
-  Box, Card, CardContent, Typography, Button, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, TablePagination, IconButton,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, LinearProgress, Switch,
+  Box, Card, Typography, Button, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, IconButton,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, LinearProgress,
 } from '@mui/material';
-import { Add, Edit, Check, Close, Delete } from '@mui/icons-material';
+import { Add, Edit, Delete } from '@mui/icons-material';
 import { schemeCategoriesAPI } from '../api';
 import { useAuth } from '../auth/AuthContext';
+import AdminTablePagination from '../components/AdminTablePagination';
+import PageHeader from '../components/PageHeader';
 
 export default function CategoriesPage() {
   const { hasPermission } = useAuth();
@@ -16,6 +18,8 @@ export default function CategoriesPage() {
 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [open, setOpen] = useState(false);
   const [editCategory, setEditCategory] = useState(null);
@@ -26,17 +30,21 @@ export default function CategoriesPage() {
   const [warningCategory, setWarningCategory] = useState(null);
   const [warningMessage, setWarningMessage] = useState('');
 
-  const fetchCategories = () => {
+  const fetchCategories = useCallback(async () => {
     setLoading(true);
-    schemeCategoriesAPI.list()
-      .then(res => setCategories(res.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  };
+    try {
+      const response = await schemeCategoriesAPI.list();
+      setCategories(response.data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [fetchCategories]);
 
   const handleOpen = (category = null) => {
     if (category) {
@@ -73,7 +81,7 @@ export default function CategoriesPage() {
     try {
       await schemeCategoriesAPI.update(id, { is_active: !current_status });
       fetchCategories();
-    } catch (err) {
+    } catch {
       alert('Error toggling active status');
     }
   };
@@ -83,10 +91,13 @@ export default function CategoriesPage() {
       try {
         await schemeCategoriesAPI.delete(id);
         fetchCategories();
-      } catch (err) {
-        if (err.response?.status === 400 && err.response?.data?.message) {
-          // Alert basic error
-          alert('Error deleting category constraint');
+      } catch (error) {
+        if (error.response?.status === 400) {
+          setWarningCategory(category);
+          setWarningMessage(error.response?.data?.message || 'This category is still used by existing scheme records.');
+          setWarningOpen(true);
+        } else {
+          alert('Unable to delete this category.');
         }
       }
     }
@@ -100,16 +111,20 @@ export default function CategoriesPage() {
     }
   };
 
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(categories.length / rowsPerPage) - 1));
+  const visibleCategories = categories.slice(currentPage * rowsPerPage, currentPage * rowsPerPage + rowsPerPage);
+
   return (
     <Box>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h5" fontWeight={700}>Scheme Categories</Typography>
-        {canAdd && (
+      <PageHeader
+        title="Scheme categories"
+        description="Organize the scheme registers shown in navigation and data entry workflows."
+        actions={canAdd ? (
           <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>
             Add Category
           </Button>
-        )}
-      </Box>
+        ) : null}
+      />
 
       <Card sx={{ borderRadius: 3 }}>
         {loading && <LinearProgress color="primary" />}
@@ -123,9 +138,9 @@ export default function CategoriesPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {categories.map((cat, index) => (
+              {visibleCategories.map((cat, index) => (
                 <TableRow key={cat.id}>
-                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{currentPage * rowsPerPage + index + 1}</TableCell>
                   <TableCell fontWeight={500}>{cat.name}</TableCell>
                   <TableCell align="right">
                     {canEdit && (
@@ -151,6 +166,13 @@ export default function CategoriesPage() {
             </TableBody>
           </Table>
         </TableContainer>
+        <AdminTablePagination
+          count={categories.length}
+          page={currentPage}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
+        />
       </Card>
 
       {/* Edit/Create Dialog */}

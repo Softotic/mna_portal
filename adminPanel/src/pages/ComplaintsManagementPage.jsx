@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -30,6 +30,7 @@ import {
 } from '@mui/material';
 import { Attachment, Edit, Refresh } from '@mui/icons-material';
 import { complaintsAPI } from '../api/index.js';
+import AdminTablePagination from '../components/AdminTablePagination.jsx';
 
 const statusOptions = ['submitted', 'in_progress', 'resolved', 'declined'];
 
@@ -56,13 +57,14 @@ export default function ComplaintsManagementPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [filters, setFilters] = useState({ search: '', status: '' });
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [updateState, setUpdateState] = useState({ status: 'submitted', comment: '', attachment: null });
 
-  const fetchComplaints = async () => {
+  const fetchComplaints = useCallback(async () => {
     setLoading(true);
     try {
       const params = {};
-      if (filters.search) params.search = filters.search;
       if (filters.status) params.status = filters.status;
       const response = await complaintsAPI.list(params);
       const data = Array.isArray(response.data) ? response.data : response.data?.results || [];
@@ -73,11 +75,11 @@ export default function ComplaintsManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters.status]);
 
   useEffect(() => {
     fetchComplaints();
-  }, [filters.status]);
+  }, [fetchComplaints]);
 
   const filteredComplaints = useMemo(() => {
     if (!filters.search) return complaints;
@@ -91,6 +93,12 @@ export default function ComplaintsManagementPage() {
       );
     });
   }, [complaints, filters.search]);
+
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(filteredComplaints.length / rowsPerPage) - 1));
+  const visibleComplaints = filteredComplaints.slice(
+    currentPage * rowsPerPage,
+    currentPage * rowsPerPage + rowsPerPage,
+  );
 
   const openEditDialog = (complaint) => {
     setSelectedComplaint(complaint);
@@ -153,7 +161,7 @@ export default function ComplaintsManagementPage() {
             label="Search complaints"
             placeholder="Tracking number, name, CNIC, or category"
             value={filters.search}
-            onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
+            onChange={(event) => { setFilters((prev) => ({ ...prev, search: event.target.value })); setPage(0); }}
           />
         </Grid>
         <Grid item xs={12} md={4}>
@@ -162,7 +170,7 @@ export default function ComplaintsManagementPage() {
             fullWidth
             label="Filter by status"
             value={filters.status}
-            onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}
+            onChange={(event) => { setFilters((prev) => ({ ...prev, status: event.target.value })); setPage(0); }}
           >
             <MenuItem value="">All statuses</MenuItem>
             {statusOptions.map((status) => (
@@ -190,7 +198,7 @@ export default function ComplaintsManagementPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredComplaints.map((complaint) => (
+              {visibleComplaints.map((complaint) => (
                 <TableRow key={complaint.id} hover>
                   <TableCell>{complaint.tracking_number}</TableCell>
                   <TableCell>
@@ -224,6 +232,13 @@ export default function ComplaintsManagementPage() {
             </TableBody>
           </Table>
         </TableContainer>
+        <AdminTablePagination
+          count={filteredComplaints.length}
+          page={currentPage}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
+        />
       </Card>
 
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="md">

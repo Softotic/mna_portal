@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
@@ -35,6 +35,7 @@ import {
 import { ArrowBack, Edit, Delete, Comment, Send, Search } from '@mui/icons-material';
 import { schemeTemplatesAPI, schemeTemplateEntriesAPI, schemeEntryCommentsAPI } from '../api';
 import { useAuth } from '../auth/AuthContext';
+import AdminTablePagination from '../components/AdminTablePagination';
 
 export default function SchemeTemplateDetailPage() {
   const { category_slug, template_id } = useParams();
@@ -64,24 +65,26 @@ export default function SchemeTemplateDetailPage() {
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const fetchTemplate = () => {
+  const fetchTemplate = useCallback(() => {
     schemeTemplatesAPI.get(template_id)
       .then(res => setTemplate(res.data))
       .catch(console.error);
-  };
+  }, [template_id]);
 
-  const fetchEntries = () => {
+  const fetchEntries = useCallback(() => {
     schemeTemplateEntriesAPI.list({ template_id })
       .then(res => setEntries(res.data.results || res.data))
       .catch(console.error)
       .finally(() => setLoading(false));
-  };
+  }, [template_id]);
 
   useEffect(() => {
     fetchTemplate();
     fetchEntries();
-  }, [template_id]);
+  }, [fetchEntries, fetchTemplate]);
 
   useEffect(() => {
     if (template?.field_definitions) {
@@ -141,7 +144,7 @@ export default function SchemeTemplateDetailPage() {
       setDeleteDialogOpen(false);
       setDeleteEntryId(null);
       fetchEntries();
-    } catch (err) {
+    } catch {
       alert('Error deleting entry');
     }
   };
@@ -175,7 +178,7 @@ export default function SchemeTemplateDetailPage() {
       const response = await schemeEntryCommentsAPI.list({ entry_id: selectedEntry.id });
       setComments(response.data.results || response.data);
       setNewComment('');
-    } catch (err) {
+    } catch {
       alert('Error adding comment');
     }
   };
@@ -199,6 +202,8 @@ export default function SchemeTemplateDetailPage() {
     
     return false;
   });
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(filteredEntries.length / rowsPerPage) - 1));
+  const visibleEntries = filteredEntries.slice(currentPage * rowsPerPage, currentPage * rowsPerPage + rowsPerPage);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -224,7 +229,7 @@ export default function SchemeTemplateDetailPage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f5f7fa', p: 3 }}>
+    <Box>
       {/* Header */}
       <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
         <Button startIcon={<ArrowBack />} onClick={() => navigate(category_slug ? `/schemes/${category_slug}` : '/schemes')} sx={{ textTransform: 'none' }}>
@@ -241,7 +246,7 @@ export default function SchemeTemplateDetailPage() {
       </Box>
 
       {/* Add Entry Form Card */}
-      <Card sx={{ borderRadius: 2, mb: 4, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+      {canAdd && <Card sx={{ mb: 4 }}>
         <CardHeader
           title="Add New Entry"
           titleTypographyProps={{ variant: 'h6', sx: { fontWeight: 600, fontSize: '1rem' } }}
@@ -290,7 +295,7 @@ export default function SchemeTemplateDetailPage() {
           )}
 
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* Existing Entries Card */}
       <Card sx={{ borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', mt: 4 }}>
@@ -302,13 +307,13 @@ export default function SchemeTemplateDetailPage() {
             <TextField
               placeholder="Search entries..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
+              slotProps={{
+                input: { startAdornment: (
                   <InputAdornment position="start">
                     <Search sx={{ color: '#999' }} />
                   </InputAdornment>
-                ),
+                ) },
               }}
               variant="outlined"
               size="small"
@@ -346,7 +351,7 @@ export default function SchemeTemplateDetailPage() {
                       </TableCell>
                     </TableRow>
                   ) : null}
-                  {filteredEntries.map((entry, idx) => (
+                  {visibleEntries.map((entry, idx) => (
                     <TableRow 
                       key={entry.id} 
                       hover 
@@ -357,11 +362,11 @@ export default function SchemeTemplateDetailPage() {
                       }}
                       onClick={() => handleEntryClick(entry)}
                     >
-                      <TableCell sx={{ color: '#999', fontSize: '0.875rem' }}>{idx + 1}</TableCell>
+                      <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>{currentPage * rowsPerPage + idx + 1}</TableCell>
                       {template.field_definitions.map((field) => (
                         <TableCell key={field} sx={{ fontSize: '0.875rem' }}>{entry.values?.[field] || '-'}</TableCell>
                       ))}
-                      <TableCell sx={{ fontSize: '0.875rem' }}>{entry.created_by_name || '—'}</TableCell>
+                      <TableCell sx={{ fontSize: '0.875rem' }}>{entry.created_by_name || 'Not available'}</TableCell>
                       <TableCell sx={{ fontSize: '0.875rem', color: '#666' }}>{new Date(entry.created_at).toLocaleString()}</TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
                         <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); handleEditEntry(entry); }} title="Edit">
@@ -378,6 +383,13 @@ export default function SchemeTemplateDetailPage() {
             </TableContainer>
           )}
         </CardContent>
+        <AdminTablePagination
+          count={filteredEntries.length}
+          page={currentPage}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
+        />
       </Card>
 
       {/* Edit Entry Dialog */}

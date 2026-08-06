@@ -28,6 +28,7 @@ import {
 } from '@mui/material';
 import { Add, Delete, Edit, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import { portfolioCategoriesAPI, portfolioSchemesAPI, portfolioUcsAPI } from '../api/index.js';
+import AdminTablePagination from '../components/AdminTablePagination.jsx';
 
 const emptyUc = { name: '', description: '' };
 const emptyCategory = { union_council: '', name: '', description: '' };
@@ -199,7 +200,7 @@ export default function PortfolioSchemesManagementPage() {
   const categoryOptions = orderedCategories.filter((category) => String(category.union_council) === String(form.union_council));
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f5f7fa', p: 3 }}>
+    <Box>
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a1a1a' }}>
@@ -345,25 +346,40 @@ export default function PortfolioSchemesManagementPage() {
 }
 
 function PortfolioTable({ rows, columns, renderRow }) {
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(rows.length / rowsPerPage) - 1));
+  const offset = currentPage * rowsPerPage;
+  const visibleRows = rows.slice(offset, offset + rowsPerPage);
+
   return (
-    <TableContainer component={Paper}>
-      <Table>
-        <TableHead>
-          <TableRow>
-            {columns.map((column) => <TableCell key={column}>{column}</TableCell>)}
-            <TableCell align="right">Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.map(renderRow)}
-          {rows.length === 0 && (
+    <>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
             <TableRow>
-              <TableCell colSpan={columns.length + 1} align="center" sx={{ py: 8 }}>No records found.</TableCell>
+              {columns.map((column) => <TableCell key={column}>{column}</TableCell>)}
+              <TableCell align="right">Actions</TableCell>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </TableContainer>
+          </TableHead>
+          <TableBody>
+            {visibleRows.map((row, index) => renderRow(row, offset + index))}
+            {rows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={columns.length + 1} align="center" sx={{ py: 8 }}>No records found.</TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <AdminTablePagination
+        count={rows.length}
+        page={currentPage}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setPage}
+        onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
+      />
+    </>
   );
 }
 

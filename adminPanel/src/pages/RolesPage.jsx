@@ -7,6 +7,8 @@ import {
 import { Add, Edit, Delete } from '@mui/icons-material';
 import { useAuth } from '../auth/AuthContext';
 import { rolesAPI } from '../api';
+import AdminTablePagination from '../components/AdminTablePagination';
+import PageHeader from '../components/PageHeader';
 
 export default function RolesPage() {
   const { hasPermission } = useAuth();
@@ -21,6 +23,11 @@ export default function RolesPage() {
   const [editingRole, setEditingRole] = useState(null);
   const [formData, setFormData] = useState({ name: '', description: '', permissions: {} });
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(roles.length / rowsPerPage) - 1));
+  const visibleRoles = roles.slice(currentPage * rowsPerPage, currentPage * rowsPerPage + rowsPerPage);
 
   useEffect(() => {
     fetchData();
@@ -137,14 +144,15 @@ export default function RolesPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h5" fontWeight={700}>Roles Management</Typography>
-        {hasPermission('ROLES', 'create') && (
+      <PageHeader
+        title="Roles"
+        description="Control what each administrator role can view, create, edit, and delete."
+        actions={hasPermission('ROLES', 'create') ? (
           <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>
             Create Role
           </Button>
-        )}
-      </Box>
+        ) : null}
+      />
 
       {error && !open && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
@@ -159,7 +167,7 @@ export default function RolesPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {roles.map(role => (
+            {visibleRoles.map(role => (
               <TableRow key={role.id}>
                 <TableCell sx={{ fontWeight: 600 }}>{role.name}</TableCell>
                 <TableCell>{role.description}</TableCell>
@@ -182,6 +190,13 @@ export default function RolesPage() {
             ))}
           </TableBody>
         </Table>
+        <AdminTablePagination
+          count={roles.length}
+          page={currentPage}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
+        />
       </TableContainer>
 
       {/* Create / Edit Dialog */}

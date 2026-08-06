@@ -63,6 +63,8 @@ export default function ComplaintsPage() {
 
   useEffect(() => {
     fetchComplaints();
+    // Search is intentionally submitted with Enter; status changes refresh immediately.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]); // Fetch on status change. Search will be triggered manually or via debounce.
 
   const handleSearch = (e) => {

@@ -29,6 +29,7 @@ import {
 } from '@mui/material';
 import { Add, Delete, Edit } from '@mui/icons-material';
 import { feedbacksAPI } from '../api/index.js';
+import AdminTablePagination from '../components/AdminTablePagination.jsx';
 
 const defaultForm = {
   name: '',
@@ -47,6 +48,11 @@ export default function FeedbackManagementPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(defaultForm);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(feedbacks.length / rowsPerPage) - 1));
+  const visibleFeedbacks = feedbacks.slice(currentPage * rowsPerPage, currentPage * rowsPerPage + rowsPerPage);
 
   const fetchFeedbacks = async () => {
     setLoading(true);
@@ -159,7 +165,7 @@ export default function FeedbackManagementPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {feedbacks.map((item) => (
+              {visibleFeedbacks.map((item) => (
                 <TableRow key={item.id} hover>
                   <TableCell>
                     <Typography sx={{ fontWeight: 700 }}>{item.name}</Typography>
@@ -195,6 +201,13 @@ export default function FeedbackManagementPage() {
             </TableBody>
           </Table>
         </TableContainer>
+        <AdminTablePagination
+          count={feedbacks.length}
+          page={currentPage}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
+        />
       </Card>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="md">

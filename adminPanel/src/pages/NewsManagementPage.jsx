@@ -37,6 +37,7 @@ import {
   StarBorder,
 } from '@mui/icons-material';
 import { newsAdminAPI } from '../api';
+import AdminTablePagination from '../components/AdminTablePagination';
 
 export default function NewsManagementPage() {
   const [newsList, setNewsList] = useState([]);
@@ -45,6 +46,8 @@ export default function NewsManagementPage() {
   const [message, setMessage] = useState('');
   const [dialogError, setDialogError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingNews, setEditingNews] = useState(null);
   const [formData, setFormData] = useState({
@@ -259,13 +262,15 @@ export default function NewsManagementPage() {
       news.excerpt.toLowerCase().includes(searchLower)
     );
   });
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(filteredNews.length / rowsPerPage) - 1));
+  const visibleNews = filteredNews.slice(currentPage * rowsPerPage, currentPage * rowsPerPage + rowsPerPage);
 
   if (loading) {
     return <LinearProgress />;
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f5f7fa', p: 3 }}>
+    <Box>
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a1a1a', mb: 0.5 }}>
@@ -305,7 +310,7 @@ export default function NewsManagementPage() {
             <TextField
               placeholder="Search news..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -339,7 +344,7 @@ export default function NewsManagementPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredNews.map((news) => (
+                  {visibleNews.map((news) => (
                     <TableRow
                       key={news.id}
                       hover
@@ -422,6 +427,13 @@ export default function NewsManagementPage() {
             </TableContainer>
           )}
         </CardContent>
+        <AdminTablePagination
+          count={filteredNews.length}
+          page={currentPage}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
+        />
       </Card>
 
       {/* Add/Edit News Dialog */}

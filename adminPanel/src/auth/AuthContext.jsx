@@ -1,20 +1,22 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 import { authAPI } from '../api';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
+  const [user, setUser] = useState(() => {
     const stored = localStorage.getItem('user');
     const token = localStorage.getItem('access_token');
     if (stored && token) {
-      setUser(JSON.parse(stored));
+      try {
+        return JSON.parse(stored);
+      } catch {
+        localStorage.removeItem('user');
+      }
     }
-    setLoading(false);
-  }, []);
+    return null;
+  });
+  const loading = false;
 
   const login = useCallback(async (email, password) => {
     const res = await authAPI.login({ email, password });
@@ -56,6 +58,7 @@ export function AuthProvider({ children }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');

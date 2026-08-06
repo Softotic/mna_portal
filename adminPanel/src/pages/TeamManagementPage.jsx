@@ -30,6 +30,7 @@ import {
 } from '@mui/material';
 import { Add, Delete, Edit, KeyboardArrowDown, KeyboardArrowUp, Search } from '@mui/icons-material';
 import { teamMembersAPI } from '../api/index.js';
+import AdminTablePagination from '../components/AdminTablePagination.jsx';
 
 const defaultForm = {
   name: '',
@@ -65,6 +66,8 @@ export default function TeamManagementPage() {
   const [message, setMessage] = useState('');
   const [dialogError, setDialogError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [form, setForm] = useState(defaultForm);
@@ -106,6 +109,8 @@ export default function TeamManagementPage() {
         .some((value) => value.toLowerCase().includes(term)),
     );
   }, [orderedMembers, searchQuery]);
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(filteredMembers.length / rowsPerPage) - 1));
+  const visibleMembers = filteredMembers.slice(currentPage * rowsPerPage, currentPage * rowsPerPage + rowsPerPage);
 
   const openCreate = () => {
     setEditingMember(null);
@@ -236,7 +241,7 @@ export default function TeamManagementPage() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f5f7fa', p: 3 }}>
+    <Box>
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 700, color: '#1a1a1a', mb: 0.5 }}>
@@ -280,7 +285,7 @@ export default function TeamManagementPage() {
           <TextField
             placeholder="Search team..."
             value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
+            onChange={(event) => { setSearchQuery(event.target.value); setPage(0); }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -308,7 +313,7 @@ export default function TeamManagementPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredMembers.map((member) => {
+              {visibleMembers.map((member) => {
                 const sortedIndex = orderedMembers.findIndex((item) => item.id === member.id);
                 const isFirst = sortedIndex <= 0;
                 const isLast = sortedIndex === orderedMembers.length - 1;
@@ -393,6 +398,13 @@ export default function TeamManagementPage() {
             </TableBody>
           </Table>
         </TableContainer>
+        <AdminTablePagination
+          count={filteredMembers.length}
+          page={currentPage}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
+        />
       </Card>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="md">

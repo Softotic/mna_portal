@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -10,7 +10,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
   IconButton,
   Dialog,
   DialogTitle,
@@ -21,10 +20,13 @@ import {
   LinearProgress,
   DialogContentText,
 } from '@mui/material';
-import { Add, Edit, Delete } from '@mui/icons-material';
+import { Add, Edit, Delete, Search } from '@mui/icons-material';
 import { schemeCategoriesAPI, schemeTemplatesAPI } from '../api';
 import { useAuth } from '../auth/AuthContext';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
+import AdminTablePagination from '../components/AdminTablePagination';
+import PageHeader from '../components/PageHeader';
+import InputAdornment from '@mui/material/InputAdornment';
 
 export default function SchemesPage() {
   const { category_slug } = useParams();
@@ -36,10 +38,6 @@ export default function SchemesPage() {
   const canEdit = hasPermission(moduleKey, 'edit');
   const canDelete = hasPermission(moduleKey, 'delete');
   const canView = hasPermission(moduleKey, 'view');
-
-  if (category_slug && !canView) {
-    return <Navigate to="/dashboard" replace />;
-  }
 
   const [templates, setTemplates] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -55,33 +53,39 @@ export default function SchemesPage() {
 
   const [deleteId, setDeleteId] = useState(null);
 
-  const fetchTemplates = () => {
+  const fetchTemplates = useCallback(async () => {
     setLoading(true);
-    schemeTemplatesAPI.list({
-      category_slug: category_slug || undefined,
-      search,
-      page: page + 1,
-      page_size: rowsPerPage,
-    })
-      .then(res => {
-        setTemplates(res.data.results || res.data);
-        setCount(res.data.count ?? (res.data.results ? res.data.count : res.data.length));
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  };
+    try {
+      const response = await schemeTemplatesAPI.list({
+        category_slug: category_slug || undefined,
+        search,
+        page: page + 1,
+        page_size: rowsPerPage,
+      });
+      setTemplates(response.data.results || response.data);
+      setCount(response.data.count ?? (response.data.results ? response.data.count : response.data.length));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }, [category_slug, page, rowsPerPage, search]);
 
-  const fetchCategories = () => {
+  const fetchCategories = useCallback(() => {
     schemeCategoriesAPI.list().then(res => setCategories(res.data));
-  };
-
-  useEffect(() => {
-    fetchCategories();
   }, []);
 
   useEffect(() => {
-    fetchTemplates();
-  }, [page, rowsPerPage, search, category_slug]);
+    if (canView) fetchCategories();
+  }, [canView, fetchCategories]);
+
+  useEffect(() => {
+    if (canView) fetchTemplates();
+  }, [canView, fetchTemplates]);
+
+  if (category_slug && !canView) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleOpen = (template = null) => {
     if (template) {
@@ -154,26 +158,22 @@ export default function SchemesPage() {
       await schemeTemplatesAPI.delete(deleteId);
       setDeleteId(null);
       fetchTemplates();
-    } catch (err) {
+    } catch {
       alert('Error deleting scheme template');
     }
   };
 
   return (
     <Box>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h5" fontWeight={700}>Scheme Management</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Add a scheme title first, then define the fields users will fill later.
-          </Typography>
-        </Box>
-        {canAdd && (
+      <PageHeader
+        title={category_slug ? `${category_slug.replace(/-/g, ' ')} schemes` : 'Scheme management'}
+        description="Create scheme registers, define their fields, and open records for data entry."
+        actions={canAdd ? (
           <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>
             Add Scheme
           </Button>
-        )}
-      </Box>
+        ) : null}
+      />
 
       <Card sx={{ borderRadius: 3 }}>
         <Box sx={{ p: 2, display: 'flex', gap: 2, flexWrap: 'wrap', borderBottom: '1px solid', borderColor: 'divider' }}>
@@ -181,8 +181,9 @@ export default function SchemesPage() {
             size="small"
             placeholder="Search schemes..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            sx={{ width: 300 }}
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> } }}
+            sx={{ width: { xs: '100%', sm: 340 } }}
           />
           {category_slug ? (
             <Typography variant="body2" sx={{ pt: 1 }}>Category: {category_slug.toUpperCase()}</Typography>
@@ -242,16 +243,12 @@ export default function SchemesPage() {
           </Table>
         </TableContainer>
 
-        <TablePagination
-          component="div"
+        <AdminTablePagination
           count={count}
           page={page}
-          onPageChange={(e, newPage) => setPage(newPage)}
           rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(0);
-          }}
+          onPageChange={setPage}
+          onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
         />
       </Card>
 

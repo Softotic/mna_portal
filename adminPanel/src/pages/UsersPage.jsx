@@ -1,13 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import {
   Box, Card, CardContent, Typography, Button, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, TablePagination, IconButton, Chip,
+  TableContainer, TableHead, TableRow, IconButton, Chip,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
   LinearProgress, Switch,
 } from '@mui/material';
-import { Add, Edit, Check, Close, Visibility } from '@mui/icons-material';
+import { Add, Edit, Check, Close, Search } from '@mui/icons-material';
 import { usersAPI, rolesAPI } from '../api';
 import { useAuth } from '../auth/AuthContext';
+import AdminTablePagination from '../components/AdminTablePagination';
+import PageHeader from '../components/PageHeader';
+import InputAdornment from '@mui/material/InputAdornment';
 
 export default function UsersPage() {
   const { hasPermission } = useAuth();
@@ -26,27 +29,28 @@ export default function UsersPage() {
   const [editUser, setEditUser] = useState(null);
   const [formData, setFormData] = useState({ name: '', email: '', role_id: '', password: '' });
 
-  const fetchUsers = () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
-    usersAPI.list({ page: page + 1, page_size: rowsPerPage, search })
-      .then(res => {
-        setUsers(res.data.results);
-        setCount(res.data.count);
-      })
-      .finally(() => setLoading(false));
-  };
+    try {
+      const response = await usersAPI.list({ page: page + 1, page_size: rowsPerPage, search });
+      setUsers(response.data.results);
+      setCount(response.data.count);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, rowsPerPage, search]);
 
-  const fetchRoles = () => {
+  const fetchRoles = useCallback(() => {
     rolesAPI.getAllRoles().then(res => setRoles(res.data));
-  };
+  }, []);
 
   useEffect(() => {
     fetchUsers();
-  }, [page, rowsPerPage, search]);
+  }, [fetchUsers]);
 
   useEffect(() => {
     if (canAdd || canEdit) fetchRoles();
-  }, [canAdd, canEdit]);
+  }, [canAdd, canEdit, fetchRoles]);
 
   const handleOpen = (user = null) => {
     if (user) {
@@ -86,21 +90,22 @@ export default function UsersPage() {
     try {
       await usersAPI.toggleActive(id);
       fetchUsers();
-    } catch (err) {
+    } catch {
       alert('Error toggling active status');
     }
   };
 
   return (
     <Box>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h5" fontWeight={700}>Users Management</Typography>
-        {canAdd && (
+      <PageHeader
+        title="Users"
+        description="Manage administrator accounts, assigned roles, and access status."
+        actions={canAdd ? (
           <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>
             Add User
           </Button>
-        )}
-      </Box>
+        ) : null}
+      />
 
       <Card sx={{ borderRadius: 3 }}>
         <Box sx={{ p: 2, display: 'flex', gap: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
@@ -108,8 +113,9 @@ export default function UsersPage() {
             size="small"
             placeholder="Search users by name or email..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            sx={{ width: 300 }}
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> } }}
+            sx={{ width: { xs: '100%', sm: 340 } }}
           />
         </Box>
         
@@ -169,16 +175,12 @@ export default function UsersPage() {
             </TableBody>
           </Table>
         </TableContainer>
-        <TablePagination
-          component="div"
+        <AdminTablePagination
           count={count}
           page={page}
-          onPageChange={(e, newPage) => setPage(newPage)}
           rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(0);
-          }}
+          onPageChange={setPage}
+          onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
         />
       </Card>
 
