@@ -91,7 +91,7 @@ export default function PublicTeamPage() {
       <Box
         sx={{
           borderBottom: '1px solid rgba(16,36,27,0.08)',
-          background: 'linear-gradient(180deg, rgba(220,235,220,0.68) 0%, rgba(255,253,248,0.98) 100%)',
+          background: 'linear-gradient(180deg, rgba(223,236,229,0.72) 0%, rgba(245,247,245,0.98) 100%)',
         }}
       >
         <Container sx={{ py: { xs: 5, md: 8 }, px: { xs: 3, md: 8 } }}>
@@ -168,12 +168,14 @@ export default function PublicTeamPage() {
               placeholder="Search by name, designation, UC, department..."
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search sx={{ color: 'text.secondary' }} />
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search sx={{ color: 'text.secondary' }} />
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
             {departments.length > 1 && (
@@ -317,7 +319,7 @@ function TeamImagePlaceholder({ height, name, compact = false }) {
         justifyContent: 'space-between',
         color: 'primary.main',
         background:
-          'linear-gradient(135deg, rgba(220,235,220,0.88) 0%, rgba(255,253,248,0.96) 58%, rgba(180,138,67,0.18) 100%)',
+          'linear-gradient(135deg, rgba(223,236,229,0.9) 0%, rgba(245,247,245,0.98) 62%, rgba(214,154,53,0.14) 100%)',
       }}
     >
       <Groups sx={{ fontSize: compact ? 36 : 52 }} />

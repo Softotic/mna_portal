@@ -138,7 +138,7 @@ export default function PublicNewsDetailPage() {
             sx={{
               p: { xs: 2.4, md: 3 },
               border: '1px solid rgba(16,36,27,0.08)',
-              bgcolor: alpha('#fffdfa', 0.92),
+              bgcolor: alpha('#fbfcfb', 0.94),
             }}
           >
             <Stack spacing={2}>
@@ -191,7 +191,7 @@ export default function PublicNewsDetailPage() {
                 display: 'grid',
                 alignItems: 'end',
                 background:
-                  'linear-gradient(135deg, rgba(220,235,220,0.90) 0%, rgba(255,253,248,0.96) 54%, rgba(180,138,67,0.20) 100%)',
+                  'linear-gradient(135deg, rgba(223,236,229,0.92) 0%, rgba(245,247,245,0.98) 58%, rgba(214,154,53,0.15) 100%)',
               }}
             >
               <Box sx={{ maxWidth: 760 }}>
@@ -235,7 +235,7 @@ export default function PublicNewsDetailPage() {
             sx={{
               p: { xs: 3, sm: 4, md: 6 },
               border: '1px solid rgba(16,36,27,0.08)',
-              bgcolor: alpha('#fffdfa', 0.96),
+              bgcolor: alpha('#fbfcfb', 0.96),
             }}
           >
             <Typography

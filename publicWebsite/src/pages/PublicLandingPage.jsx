@@ -1,55 +1,112 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   CardMedia,
   Chip,
   Container,
-  Paper,
+  Skeleton,
   Stack,
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import {
+  ArrowForward,
   ArrowOutward,
+  AssignmentTurnedIn,
   Campaign,
-  Feedback,
-  Flag,
   Groups,
-  MilitaryTech,
   Newspaper,
-  Public,
+  QueryStats,
   Room,
   SupportAgent,
-  TrackChanges,
 } from '@mui/icons-material';
-import { Facebook, Instagram, Language, YouTube } from '@mui/icons-material';
 import { Link as RouterLink, useOutletContext } from 'react-router-dom';
 import { publicFeedbacksAPI, publicNewsAPI, resolveMediaUrl } from '../api/index.js';
+
+const heroFallback = '/images/civic-office-hero.jpg';
 
 function toList(value, fallback) {
   const list = value
     ?.split(/\n+/)
-    .map((item) => item.trim())
+    .map((item) => cleanDisplayText(item).trim())
     .filter(Boolean);
   return list?.length ? list : fallback;
 }
 
+function trimWords(value, limit) {
+  const words = cleanDisplayText(value).trim().split(/\s+/).filter(Boolean);
+  if (words.length <= limit) return words.join(' ');
+  return `${words.slice(0, limit).join(' ')}...`;
+}
+
+function cleanDisplayText(value) {
+  return String(value || '').replace(/[\u2013\u2014]/g, '-');
+}
+
+function cleanLeaderName(value) {
+  return cleanDisplayText(value).replace(/^about\s+/i, '').trim();
+}
+
 function summarizeNews(item) {
   const source = item?.excerpt || item?.content || '';
-  const text = source.replace(/\s+/g, ' ').trim();
-  if (!text) return 'Open the full story to continue reading.';
-  if (text.length <= 140) return text;
-  return `${text.slice(0, 137).trimEnd()}...`;
+  const text = source.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  return trimWords(text || 'Open the full update for more information.', 24);
 }
+
+function getNewsImage(item) {
+  return resolveMediaUrl(item?.image || item?.images?.[0]?.image || '');
+}
+
+const serviceLinks = [
+  {
+    title: 'Submit and track a complaint',
+    description: 'Send your concern with supporting files and follow progress using your reference number.',
+    path: '/complaints',
+    action: 'Open complaints',
+    icon: SupportAgent,
+  },
+  {
+    title: 'Review public schemes',
+    description: 'Explore development work by union council, category, and current status.',
+    path: '/schemes',
+    action: 'View schemes',
+    icon: AssignmentTurnedIn,
+  },
+  {
+    title: 'Read official updates',
+    description: 'Follow constituency news, office statements, and public announcements.',
+    path: '/news',
+    action: 'Visit newsroom',
+    icon: Newspaper,
+  },
+];
+
+const complaintJourney = [
+  {
+    title: 'Share the issue clearly',
+    body: 'Add the category, location, contact details, and any supporting document that helps the office understand your case.',
+    icon: Campaign,
+  },
+  {
+    title: 'Keep your reference number',
+    body: 'A tracking number is created after submission so you can return to the portal without repeating your information.',
+    icon: AssignmentTurnedIn,
+  },
+  {
+    title: 'Follow every office response',
+    body: 'Review the latest status, remarks, attachments, and case history from the same public page.',
+    icon: QueryStats,
+  },
+];
 
 export default function PublicLandingPage() {
   const { settings } = useOutletContext();
   const [featuredNews, setFeaturedNews] = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -65,10 +122,9 @@ export default function PublicLandingPage() {
         setFeedbacks(Array.isArray(feedbackResponse.data) ? feedbackResponse.data : feedbackResponse.data?.results || []);
       } catch (error) {
         console.error(error);
+        if (active) setLoadError(true);
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     })();
 
@@ -82,7 +138,7 @@ export default function PublicLandingPage() {
       toList(settings?.achievements, [
         'Accessible constituency support',
         'Transparent complaint tracking',
-        'Visible public communication',
+        'Clear public communication',
       ]),
     [settings],
   );
@@ -100,8 +156,8 @@ export default function PublicLandingPage() {
   const missionPoints = useMemo(
     () =>
       toList(settings?.mission, [
-        'Deliver responsive constituency support with clear public-service channels.',
-        'Improve access to core services, development work, and local representation.',
+        'Make constituency support easier to access through clear public service channels.',
+        'Improve access to development work, office communication, and local representation.',
       ]),
     [settings],
   );
@@ -109,627 +165,447 @@ export default function PublicLandingPage() {
   const visionPoints = useMemo(
     () =>
       toList(settings?.vision, [
-        'Build a public office that is transparent, accessible, and grounded in citizen trust.',
-        'Support long-term local development through accountable representation.',
+        'Build a public office grounded in access, accountability, and citizen trust.',
+        'Support long-term local development through responsible representation.',
       ]),
     [settings],
   );
 
-  const socials = [
-    { href: settings?.facebook_url, label: 'Facebook', icon: <Facebook fontSize="small" /> },
-    { href: settings?.instagram_url, label: 'Instagram', icon: <Instagram fontSize="small" /> },
-    { href: settings?.youtube_url, label: 'YouTube', icon: <YouTube fontSize="small" /> },
-    { href: settings?.website_url, label: 'Website', icon: <Language fontSize="small" /> },
-  ].filter((item) => item.href);
+  const leaderName = cleanLeaderName(settings?.leader_name || settings?.site_name || 'Member of the National Assembly');
+  const designation = cleanDisplayText(settings?.designation || 'Member of the National Assembly');
+  const heroMessage = trimWords(
+    `${designation}. ${settings?.hero_statement || settings?.site_message || 'Direct access to constituency services, public updates, and office communication.'}`,
+    20,
+  );
+  const heroImage = settings?.intro_image ? resolveMediaUrl(settings.intro_image) : heroFallback;
 
   return (
     <Box>
       <Box
+        component="section"
+        aria-labelledby="hero-heading"
         sx={{
+          minHeight: { lg: 'calc(100dvh - 108px)' },
+          display: 'flex',
+          alignItems: 'center',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.default',
           position: 'relative',
           overflow: 'hidden',
-          borderBottom: '1px solid rgba(16,36,27,0.08)',
-          background:
-            'linear-gradient(180deg, rgba(220,235,220,0.65) 0%, rgba(255,253,248,0.98) 100%)',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            width: 420,
+            height: 420,
+            left: '-16%',
+            top: '-30%',
+            borderRadius: '50%',
+            background: 'rgba(23,96,68,0.075)',
+            filter: 'blur(2px)',
+            pointerEvents: 'none',
+          },
         }}
       >
-        <Container sx={{ py: { xs: 5, sm: 7, md: 9 } }}>
+        <Container sx={{ py: { xs: 5, sm: 6, lg: 7.5 }, position: 'relative' }}>
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.05fr) minmax(360px, 0.75fr)' },
-              gap: { xs: 4, md: 6 },
+              gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) minmax(360px, 0.72fr)' },
+              gap: { xs: 4, md: 6, lg: 8 },
               alignItems: 'center',
             }}
           >
-            <Box sx={{ minWidth: 0, maxWidth: { xs: 'calc(100vw - 32px)', lg: 'none' }, padding: { xs: 0, md: 6 } }}>
+            <Box sx={{ maxWidth: 780 }}>
               <Chip
-                label={settings?.constituency || 'Official Constituency Portal'}
-                sx={{ alignSelf: 'flex-start', bgcolor: alpha('#1f5f46', 0.10), color: 'primary.main', mb: 2.5 }}
+                label={settings?.constituency || 'Official constituency portal'}
+                variant="outlined"
+                sx={{ mb: 2.5, color: 'primary.dark', bgcolor: 'background.paper', borderColor: alpha('#176044', 0.28) }}
               />
               <Typography
+                id="hero-heading"
                 variant="h1"
                 sx={{
-                  maxWidth: 900,
-                  fontSize: { xs: '2.35rem', sm: '3.7rem', md: '5.2rem' },
-                  lineHeight: { xs: 1.05, md: 1.02 },
-                  overflowWrap: 'anywhere',
-                }}
-              >
-                {settings?.leader_name || settings?.site_name || 'Member of the National Assembly'}
-              </Typography>
-              <Typography
-                variant="h4"
-                sx={{
-                  mt: 1.5,
+                  fontSize: { xs: 'clamp(2.55rem, 12vw, 3.65rem)', sm: '4.5rem', lg: 'clamp(4rem, 6vw, 5.75rem)' },
                   maxWidth: 760,
-                  color: 'primary.main',
-                  fontSize: { xs: '1.75rem', sm: '2.25rem', md: '2.7rem' },
                   overflowWrap: 'anywhere',
                 }}
               >
-                {settings?.designation || 'Member of the National Assembly'}{settings?.constituency ? ` for ${settings.constituency}` : ''}
+                {leaderName}
               </Typography>
-              <Typography sx={{ mt: 2.5, maxWidth: 760, color: 'text.secondary', fontSize: '1.06rem', overflowWrap: 'break-word' }}>
-                {settings?.hero_statement ||
-                  settings?.site_message ||
-                  'A public service platform built for the people of Pakistan, with direct access to complaints, updates, feedback, and office communication.'}
+              <Typography sx={{ mt: 2.2, maxWidth: 650, color: 'text.secondary', fontSize: { xs: '1.03rem', md: '1.18rem' }, lineHeight: 1.68 }}>
+                {heroMessage}
               </Typography>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 3.5, alignItems: { xs: 'stretch', sm: 'center' } }}>
-                <Button component={RouterLink} to="/complaints" variant="contained" color="secondary" endIcon={<ArrowOutward />} sx={{ minWidth: 0 }}>
-                  Submit a Complaint
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 3.5, alignItems: { xs: 'stretch', sm: 'center' } }}>
+                <Button component={RouterLink} to="/complaints" variant="contained" endIcon={<ArrowOutward />}>
+                  Submit complaint
                 </Button>
-                <Button component={RouterLink} to="/news" variant="outlined" endIcon={<ArrowOutward />} sx={{ minWidth: 0 }}>
-                  Read News Updates
-                </Button>
-                <Button component={RouterLink} to="/team" variant="outlined" endIcon={<ArrowOutward />} sx={{ minWidth: 0 }}>
-                  Meet the Team
+                <Button component={RouterLink} to="/schemes" variant="outlined" endIcon={<ArrowForward />}>
+                  View schemes
                 </Button>
               </Stack>
-              {socials.length > 0 && (
-                <Stack direction="row" spacing={1.2} sx={{ mt: 3, flexWrap: 'wrap' }} useFlexGap>
-                  {socials.map((item) => (
-                    <Button
-                      key={item.label}
-                      component="a"
-                      href={item.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      variant="text"
-                      startIcon={item.icon}
-                      sx={{ px: 0.5 }}
-                    >
-                      {item.label}
-                    </Button>
-                  ))}
-                </Stack>
-              )}
             </Box>
 
-            <Box sx={{ minWidth: 0, maxWidth: { xs: 'calc(100vw - 32px)', lg: 'none' }, padding: { xs: 0, md: 8 } }}>
-              <Paper
+            <Box sx={{ position: 'relative', justifySelf: { lg: 'end' }, width: '100%', maxWidth: { xs: 620, lg: 470 } }}>
+              <Box
                 sx={{
-                  borderRadius: { xs: 3, md: 5 },
-                  p: { xs: 2, md: 3 },
-                  border: '1px solid rgba(16,36,27,0.08)',
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(220,235,220,0.66) 100%)',
+                  position: 'absolute',
+                  inset: { xs: '18px -10px -10px 18px', md: '24px -18px -18px 24px' },
+                  borderRadius: 2,
+                  bgcolor: 'primary.main',
+                  opacity: 0.13,
                 }}
-              >
-                {settings?.intro_image ? (
-                  <CardMedia
-                    component="img"
-                    image={resolveMediaUrl(settings.intro_image)}
-                    alt={settings?.leader_name || settings?.site_name || 'MNA portrait'}
-                    sx={{ borderRadius: { xs: 3, md: 5 }, aspectRatio: { xs: '4 / 4.15', md: '4 / 4.7' }, objectFit: 'cover' }}
-                  />
-                ) : (
-                  <Box
-                    sx={{
-                      borderRadius: 5,
-                      aspectRatio: '4 / 4.7',
-                      mb: 3,
-                      p: 3,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      color: 'white',
-                      background: 'linear-gradient(145deg, #153426 0%, #2f7f5b 60%, #b48a43 170%)',
-                    }}
-                  >
-                    <Campaign sx={{ fontSize: 48 }} />
-                    <Typography
-                      variant="h4"
-                      sx={{
-                        color: 'white',
-                        maxWidth: { xs: 260, md: 320 },
-                        fontSize: { xs: '1.9rem', sm: '2.15rem', md: '2.35rem' },
-                        lineHeight: 1.05,
-                        overflowWrap: 'break-word',
-                      }}
-                    >
-                      Representation with purpose, dignity, and local accountability
-                    </Typography>
-                  </Box>
-                )}
-
-                {/* <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
-                    gap: 1.5,
-                  }}
-                >
-                  {[
-                    // { label: 'Constituency', value: settings?.constituency || 'Configured in admin' },
-                    { label: 'District', value: settings?.district || 'Local office' },
-                    { label: 'Citizen Portal', value: 'Active' },
-                  ].map((item) => (
-                    <Box key={item.label}>
-                      <Box
-                        sx={{
-                          p: 1.8,
-                          borderRadius: 3,textAlign: 'center',
-                        
-                          border: '1px solid rgba(16,36,27,0.08)',
-                          bgcolor: 'rgba(255,255,255,0.78)',
-                        }}
-                      >
-                        <Typography variant="overline" sx={{ color: 'text.secondary' }}>
-                          {item.label}
-                        </Typography>
-                        <Typography sx={{ fontWeight: 800, mt: 0.4 }}>{item.value}</Typography>
-                      </Box>
-                    </Box>
-                  ))}
-                </Box> */}
-              </Paper>
+              />
+              <CardMedia
+                component="img"
+                image={heroImage}
+                alt={settings?.intro_image ? `Portrait of ${leaderName}` : 'Citizens approaching a modern public office building'}
+                loading="eager"
+                fetchPriority="high"
+                sx={{
+                  position: 'relative',
+                  width: '100%',
+                  aspectRatio: { xs: '4 / 4.2', sm: '5 / 4', lg: '4 / 4.8' },
+                  borderRadius: 2,
+                  objectFit: 'cover',
+                  objectPosition: settings?.intro_image ? 'center 20%' : 'center',
+                  border: '1px solid',
+                  borderColor: alpha('#176044', 0.18),
+                }}
+              />
             </Box>
           </Box>
         </Container>
       </Box>
 
-      <Container sx={{ py: { xs: 6, md: 9 }, px: { xs: 3, md: 8 } }}>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
-            gap: 3,
-          }}
-        >
-          {[
-            {
-              title: 'Complaints & Support',
-              text: 'A direct route for the public to submit concerns, attach supporting material, and track progress with a complaint number.',
-              icon: <SupportAgent fontSize="small" />,
-            },
-            {
-              title: 'News & Public Updates',
-              text: 'A reliable feed of statements, development work, office activity, and news relevant to constituents.',
-              icon: <Newspaper fontSize="small" />,
-            },
-            {
-              title: 'Feedback from People',
-              text: 'Citizen voices and community feedback that reflect how public service is experienced on the ground.',
-              icon: <Feedback fontSize="small" />,
-            },
-          ].map((item, index) => (
-            <Box key={item.title}>
-              <Paper sx={{ p: 3.2, border: '1px solid rgba(16,36,27,0.08)', height: '100%' }}>
-                <Typography variant="overline" color="secondary.main">
-                  0{index + 1}
-                </Typography>
-                <Typography variant="h6" sx={{ mt: 1.1, mb: 1.1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ color: 'primary.main', display: 'inline-flex' }}>{item.icon}</Box>
-                  {item.title}
-                </Typography>
-                <Typography color="text.secondary">{item.text}</Typography>
-              </Paper>
-            </Box>
-          ))}
-        </Box>
-      </Container>
-
-      {featuredNews.length > 0 && (
-        <Container sx={{ py: { xs: 6, md: 8 }, px: { xs: 3, md: 8 } }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'end', flexWrap: 'wrap', mb: 3 }}>
-            <Box>
-              <Typography variant="overline" color="secondary.main">
-                Latest Updates
+      <Box component="section" aria-labelledby="services-heading" sx={{ py: { xs: 7, md: 11 } }}>
+        <Container>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(250px, 0.72fr) minmax(0, 1.28fr)' }, gap: { xs: 4, md: 8 } }}>
+            <Box sx={{ alignSelf: 'start', position: { md: 'sticky' }, top: { md: 116 } }}>
+              <Typography id="services-heading" variant="h2" sx={{ fontSize: { xs: '2.2rem', md: '3.4rem' }, maxWidth: 420 }}>
+                Public service, in one place
               </Typography>
-              <Typography variant="h3" sx={{ mt: 1.2 }}>
-                News from the constituency and public office
+              <Typography color="text.secondary" sx={{ mt: 2, maxWidth: 440 }}>
+                Find the right route quickly, whether you need support, project information, or an official update.
               </Typography>
             </Box>
-            <Button component={RouterLink} to="/news" variant="outlined" endIcon={<ArrowOutward />}>
-              View all news
-            </Button>
-          </Box>
 
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
-              gap: 3,
-            }}
-          >
-            {featuredNews.slice(0, 3).map((item, index) => (
-              <Box key={item.id}>
-                <Card sx={{ height: '100%' }}>
-                  {getNewsImage(item) ? (
-                    <CardMedia
-                      component="img"
-                      image={getNewsImage(item)}
-                      alt={item.title}
-                      sx={{
-                        height: { xs: 240, md: 220 },
-                        objectFit: 'cover',
-                      }}
-                    />
-                  ) : (
-                    <Box sx={{ height: { xs: 240, md: 220 }, bgcolor: alpha('#1f5f46', 0.08) }} />
-                  )}
-                  <CardContent sx={{ p: 3 }}>
-                    <Typography variant="overline" color="secondary.main">
-                      {item.published_at ? new Date(item.published_at).toLocaleDateString() : 'Official update'}
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        mt: 1,
-                        mb: 1.2,
-                        minHeight: { md: 64 },
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {item.title}
-                    </Typography>
-                    <Typography
-                      color="text.secondary"
-                      sx={{
-                        mb: 2,
-                        minHeight: { md: 78 },
-                        display: '-webkit-box',
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {summarizeNews(item)}
-                    </Typography>
-                    <Button component={RouterLink} to={`/news/${item.id}`} endIcon={<ArrowOutward />}>
-                      Read update
+            <Box sx={{ borderTop: '1px solid', borderColor: 'divider' }}>
+              {serviceLinks.map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <Box
+                    key={item.title}
+                    component={RouterLink}
+                    to={item.path}
+                    className="scroll-reveal"
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: { xs: '48px minmax(0, 1fr)', sm: '58px minmax(0, 1fr) auto' },
+                      gap: { xs: 1.5, sm: 2.4 },
+                      alignItems: 'center',
+                      py: { xs: 3, md: 4 },
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                      transition: 'background-color 240ms var(--site-ease), transform 240ms var(--site-ease)',
+                      '&:hover': { bgcolor: alpha('#176044', 0.045), transform: { sm: 'translateX(6px)' } },
+                      '&:focus-visible': { outline: '3px solid', outlineColor: alpha('#d69a35', 0.48), outlineOffset: 3 },
+                    }}
+                  >
+                    <Box sx={{ width: { xs: 44, sm: 52 }, height: { xs: 44, sm: 52 }, borderRadius: 1.5, display: 'grid', placeItems: 'center', bgcolor: index === 0 ? 'primary.main' : 'primary.light', color: 'primary.contrastText' }}>
+                      <Icon />
+                    </Box>
+                    <Box>
+                      <Typography variant="h5">{item.title}</Typography>
+                      <Typography color="text.secondary" sx={{ mt: 0.65, maxWidth: 580 }}>{item.description}</Typography>
+                    </Box>
+                    <Button component="span" endIcon={<ArrowForward />} sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
+                      {item.action}
                     </Button>
-                  </CardContent>
-                </Card>
-              </Box>
-            ))}
+                  </Box>
+                );
+              })}
+            </Box>
           </Box>
         </Container>
-      )}
+      </Box>
 
-      <Container sx={{ pb: { xs: 5, md: 7 }, px: { xs: 3, md: 8 } }}>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', xl: 'minmax(0, 1.08fr) minmax(360px, 0.92fr)' },
-            gap: { xs: 3, md: 5 },
-            alignItems: 'start',
-          }}
-        >
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="overline" color="secondary.main">
-              About the Office
+      <Box component="section" aria-labelledby="journey-heading" sx={{ py: { xs: 7, md: 12 }, bgcolor: 'primary.dark', color: '#f3f8f5' }}>
+        <Container>
+          <Box sx={{ maxWidth: 720, mb: { xs: 5, md: 7 } }}>
+            <Typography id="journey-heading" variant="h2" sx={{ color: 'inherit', fontSize: { xs: '2.2rem', md: '3.65rem' } }}>
+              A clear path from concern to response
             </Typography>
-            <Typography variant="h3" sx={{ mt: 1.3, mb: 2.2, maxWidth: 740 }}>
-              A public-facing office for representation, responsiveness, and measurable local service
+            <Typography sx={{ mt: 2, color: 'rgba(243,248,245,0.72)', maxWidth: 650 }}>
+              The complaint portal keeps each case understandable from the first submission to the latest office action.
             </Typography>
-            <Typography color="text.secondary" sx={{ maxWidth: 760, lineHeight: 1.9 }}>
-              {settings?.about ||
-                settings?.intro ||
-                'This website is designed to help citizens stay connected with the work of their elected representative, access the office more easily, and receive responses through structured public-service channels.'}
-            </Typography>
-
-            <Box
-              sx={{
-                mt: 4,
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
-                gap: 2.2,
-              }}
-            >
-              <Paper
-                sx={{
-                  p: { xs: 2.5, md: 3 },
-                  border: '1px solid rgba(16,36,27,0.08)',
-                  background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(220,235,220,0.54) 100%)',
-                }}
-              >
-                <Stack direction="row" spacing={1.1} sx={{ alignItems: 'center', mb: 1.5 }}>
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: '50%',
-                      display: 'grid',
-                      placeItems: 'center',
-                      bgcolor: alpha('#1f5f46', 0.10),
-                      color: 'primary.main',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <TrackChanges fontSize="small" />
-                  </Box>
-                  <Typography variant="h6">Mission</Typography>
-                </Stack>
-                <Stack spacing={1}>
-                  {missionPoints.slice(0, 3).map((item) => (
-                    <Typography key={item} color="text.secondary" sx={{ lineHeight: 1.8 }}>
-                      {item}
-                    </Typography>
-                  ))}
-                </Stack>
-              </Paper>
-
-              <Paper
-                sx={{
-                  p: { xs: 2.5, md: 3 },
-                  border: '1px solid rgba(16,36,27,0.08)',
-                  background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(180,138,67,0.10) 100%)',
-                }}
-              >
-                <Stack direction="row" spacing={1.1} sx={{ alignItems: 'center', mb: 1.5 }}>
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: '50%',
-                      display: 'grid',
-                      placeItems: 'center',
-                      bgcolor: alpha('#b48a43', 0.16),
-                      color: 'secondary.main',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Flag fontSize="small" />
-                  </Box>
-                  <Typography variant="h6">Vision</Typography>
-                </Stack>
-                <Stack spacing={1}>
-                  {visionPoints.slice(0, 3).map((item) => (
-                    <Typography key={item} color="text.secondary" sx={{ lineHeight: 1.8 }}>
-                      {item}
-                    </Typography>
-                  ))}
-                </Stack>
-              </Paper>
-            </Box>
           </Box>
 
-          <Box sx={{ minWidth: 0 }}>
-            <Paper
+          <Box sx={{ position: 'relative', pl: { xs: 0, md: 7 } }}>
+            <Box
+              aria-hidden="true"
               sx={{
-                p: { xs: 2.8, md: 3.2 },
-                border: '1px solid rgba(16,36,27,0.08)',
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(247,244,237,0.98) 100%)',
+                display: { xs: 'none', md: 'block' },
+                position: 'absolute',
+                left: 16,
+                top: 18,
+                bottom: 18,
+                width: 2,
+                bgcolor: 'rgba(255,255,255,0.16)',
+                '&::after': {
+                  content: '""',
+                  display: 'block',
+                  width: '100%',
+                  height: '100%',
+                  transformOrigin: 'top',
+                  bgcolor: 'secondary.main',
+                  animation: 'service-progress 1ms linear both',
+                  animationTimeline: 'view()',
+                  animationRange: 'entry 10% cover 72%',
+                },
               }}
-            >
-              <Stack direction="row" spacing={1.2} sx={{ alignItems: 'center', mb: 2.2 }}>
+            />
+            {complaintJourney.map((item) => {
+              const Icon = item.icon;
+              return (
                 <Box
+                  key={item.title}
+                  className="scroll-reveal"
                   sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 2.5,
                     display: 'grid',
-                    placeItems: 'center',
-                    bgcolor: alpha('#1f5f46', 0.08),
-                    color: 'primary.main',
-                    flexShrink: 0,
+                    gridTemplateColumns: { xs: '48px minmax(0, 1fr)', md: '72px minmax(0, 1fr)' },
+                    gap: { xs: 2, md: 3 },
+                    alignItems: 'start',
+                    py: { xs: 3, md: 4.5 },
+                    borderBottom: '1px solid rgba(255,255,255,0.13)',
                   }}
                 >
-                  <MilitaryTech fontSize="small" />
+                  <Box sx={{ width: { xs: 46, md: 60 }, height: { xs: 46, md: 60 }, borderRadius: 1.5, display: 'grid', placeItems: 'center', bgcolor: 'rgba(255,255,255,0.1)', color: 'secondary.light' }}>
+                    <Icon />
+                  </Box>
+                  <Box>
+                    <Typography variant="h3" sx={{ color: 'inherit', fontSize: { xs: '1.55rem', md: '2.35rem' } }}>{item.title}</Typography>
+                    <Typography sx={{ mt: 1.2, color: 'rgba(243,248,245,0.7)', maxWidth: 700 }}>{item.body}</Typography>
+                  </Box>
                 </Box>
-                <Box>
-                  <Typography variant="overline" color="secondary.main">
-                    Public Priorities
-                  </Typography>
-                  <Typography variant="h5" sx={{ mt: 0.2 }}>
-                    Experience and public record
-                  </Typography>
-                </Box>
-              </Stack>
+              );
+            })}
+          </Box>
+          <Button component={RouterLink} to="/complaints" variant="contained" color="secondary" endIcon={<ArrowOutward />} sx={{ mt: 4 }}>
+            Track complaint
+          </Button>
+        </Container>
+      </Box>
 
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
-                  gap: 1.4,
-                }}
-              >
-                {achievements.map((item, index) => (
-                  <Box
-                    key={item}
-                    sx={{
-                      p: 2.2,
-                      borderRadius: 3,
-                      bgcolor: index === 0 ? alpha('#1f5f46', 0.08) : 'rgba(255,255,255,0.78)',
-                      border: '1px solid rgba(16,36,27,0.08)',
-                      boxShadow: '0 14px 28px rgba(16,36,27,0.05)',
-                    }}
-                  >
-                    <Typography
-                      sx={{
-                        fontSize: '0.78rem',
-                        fontWeight: 800,
-                        letterSpacing: '0.14em',
-                        textTransform: 'uppercase',
-                        color: 'secondary.main',
-                        mb: 1,
-                      }}
-                    >
-                      {String(index + 1).padStart(2, '0')}
-                    </Typography>
-                    <Typography sx={{ fontWeight: 700, lineHeight: 1.65 }}>{item}</Typography>
+      <Box component="section" aria-labelledby="office-heading" sx={{ py: { xs: 7, md: 11 } }}>
+        <Container>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 1.05fr) minmax(300px, 0.75fr)' }, gap: { xs: 5, lg: 10 }, alignItems: 'start' }}>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography id="office-heading" variant="h2" sx={{ fontSize: { xs: '2.2rem', md: '3.6rem' }, maxWidth: 700 }}>
+                Representation built around access
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 2.2, maxWidth: 720, fontSize: '1.05rem' }}>
+                {trimWords(settings?.about || settings?.intro || 'This office helps citizens reach their elected representative, understand ongoing public work, and receive responses through structured service channels.', 64)}
+              </Typography>
+
+              <Box sx={{ mt: 4.5, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 2.5 }}>
+                <Box sx={{ p: { xs: 2.5, md: 3 }, borderRadius: 2, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
+                  <Typography variant="h5" sx={{ color: 'inherit' }}>Mission</Typography>
+                  <Stack spacing={1.2} sx={{ mt: 1.5 }}>
+                    {missionPoints.slice(0, 2).map((item) => <Typography key={item} sx={{ color: 'rgba(248,251,249,0.8)' }}>{trimWords(item, 26)}</Typography>)}
+                  </Stack>
+                </Box>
+                <Box sx={{ p: { xs: 2.5, md: 3 }, borderRadius: 2, bgcolor: 'primary.contrastText', border: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="h5">Vision</Typography>
+                  <Stack spacing={1.2} sx={{ mt: 1.5 }}>
+                    {visionPoints.slice(0, 2).map((item) => <Typography key={item} color="text.secondary">{trimWords(item, 26)}</Typography>)}
+                  </Stack>
+                </Box>
+              </Box>
+            </Box>
+
+            <Box sx={{ minWidth: 0, borderTop: '4px solid', borderColor: 'secondary.main', bgcolor: 'primary.contrastText', p: { xs: 3, md: 4 }, borderRadius: 2 }}>
+              <Typography variant="h5">Public priorities</Typography>
+              <Stack spacing={0} sx={{ mt: 2.2 }}>
+                {achievements.slice(0, 5).map((item) => (
+                  <Box key={item} sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', py: 1.6, borderBottom: '1px solid', borderColor: 'divider' }}>
+                    <ArrowForward sx={{ mt: 0.25, color: 'primary.main', fontSize: 20, flexShrink: 0 }} />
+                    <Typography sx={{ fontWeight: 650, minWidth: 0 }}>{trimWords(item, 18)}</Typography>
                   </Box>
                 ))}
-              </Box>
-            </Paper>
+              </Stack>
+              <Typography sx={{ mt: 3, fontWeight: 800, color: 'primary.dark' }}>Principles</Typography>
+              <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', mt: 1.4, minWidth: 0 }}>
+                {values.slice(0, 4).map((item) => (
+                  <Typography
+                    key={item}
+                    variant="body2"
+                    sx={{
+                      maxWidth: '100%',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 999,
+                      px: 1.4,
+                      py: 0.65,
+                      fontWeight: 700,
+                      overflowWrap: 'anywhere',
+                    }}
+                  >
+                    {trimWords(item, 9)}
+                  </Typography>
+                ))}
+              </Stack>
+            </Box>
           </Box>
-        </Box>
-      </Container>
+        </Container>
+      </Box>
 
-      <Box sx={{ borderTop: '1px solid rgba(16,36,27,0.08)', borderBottom: '1px solid rgba(16,36,27,0.08)', bgcolor: alpha('#dcebdc', 0.32) }}>
-        <Container sx={{ py: { xs: 5, md: 7 }, px: { xs: 3, md: 8 } }}>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'minmax(240px, 0.8fr) minmax(0, 1.4fr) minmax(220px, 0.7fr)' },
-              gap: 3,
-              alignItems: 'stretch',
-            }}
-          >
+      <Box component="section" aria-labelledby="news-heading" sx={{ py: { xs: 7, md: 11 }, bgcolor: alpha('#176044', 0.045), borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Container>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'end' }, mb: 4 }}>
             <Box>
-              <Card sx={{ height: '100%' }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h6" sx={{ mb: 1.2 }}>
-                    Office Contact
-                  </Typography>
-                  {settings?.office_address && (
-                    <Typography color="text.secondary" sx={{ whiteSpace: 'pre-wrap', mb: 1.4 }}>
-                      {settings.office_address}
-                    </Typography>
-                  )}
-                  {settings?.office_hours && (
-                    <Typography color="text.secondary" sx={{ mb: 1.4 }}>
-                      {settings.office_hours}
-                    </Typography>
-                  )}
-                  {settings?.contact_phone && <Typography color="text.secondary">{settings.contact_phone}</Typography>}
-                </CardContent>
-              </Card>
+              <Typography id="news-heading" variant="h2" sx={{ fontSize: { xs: '2.2rem', md: '3.5rem' } }}>Latest from the office</Typography>
+              <Typography color="text.secondary" sx={{ mt: 1.5 }}>Official news, constituency work, and public announcements.</Typography>
             </Box>
-            <Box>
-              <Card sx={{ height: '100%' }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h6" sx={{ mb: 1.2 }}>
-                    For the People
-                  </Typography>
-                  <Typography color="text.secondary">
-                    This portal is meant to make public service easier to access, more transparent, and more respectful for citizens.
-                  </Typography>
-                </CardContent>
-              </Card>
+            <Button component={RouterLink} to="/news" variant="outlined" endIcon={<ArrowForward />}>All news</Button>
+          </Stack>
+
+          {loadError && (
+            <Alert severity="info" sx={{ mb: 3 }}>Live updates are temporarily unavailable. The rest of the public portal remains available.</Alert>
+          )}
+
+          {loading ? (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.35fr 0.65fr' }, gap: 2.5 }}>
+              <Skeleton variant="rounded" height={410} />
+              <Stack spacing={2.5}><Skeleton variant="rounded" height={192} /><Skeleton variant="rounded" height={192} /></Stack>
             </Box>
-            <Box>
-              <Card sx={{ height: '100%' }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h6" sx={{ mb: 1.2 }}>
-                    Direct Access
-                  </Typography>
-                  <Stack spacing={1.2}>
-                    <Button component={RouterLink} to="/complaints" variant="outlined" startIcon={<SupportAgent />}>
-                      Complaint Portal
-                    </Button>
-                    <Button component={RouterLink} to="/news" variant="outlined" startIcon={<Newspaper />}>
-                      Newsroom
-                    </Button>
-                    <Button component={RouterLink} to="/team" variant="outlined" startIcon={<Groups />}>
-                      Team Directory
-                    </Button>
-                    <Button component={RouterLink} to="/schemes" variant="outlined" startIcon={<Public />}>
-                      Schemes
-                    </Button>
-                  </Stack>
-                </CardContent>
-              </Card>
+          ) : featuredNews.length > 0 ? (
+            <NewsGrid items={featuredNews.slice(0, 3)} />
+          ) : (
+            <Box sx={{ py: 5, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h5">No featured updates yet</Typography>
+              <Typography color="text.secondary" sx={{ mt: 1 }}>Published stories will appear here when they are marked as featured.</Typography>
             </Box>
-          </Box>
+          )}
         </Container>
       </Box>
 
       {feedbacks.length > 0 && (
-        <Container sx={{ pb: 8, px: { xs: 3, md: 8 } }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'end', flexWrap: 'wrap', mb: 3 }}>
-            <Box>
-              <Typography variant="overline" color="secondary.main">
-                Citizen Feedback
-              </Typography>
-              <Typography variant="h3" sx={{ mt: 1.2 }}>
-                Voices from the community
-              </Typography>
-            </Box>
-          </Box>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
-              gap: 3,
-            }}
-          >
-            {feedbacks.slice(0, 3).map((item) => (
-              <Box key={item.id}>
-                <Paper sx={{ p: 3.2, border: '1px solid rgba(16,36,27,0.08)', height: '100%' }}>
-                  <Typography variant="h6" sx={{ mb: 1.4 }}>
-                    “{item.quote}”
-                  </Typography>
-                  <Typography color="text.secondary" sx={{ fontWeight: 700 }}>
-                    {item.name}
-                  </Typography>
-                  {item.location && (
-                    <Typography color="text.secondary" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6, mt: 0.5 }}>
-                      <Room sx={{ fontSize: 16 }} />
-                      {item.location}
-                    </Typography>
-                  )}
-                </Paper>
+        <Box component="section" aria-labelledby="feedback-heading" sx={{ py: { xs: 7, md: 11 } }}>
+          <Container>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(220px, 0.45fr) minmax(0, 1fr)' }, gap: { xs: 3, md: 7 }, alignItems: 'start' }}>
+              <Box>
+                <Typography id="feedback-heading" variant="h2" sx={{ fontSize: { xs: '2.1rem', md: '3rem' } }}>Community feedback</Typography>
+                <Typography color="text.secondary" sx={{ mt: 1.5 }}>Experiences shared through the public office.</Typography>
               </Box>
-            ))}
-          </Box>
-        </Container>
+              <Box sx={{ borderLeft: { md: '4px solid' }, borderColor: { md: 'secondary.main' }, pl: { md: 4 } }}>
+                <Typography variant="h4" sx={{ fontSize: { xs: '1.45rem', md: '2rem' }, maxWidth: 760 }}>
+                  “{trimWords(feedbacks[0].quote, 32)}”
+                </Typography>
+                <Typography sx={{ mt: 2, fontWeight: 800 }}>{cleanDisplayText(feedbacks[0].name)}</Typography>
+                {feedbacks[0].location && (
+                  <Typography color="text.secondary" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6, mt: 0.4 }}>
+                    <Room sx={{ fontSize: 17 }} /> {cleanDisplayText(feedbacks[0].location)}
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          </Container>
+        </Box>
       )}
 
-      <Container sx={{ pb: 4, px: { xs: 3, md: 8 } }}>
-        <Paper
+      <Container sx={{ py: { xs: 2, md: 4 } }}>
+        <Box
+          className="scroll-reveal"
           sx={{
-            p: { xs: 3, md: 4 },
-            border: '1px solid rgba(16,36,27,0.08)',
-            background: 'linear-gradient(135deg, rgba(31,95,70,0.96) 0%, rgba(47,127,91,0.96) 100%)',
-            color: 'white',
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) auto' },
+            gap: 3,
+            alignItems: 'center',
+            bgcolor: 'secondary.main',
+            color: 'secondary.contrastText',
+            borderRadius: 2,
+            p: { xs: 3, md: 5 },
           }}
         >
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) auto' },
-              gap: 3,
-              alignItems: 'center',
-            }}
-          >
-            <Box>
-              <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.74)' }}>
-                People First
-              </Typography>
-              <Typography variant="h4" sx={{ color: 'white', mt: 1 }}>
-                Public service should feel open, responsive, and easy to reach
-              </Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.80)', mt: 1.5, maxWidth: 700 }}>
-                Use the complaints portal for support, the newsroom for official updates, and the office channels for direct communication with the MNA team.
-              </Typography>
-            </Box>
-            <Box sx={{ textAlign: { xs: 'left', md: 'right' } }}>
-              <Button component={RouterLink} to="/complaints" variant="contained" color="secondary" endIcon={<Public />}>
-                Reach the Office
-              </Button>
-            </Box>
+          <Box>
+            <Typography variant="h3" sx={{ color: 'inherit', fontSize: { xs: '1.9rem', md: '2.8rem' } }}>See development work in your area</Typography>
+            <Typography sx={{ mt: 1.2, maxWidth: 680, color: alpha('#17251f', 0.78) }}>
+              Browse schemes by union council, category, and status through the public portfolio.
+            </Typography>
           </Box>
-        </Paper>
+          <Button component={RouterLink} to="/schemes" variant="contained" color="primary" endIcon={<ArrowOutward />}>
+            Explore schemes
+          </Button>
+        </Box>
       </Container>
     </Box>
   );
 }
 
-function getNewsImage(item) {
-  return resolveMediaUrl(item.image || item.images?.[0]?.image || '');
+function NewsGrid({ items }) {
+  const [lead, ...rest] = items;
+
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: rest.length ? 'minmax(0, 1.35fr) minmax(300px, 0.65fr)' : '1fr' }, gap: 2.5 }}>
+      <NewsStory item={lead} lead />
+      {rest.length > 0 && (
+        <Stack spacing={2.5}>
+          {rest.map((item) => <NewsStory key={item.id} item={item} />)}
+        </Stack>
+      )}
+    </Box>
+  );
+}
+
+function NewsStory({ item, lead = false }) {
+  const image = getNewsImage(item);
+  return (
+    <Box
+      component={RouterLink}
+      to={`/news/${item.id}`}
+      className="scroll-reveal"
+      sx={{
+        minHeight: lead ? { xs: 400, md: 520 } : { xs: 290, md: 248 },
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'flex-end',
+        overflow: 'hidden',
+        borderRadius: 2,
+        bgcolor: 'primary.dark',
+        color: '#f7faf8',
+        isolation: 'isolate',
+        '&:focus-visible': { outline: '3px solid', outlineColor: 'secondary.main', outlineOffset: 3 },
+        '&:hover img': { transform: 'scale(1.025)' },
+      }}
+    >
+      {image ? (
+        <Box component="img" src={image} alt="" loading="lazy" sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 500ms var(--site-ease)', zIndex: -2 }} />
+      ) : (
+        <Newspaper sx={{ position: 'absolute', right: 24, top: 24, fontSize: lead ? 72 : 48, color: 'rgba(255,255,255,0.18)', zIndex: -1 }} />
+      )}
+      <Box sx={{ position: 'absolute', inset: 0, background: image ? 'linear-gradient(180deg, rgba(9,35,25,0.04) 20%, rgba(9,35,25,0.92) 100%)' : 'linear-gradient(135deg, #0e3f2d, #176044)', zIndex: -1 }} />
+      <Box sx={{ p: { xs: 2.5, md: lead ? 4 : 2.7 }, width: '100%' }}>
+        <Typography variant="body2" sx={{ color: 'rgba(247,250,248,0.74)', fontWeight: 700 }}>
+          {item.published_at ? new Date(item.published_at).toLocaleDateString() : 'Official update'}
+        </Typography>
+        <Typography
+          variant={lead ? 'h3' : 'h5'}
+          sx={{
+            mt: 0.8,
+            color: 'inherit',
+            maxWidth: lead ? 760 : 520,
+            fontSize: lead ? { xs: '1.8rem', md: '2.65rem' } : undefined,
+            display: '-webkit-box',
+            WebkitBoxOrient: 'vertical',
+            WebkitLineClamp: lead ? 3 : 2,
+            overflow: 'hidden',
+          }}
+        >
+          {cleanDisplayText(item.title)}
+        </Typography>
+        {lead && <Typography sx={{ mt: 1.1, color: 'rgba(247,250,248,0.76)', maxWidth: 650 }}>{summarizeNews(item)}</Typography>}
+      </Box>
+    </Box>
+  );
 }

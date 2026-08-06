@@ -107,12 +107,14 @@ export default function PublicNewsPage() {
               placeholder="Search headlines or summaries"
               value={searchQuery}
               onChange={handleSearchChange}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search sx={{ color: 'text.secondary' }} />
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search sx={{ color: 'text.secondary' }} />
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
           </Box>
@@ -289,7 +291,7 @@ function NewsImagePlaceholder({ height, title, compact = false }) {
         justifyContent: 'space-between',
         color: 'primary.main',
         background:
-          'linear-gradient(135deg, rgba(220,235,220,0.88) 0%, rgba(255,253,248,0.96) 58%, rgba(180,138,67,0.18) 100%)',
+          'linear-gradient(135deg, rgba(223,236,229,0.9) 0%, rgba(245,247,245,0.98) 62%, rgba(214,154,53,0.14) 100%)',
       }}
     >
       <Box

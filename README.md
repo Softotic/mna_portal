@@ -7,7 +7,7 @@ The stack involves a Django + Django Rest Framework (DRF) backend and a React + 
 ## Prerequisites
 
 - Node.js ≥ 18
-- Python ≥ 3.10
+- Python ≥ 3.12 (the deployment runtime is defined in `backend/runtime.txt`)
 - PostgreSQL database running locally
 
 ---
@@ -19,17 +19,28 @@ The stack involves a Django + Django Rest Framework (DRF) backend and a React + 
    cd backend
    ```
 
-2. **Create and activate a virtual environment:**
+2. **Create and activate one virtual environment:**
+
+   If another environment is already active (its name appears at the start of
+   your terminal prompt), run `deactivate` before creating this one. Do not
+   create `backend/venv` while the project-level `.venv` is active.
+
    ```bash
-   python -m venv venv
+   python3 -m venv venv
    source venv/bin/activate  # Mac/Linux
    # venv\Scripts\activate   # Windows
    ```
 
 3. **Install dependencies:**
    ```bash
-   pip install django djangorestframework djangorestframework-simplejwt django-cors-headers django-filter psycopg2-binary django-ratelimit whitenoise gunicorn
+   python -m pip install --upgrade pip
+   python -m pip install -r requirements.txt
+   python -m pip check
    ```
+
+   If pip reports a missing `cacert.pem`, deactivate the environment, recreate
+   it with `python3 -m venv --clear venv`, activate it again, and repeat this
+   step. This indicates an incomplete pip installation, not a Django error.
 
 4. **Configure Database:**
    Create an `.env` file in the `backend/` root directory.

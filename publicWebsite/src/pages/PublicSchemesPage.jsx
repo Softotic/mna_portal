@@ -92,7 +92,7 @@ export default function PublicSchemesPage() {
 
   return (
     <Box sx={{ pb: { xs: 6, md: 9 } }}>
-      <Box sx={{ borderBottom: '1px solid rgba(16,36,27,0.08)', background: 'linear-gradient(180deg, rgba(220,235,220,0.68) 0%, rgba(255,253,248,0.98) 100%)' }}>
+      <Box sx={{ borderBottom: '1px solid rgba(16,36,27,0.08)', background: 'linear-gradient(180deg, rgba(223,236,229,0.72) 0%, rgba(245,247,245,0.98) 100%)' }}>
         <Container sx={{ py: { xs: 5, md: 8 }, px: { xs: 3, md: 8 } }}>
           <Chip icon={<LocationCity />} label={settings?.district || 'District portfolio'} sx={{ bgcolor: alpha('#1f5f46', 0.10), color: 'primary.main', mb: 2.5 }} />
           <Typography variant="h1" sx={{ maxWidth: 960, fontSize: { xs: '2.4rem', md: '4.7rem' }, lineHeight: 1.04 }}>
