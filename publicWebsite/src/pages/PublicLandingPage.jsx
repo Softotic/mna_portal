@@ -16,11 +16,13 @@ import {
   ArrowOutward,
   AssignmentTurnedIn,
   Campaign,
-  Groups,
+  FlagOutlined,
   Newspaper,
   QueryStats,
   Room,
   SupportAgent,
+  VerifiedOutlined,
+  VisibilityOutlined,
 } from '@mui/icons-material';
 import { Link as RouterLink, useOutletContext } from 'react-router-dom';
 import { publicFeedbacksAPI, publicNewsAPI, resolveMediaUrl } from '../api/index.js';
@@ -41,12 +43,50 @@ function trimWords(value, limit) {
   return `${words.slice(0, limit).join(' ')}...`;
 }
 
+function trimAtSentence(value, limit) {
+  const text = cleanDisplayText(value).replace(/\s+/g, ' ').trim();
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length <= limit) return text;
+
+  const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
+  let summary = '';
+
+  for (const sentence of sentences) {
+    const candidate = `${summary} ${sentence.trim()}`.trim();
+    if (candidate.split(/\s+/).length > limit) break;
+    summary = candidate;
+  }
+
+  return summary || trimWords(text, limit);
+}
+
 function cleanDisplayText(value) {
   return String(value || '').replace(/[\u2013\u2014]/g, '-');
 }
 
 function cleanLeaderName(value) {
   return cleanDisplayText(value).replace(/^about\s+/i, '').trim();
+}
+
+function organizePrinciples(items) {
+  const normalized = items.map((item) => cleanDisplayText(item).trim()).filter(Boolean);
+  const principles = [];
+
+  for (let index = 0; index < normalized.length && principles.length < 3; index += 1) {
+    const current = normalized[index];
+    const next = normalized[index + 1];
+    const currentWordCount = current.split(/\s+/).length;
+    const nextWordCount = next?.split(/\s+/).length || 0;
+
+    if (currentWordCount <= 4 && nextWordCount >= 5) {
+      principles.push({ title: trimWords(current, 4), description: trimWords(next, 18) });
+      index += 1;
+    } else {
+      principles.push({ title: trimWords(current, 7), description: '' });
+    }
+  }
+
+  return principles;
 }
 
 function summarizeNews(item) {
@@ -170,6 +210,8 @@ export default function PublicLandingPage() {
       ]),
     [settings],
   );
+
+  const principles = useMemo(() => organizePrinciples(values), [values]);
 
   const leaderName = cleanLeaderName(settings?.leader_name || settings?.site_name || 'Member of the National Assembly');
   const designation = cleanDisplayText(settings?.designation || 'Member of the National Assembly');
@@ -397,62 +439,175 @@ export default function PublicLandingPage() {
         </Container>
       </Box>
 
-      <Box component="section" aria-labelledby="office-heading" sx={{ py: { xs: 7, md: 11 } }}>
+      <Box
+        component="section"
+        aria-labelledby="office-heading"
+        sx={{
+          py: { xs: 7, md: 12 },
+          bgcolor: alpha('#176044', 0.025),
+          borderTop: '1px solid',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
         <Container>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 1.05fr) minmax(300px, 0.75fr)' }, gap: { xs: 5, lg: 10 }, alignItems: 'start' }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 1.04fr) minmax(360px, 0.78fr)' },
+              gap: { xs: 5, md: 7, lg: 9 },
+              alignItems: 'start',
+            }}
+          >
             <Box sx={{ minWidth: 0 }}>
-              <Typography id="office-heading" variant="h2" sx={{ fontSize: { xs: '2.2rem', md: '3.6rem' }, maxWidth: 700 }}>
-                Representation built around access
+              <Typography
+                id="office-heading"
+                variant="h2"
+                sx={{ fontSize: { xs: '2.25rem', sm: '3rem', md: '3.75rem' }, maxWidth: 760 }}
+              >
+                Representation built around <Box component="span" sx={{ color: 'primary.main' }}>access</Box>
               </Typography>
-              <Typography color="text.secondary" sx={{ mt: 2.2, maxWidth: 720, fontSize: '1.05rem' }}>
-                {trimWords(settings?.about || settings?.intro || 'This office helps citizens reach their elected representative, understand ongoing public work, and receive responses through structured service channels.', 64)}
+              <Typography
+                color="text.secondary"
+                sx={{ mt: 2.5, maxWidth: 710, fontSize: { xs: '1rem', md: '1.08rem' }, lineHeight: 1.78 }}
+              >
+                {trimAtSentence(settings?.about || settings?.intro || 'This office helps citizens reach their elected representative, understand ongoing public work, and receive responses through structured service channels.', 60)}
               </Typography>
 
-              <Box sx={{ mt: 4.5, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 2.5 }}>
-                <Box sx={{ p: { xs: 2.5, md: 3 }, borderRadius: 2, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
-                  <Typography variant="h5" sx={{ color: 'inherit' }}>Mission</Typography>
-                  <Stack spacing={1.2} sx={{ mt: 1.5 }}>
-                    {missionPoints.slice(0, 2).map((item) => <Typography key={item} sx={{ color: 'rgba(248,251,249,0.8)' }}>{trimWords(item, 26)}</Typography>)}
-                  </Stack>
-                </Box>
-                <Box sx={{ p: { xs: 2.5, md: 3 }, borderRadius: 2, bgcolor: 'primary.contrastText', border: '1px solid', borderColor: 'divider' }}>
-                  <Typography variant="h5">Vision</Typography>
-                  <Stack spacing={1.2} sx={{ mt: 1.5 }}>
-                    {visionPoints.slice(0, 2).map((item) => <Typography key={item} color="text.secondary">{trimWords(item, 26)}</Typography>)}
-                  </Stack>
-                </Box>
+              <Box
+                sx={{
+                  mt: { xs: 4, md: 5 },
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+                  overflow: 'hidden',
+                  borderRadius: 2,
+                  bgcolor: 'primary.dark',
+                  color: 'primary.contrastText',
+                  position: 'relative',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    inset: '0 0 auto',
+                    height: 4,
+                    bgcolor: 'secondary.main',
+                  },
+                }}
+              >
+                {[
+                  { title: 'Mission', points: missionPoints, icon: FlagOutlined },
+                  { title: 'Vision', points: visionPoints, icon: VisibilityOutlined },
+                ].map((item, index) => {
+                  const Icon = item.icon;
+                  return (
+                    <Box
+                      key={item.title}
+                      sx={{
+                        p: { xs: 3, md: 3.5 },
+                        pt: { xs: 3.5, md: 4 },
+                        borderTop: { xs: index ? '1px solid rgba(255,255,255,0.13)' : 0, sm: 0 },
+                        borderLeft: { xs: 0, sm: index ? '1px solid rgba(255,255,255,0.13)' : 0 },
+                      }}
+                    >
+                      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                        <Box
+                          sx={{
+                            width: 42,
+                            height: 42,
+                            display: 'grid',
+                            placeItems: 'center',
+                            borderRadius: 1.25,
+                            bgcolor: 'rgba(255,255,255,0.1)',
+                            color: 'secondary.light',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Icon fontSize="small" />
+                        </Box>
+                        <Typography variant="h5" sx={{ color: 'inherit' }}>{item.title}</Typography>
+                      </Stack>
+                      <Stack spacing={1.4} sx={{ mt: 2.2 }}>
+                        {item.points.slice(0, 2).map((point) => (
+                          <Typography key={point} sx={{ color: 'rgba(248,251,249,0.76)', lineHeight: 1.65 }}>
+                            {trimWords(point, 36)}
+                          </Typography>
+                        ))}
+                      </Stack>
+                    </Box>
+                  );
+                })}
               </Box>
             </Box>
 
-            <Box sx={{ minWidth: 0, borderTop: '4px solid', borderColor: 'secondary.main', bgcolor: 'primary.contrastText', p: { xs: 3, md: 4 }, borderRadius: 2 }}>
-              <Typography variant="h5">Public priorities</Typography>
-              <Stack spacing={0} sx={{ mt: 2.2 }}>
+            <Box
+              component="aside"
+              aria-labelledby="priorities-heading"
+              sx={{
+                minWidth: 0,
+                bgcolor: 'background.paper',
+                p: { xs: 3, sm: 4, md: 4.5 },
+                borderRadius: 2,
+                boxShadow: '0 8px 0 rgba(23, 96, 68, 0.07)',
+              }}
+            >
+              <Box sx={{ width: 48, height: 4, bgcolor: 'secondary.main', mb: 2.5 }} />
+              <Typography id="priorities-heading" variant="h3" sx={{ fontSize: { xs: '1.8rem', md: '2.15rem' } }}>
+                Public priorities
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 480 }}>
+                The commitments guiding representation, public service, and national policy work.
+              </Typography>
+
+              <Stack spacing={0} sx={{ mt: 2.5 }}>
                 {achievements.slice(0, 5).map((item) => (
-                  <Box key={item} sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', py: 1.6, borderBottom: '1px solid', borderColor: 'divider' }}>
-                    <ArrowForward sx={{ mt: 0.25, color: 'primary.main', fontSize: 20, flexShrink: 0 }} />
-                    <Typography sx={{ fontWeight: 650, minWidth: 0 }}>{trimWords(item, 18)}</Typography>
+                  <Box
+                    key={item}
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: '38px minmax(0, 1fr)',
+                      gap: 1.5,
+                      alignItems: 'start',
+                      py: 1.8,
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: '50%',
+                        display: 'grid',
+                        placeItems: 'center',
+                        bgcolor: alpha('#176044', 0.09),
+                        color: 'primary.main',
+                      }}
+                    >
+                      <ArrowForward sx={{ fontSize: 18 }} />
+                    </Box>
+                    <Typography sx={{ pt: 0.45, fontWeight: 680, lineHeight: 1.55, minWidth: 0 }}>
+                      {trimWords(item, 20)}
+                    </Typography>
                   </Box>
                 ))}
               </Stack>
-              <Typography sx={{ mt: 3, fontWeight: 800, color: 'primary.dark' }}>Principles</Typography>
-              <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', mt: 1.4, minWidth: 0 }}>
-                {values.slice(0, 4).map((item) => (
-                  <Typography
-                    key={item}
-                    variant="body2"
-                    sx={{
-                      maxWidth: '100%',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 999,
-                      px: 1.4,
-                      py: 0.65,
-                      fontWeight: 700,
-                      overflowWrap: 'anywhere',
-                    }}
-                  >
-                    {trimWords(item, 9)}
-                  </Typography>
+
+              <Stack direction="row" spacing={1.2} sx={{ mt: 3.5, alignItems: 'center', color: 'primary.dark' }}>
+                <VerifiedOutlined fontSize="small" />
+                <Typography variant="h6">Principles in practice</Typography>
+              </Stack>
+              <Stack spacing={1.8} sx={{ mt: 2 }}>
+                {principles.map((principle) => (
+                  <Box key={`${principle.title}-${principle.description}`} sx={{ display: 'grid', gridTemplateColumns: '10px minmax(0, 1fr)', gap: 1.25 }}>
+                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: 'secondary.main', mt: 0.95 }} />
+                    <Box>
+                      <Typography sx={{ fontWeight: 800, lineHeight: 1.45 }}>{principle.title}</Typography>
+                      {principle.description && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
+                          {principle.description}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
                 ))}
               </Stack>
             </Box>
