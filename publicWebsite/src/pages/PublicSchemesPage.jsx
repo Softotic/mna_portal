@@ -1,26 +1,51 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
   CardContent,
   CardMedia,
   Chip,
+  Collapse,
   Container,
-  LinearProgress,
-  Paper,
+  Skeleton,
   Stack,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
-import { ArrowOutward, Category, Image, LocationCity } from '@mui/icons-material';
+import { alpha, useTheme } from '@mui/material/styles';
+import {
+  ArrowForward,
+  ArrowOutward,
+  Category,
+  FilterAlt,
+  Image,
+  LocationCity,
+  RestartAlt,
+} from '@mui/icons-material';
 import { Link as RouterLink, useOutletContext } from 'react-router-dom';
 import { publicPortfolioAPI, resolveMediaUrl } from '../api/index.js';
 
-const statuses = ['all', 'ongoing', 'future', 'past'];
+const statusOptions = [
+  { value: 'all', label: 'All statuses' },
+  { value: 'ongoing', label: 'Ongoing' },
+  { value: 'future', label: 'Planned' },
+  { value: 'past', label: 'Completed' },
+];
+
+const heroImage = '/images/public-schemes-hero.jpg';
 
 function normalize(data) {
   return Array.isArray(data) ? data : data?.results || [];
+}
+
+function cleanDisplayText(value) {
+  return String(value || '').replace(/[\u2013\u2014]/g, '-');
+}
+
+function statusLabel(status) {
+  return statusOptions.find((item) => item.value === status)?.label || cleanDisplayText(status);
 }
 
 function statusColor(status) {
@@ -31,7 +56,12 @@ function statusColor(status) {
 
 export default function PublicSchemesPage() {
   const { settings } = useOutletContext();
+  const theme = useTheme();
+  const desktopFilters = useMediaQuery(theme.breakpoints.up('lg'));
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [requestKey, setRequestKey] = useState(0);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [ucs, setUcs] = useState([]);
   const [categories, setCategories] = useState([]);
   const [schemes, setSchemes] = useState([]);
@@ -41,7 +71,10 @@ export default function PublicSchemesPage() {
 
   useEffect(() => {
     let active = true;
+
     (async () => {
+      setLoading(true);
+      setLoadError(false);
       try {
         const [ucResponse, categoryResponse, schemeResponse] = await Promise.all([
           publicPortfolioAPI.unionCouncils({ ordering: 'sort_order' }),
@@ -49,26 +82,26 @@ export default function PublicSchemesPage() {
           publicPortfolioAPI.schemes({ ordering: 'sort_order' }),
         ]);
         if (!active) return;
-        const ucData = normalize(ucResponse.data);
-        const categoryData = normalize(categoryResponse.data);
-        setUcs(ucData);
-        setCategories(categoryData);
+        setUcs(normalize(ucResponse.data));
+        setCategories(normalize(categoryResponse.data));
         setSchemes(normalize(schemeResponse.data));
-        setSelectedUc(ucData[0]?.id || null);
-        setSelectedCategory(categoryData.find((category) => category.union_council === ucData[0]?.id)?.id || null);
-      } catch (error) {
-        console.error(error);
+      } catch {
+        if (active) setLoadError(true);
       } finally {
         if (active) setLoading(false);
       }
     })();
+
     return () => {
       active = false;
     };
-  }, []);
+  }, [requestKey]);
 
-  const ucCategories = useMemo(
-    () => categories.filter((category) => String(category.union_council) === String(selectedUc)),
+  const availableCategories = useMemo(
+    () =>
+      selectedUc
+        ? categories.filter((category) => String(category.union_council) === String(selectedUc))
+        : categories,
     [categories, selectedUc],
   );
 
@@ -83,94 +116,195 @@ export default function PublicSchemesPage() {
     [schemes, selectedCategory, selectedStatus, selectedUc],
   );
 
-  const chooseUc = (ucId) => {
-    setSelectedUc(ucId);
-    setSelectedCategory(categories.find((category) => String(category.union_council) === String(ucId))?.id || null);
-  };
+  const selectedUcName = ucs.find((uc) => String(uc.id) === String(selectedUc))?.name;
+  const selectedCategoryName = categories.find((category) => String(category.id) === String(selectedCategory))?.name;
+  const hasActiveFilters = Boolean(selectedUc || selectedCategory || selectedStatus !== 'all');
 
-  if (loading) return <LinearProgress color="secondary" />;
+  const chooseUc = useCallback((ucId) => {
+    setSelectedUc(ucId);
+    setSelectedCategory(null);
+  }, []);
+
+  const resetFilters = useCallback(() => {
+    setSelectedUc(null);
+    setSelectedCategory(null);
+    setSelectedStatus('all');
+  }, []);
+
+  const selectionSummary = [
+    selectedUcName || 'All union councils',
+    selectedCategoryName || 'All categories',
+    statusLabel(selectedStatus),
+  ].join(' / ');
 
   return (
-    <Box sx={{ pb: { xs: 6, md: 9 } }}>
-      <Box sx={{ borderBottom: '1px solid rgba(16,36,27,0.08)', background: 'linear-gradient(180deg, rgba(223,236,229,0.72) 0%, rgba(245,247,245,0.98) 100%)' }}>
-        <Container sx={{ py: { xs: 5, md: 8 }, px: { xs: 3, md: 8 } }}>
-          <Chip icon={<LocationCity />} label={settings?.district || 'District portfolio'} sx={{ bgcolor: alpha('#1f5f46', 0.10), color: 'primary.main', mb: 2.5 }} />
-          <Typography variant="h1" sx={{ maxWidth: 960, fontSize: { xs: '2.4rem', md: '4.7rem' }, lineHeight: 1.04 }}>
-            Public schemes by union council and category
-          </Typography>
-          <Typography sx={{ mt: 2.5, maxWidth: 760, color: 'text.secondary', fontSize: '1.06rem' }}>
-            Browse ongoing, future, and completed public work across the district in one transparent portfolio.
-          </Typography>
+    <Box>
+      <Box
+        component="section"
+        aria-labelledby="schemes-heading"
+        sx={{
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          background: 'linear-gradient(180deg, rgba(223,236,229,0.72) 0%, rgba(245,247,245,0.98) 100%)',
+        }}
+      >
+        <Container sx={{ py: { xs: 5, md: 7 } }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 0.9fr) minmax(340px, 0.72fr)' },
+              gap: { xs: 4, md: 7 },
+              alignItems: 'center',
+            }}
+          >
+            <Box sx={{ minWidth: 0 }}>
+              <Chip
+                icon={<LocationCity />}
+                label={cleanDisplayText(settings?.district || 'District portfolio')}
+                sx={{ bgcolor: alpha('#176044', 0.1), color: 'primary.dark', mb: 2.4 }}
+              />
+              <Typography
+                id="schemes-heading"
+                variant="h1"
+                sx={{ maxWidth: 760, fontSize: { xs: '2.65rem', sm: '3.6rem', lg: '4.35rem' } }}
+              >
+                Development work across the district
+              </Typography>
+              <Typography sx={{ mt: 2.2, maxWidth: 650, color: 'text.secondary', fontSize: { xs: '1rem', md: '1.08rem' } }}>
+                Explore ongoing, planned, and completed schemes by union council and public-service category.
+              </Typography>
+            </Box>
+
+            <Box sx={{ position: 'relative', minWidth: 0 }}>
+              <Box
+                component="img"
+                src={heroImage}
+                alt="Public school buildings, a district road, trees, and solar lighting"
+                fetchPriority="high"
+                sx={{
+                  display: 'block',
+                  width: '100%',
+                  aspectRatio: '16 / 10',
+                  objectFit: 'cover',
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: alpha('#176044', 0.2),
+                }}
+              />
+              <Box
+                sx={{
+                  position: 'absolute',
+                  left: { xs: 12, md: 18 },
+                  right: { xs: 12, md: 18 },
+                  bottom: { xs: 12, md: 18 },
+                  p: { xs: 1.4, md: 1.8 },
+                  borderRadius: 1.5,
+                  bgcolor: 'rgba(14,63,45,0.9)',
+                  color: '#f8fbf9',
+                }}
+              >
+                <Typography sx={{ fontWeight: 800 }}>A transparent public portfolio</Typography>
+                <Typography variant="body2" sx={{ mt: 0.25, color: 'rgba(248,251,249,0.76)' }}>
+                  Open each scheme for its full description, media, status, and supporting documents.
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
         </Container>
       </Box>
 
-      <Container sx={{ py: { xs: 4, md: 6 }, px: { xs: 3, md: 8 } }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '260px 240px minmax(0, 1fr)' }, gap: 3, alignItems: 'start' }}>
-          <SidePanel title="Union Councils" icon={<LocationCity fontSize="small" />}>
-            {ucs.map((uc) => (
-              <Button key={uc.id} fullWidth variant={selectedUc === uc.id ? 'contained' : 'text'} onClick={() => chooseUc(uc.id)} sx={{ justifyContent: 'flex-start' }}>
-                {uc.name}
-              </Button>
-            ))}
-          </SidePanel>
+      <Container sx={{ pt: { xs: 4, md: 6 }, pb: 0 }}>
+        <Button
+          variant="outlined"
+          startIcon={<FilterAlt />}
+          onClick={() => setFiltersOpen((open) => !open)}
+          aria-expanded={filtersOpen}
+          aria-controls="scheme-filters"
+          aria-label={filtersOpen ? 'Hide scheme filters' : 'Filter schemes'}
+          sx={{ display: { xs: 'inline-flex', lg: 'none' }, mb: 2.5 }}
+        >
+          {filtersOpen ? 'Hide filters' : 'Filter schemes'}
+        </Button>
 
-          <SidePanel title="Categories" icon={<Category fontSize="small" />}>
-            {ucCategories.map((category) => (
-              <Button key={category.id} fullWidth variant={selectedCategory === category.id ? 'contained' : 'text'} onClick={() => setSelectedCategory(category.id)} sx={{ justifyContent: 'flex-start' }}>
-                {category.name}
-              </Button>
-            ))}
-            {ucCategories.length === 0 && <Typography color="text.secondary">No categories yet.</Typography>}
-          </SidePanel>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: '290px minmax(0, 1fr)' },
+            gap: { xs: 3.5, lg: 5 },
+            alignItems: 'start',
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
+            <Collapse in={filtersOpen || desktopFilters} timeout={240}>
+              <FilterPanel
+                ucs={ucs}
+                categories={availableCategories}
+                selectedUc={selectedUc}
+                selectedCategory={selectedCategory}
+                selectedStatus={selectedStatus}
+                chooseUc={chooseUc}
+                setSelectedCategory={setSelectedCategory}
+                setSelectedStatus={setSelectedStatus}
+                resetFilters={resetFilters}
+                hasActiveFilters={hasActiveFilters}
+              />
+            </Collapse>
+          </Box>
 
-          <Box>
-            <Paper sx={{ p: 2.2, mb: 3, border: '1px solid rgba(16,36,27,0.08)' }}>
-              <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
-                {statuses.map((status) => (
-                  <Chip
-                    key={status}
-                    label={status === 'all' ? 'All' : status}
-                    clickable
-                    color={selectedStatus === status ? 'primary' : 'default'}
-                    variant={selectedStatus === status ? 'filled' : 'outlined'}
-                    onClick={() => setSelectedStatus(status)}
-                    sx={{ textTransform: 'capitalize' }}
-                  />
-                ))}
-              </Stack>
-            </Paper>
-
-            {visibleSchemes.length === 0 ? (
-              <Paper sx={{ p: 4, textAlign: 'center', border: '1px solid rgba(16,36,27,0.08)' }}>
-                <Typography variant="h6">No schemes found</Typography>
-                <Typography color="text.secondary" sx={{ mt: 1 }}>Select another union council, category, or status.</Typography>
-              </Paper>
-            ) : (
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 3 }}>
-                {visibleSchemes.map((scheme) => (
-                  <Card key={scheme.id} sx={{ height: '100%', overflow: 'hidden', border: '1px solid rgba(16,36,27,0.08)' }}>
-                    {getSchemeImage(scheme) ? (
-                      <CardMedia component="img" image={getSchemeImage(scheme)} alt={scheme.name} sx={{ height: 220, objectFit: 'cover' }} />
-                    ) : (
-                      <Box sx={{ height: 220, display: 'grid', placeItems: 'center', bgcolor: alpha('#1f5f46', 0.08), color: 'primary.main' }}>
-                        <Image />
-                      </Box>
-                    )}
-                    <CardContent sx={{ p: 3 }}>
-                      <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: 'wrap' }} useFlexGap>
-                        <Chip size="small" label={scheme.status} color={statusColor(scheme.status)} sx={{ textTransform: 'capitalize' }} />
-                        <Chip size="small" label={scheme.category_name} variant="outlined" />
-                      </Stack>
-                      <Typography variant="h5" sx={{ mb: 1 }}>{scheme.name}</Typography>
-                      <Typography color="text.secondary">{scheme.description || 'Details will be updated soon.'}</Typography>
-                      <Button component={RouterLink} to={`/schemes/${scheme.id}`} endIcon={<ArrowOutward />} sx={{ mt: 2 }}>
-                        Open scheme
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
+          <Box component="section" aria-labelledby="scheme-results-heading" sx={{ minWidth: 0 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: 2,
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', sm: 'flex-end' },
+                pb: 2.5,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+              }}
+            >
+              <Box>
+                <Typography id="scheme-results-heading" variant="h3" sx={{ fontSize: { xs: '1.8rem', md: '2.35rem' } }}>
+                  {loading ? 'Loading schemes' : `${visibleSchemes.length} ${visibleSchemes.length === 1 ? 'scheme' : 'schemes'}`}
+                </Typography>
+                <Typography color="text.secondary" sx={{ mt: 0.65 }}>
+                  {selectionSummary}
+                </Typography>
               </Box>
+              {hasActiveFilters && (
+                <Button aria-label="Clear scheme filters" onClick={resetFilters} startIcon={<RestartAlt />} sx={{ px: 0.5 }}>
+                  Clear filters
+                </Button>
+              )}
+            </Box>
+
+            {loadError && (
+              <Alert
+                severity="error"
+                sx={{ mt: 3 }}
+                action={<Button color="inherit" size="small" onClick={() => setRequestKey((value) => value + 1)}>Try again</Button>}
+              >
+                Schemes could not be loaded. Check your connection and try again.
+              </Alert>
             )}
+
+            {loading ? (
+              <LoadingGrid />
+            ) : !loadError && visibleSchemes.length === 0 ? (
+              <EmptyResults onReset={resetFilters} />
+            ) : !loadError ? (
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'repeat(2, minmax(0, 1fr))' },
+                  gap: 2.5,
+                  mt: 3,
+                }}
+              >
+                {visibleSchemes.map((scheme) => <SchemeCard key={scheme.id} scheme={scheme} />)}
+              </Box>
+            ) : null}
           </Box>
         </Box>
       </Container>
@@ -178,18 +312,236 @@ export default function PublicSchemesPage() {
   );
 }
 
-function getSchemeImage(scheme) {
-  return resolveMediaUrl(scheme.image || scheme.images?.[0]?.image || '');
+function FilterPanel({
+  ucs,
+  categories,
+  selectedUc,
+  selectedCategory,
+  selectedStatus,
+  chooseUc,
+  setSelectedCategory,
+  setSelectedStatus,
+  resetFilters,
+  hasActiveFilters,
+}) {
+  return (
+    <Box
+      id="scheme-filters"
+      component="aside"
+      aria-label="Scheme filters"
+      sx={{
+        position: { lg: 'sticky' },
+        top: { lg: 104 },
+        borderRadius: 2,
+        border: '1px solid',
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+        overflow: 'hidden',
+      }}
+    >
+      <Box sx={{ p: 2.5, bgcolor: 'primary.dark', color: 'primary.contrastText' }}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          <FilterAlt fontSize="small" />
+          <Typography variant="h6" sx={{ color: 'inherit' }}>Filter schemes</Typography>
+        </Stack>
+        <Typography variant="body2" sx={{ mt: 0.7, color: 'rgba(248,251,249,0.72)' }}>
+          Narrow the portfolio by place, service, and progress.
+        </Typography>
+      </Box>
+
+      <FilterGroup title="Union council" icon={<LocationCity fontSize="small" />}>
+        <FilterButton active={!selectedUc} onClick={() => chooseUc(null)}>All union councils</FilterButton>
+        {ucs.map((uc) => (
+          <FilterButton key={uc.id} active={String(selectedUc) === String(uc.id)} onClick={() => chooseUc(uc.id)}>
+            {cleanDisplayText(uc.name)}
+          </FilterButton>
+        ))}
+      </FilterGroup>
+
+      <FilterGroup title="Category" icon={<Category fontSize="small" />}>
+        <FilterButton active={!selectedCategory} onClick={() => setSelectedCategory(null)}>All categories</FilterButton>
+        {categories.map((category) => (
+          <FilterButton
+            key={category.id}
+            active={String(selectedCategory) === String(category.id)}
+            onClick={() => setSelectedCategory(category.id)}
+          >
+            {cleanDisplayText(category.name)}
+          </FilterButton>
+        ))}
+        {categories.length === 0 && <Typography variant="body2" color="text.secondary">No categories are available.</Typography>}
+      </FilterGroup>
+
+      <FilterGroup title="Progress">
+        <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
+          {statusOptions.map((status) => (
+            <Chip
+              key={status.value}
+              label={status.label}
+              clickable
+              color={selectedStatus === status.value ? 'primary' : 'default'}
+              variant={selectedStatus === status.value ? 'filled' : 'outlined'}
+              onClick={() => setSelectedStatus(status.value)}
+              sx={{ minHeight: 38 }}
+            />
+          ))}
+        </Stack>
+      </FilterGroup>
+
+      {hasActiveFilters && (
+        <Box sx={{ px: 2.5, pb: 2.5 }}>
+          <Button aria-label="Reset all scheme filters" fullWidth variant="outlined" startIcon={<RestartAlt />} onClick={resetFilters}>Reset all filters</Button>
+        </Box>
+      )}
+    </Box>
+  );
 }
 
-function SidePanel({ title, icon, children }) {
+function FilterGroup({ title, icon, children }) {
   return (
-    <Paper sx={{ p: 2, border: '1px solid rgba(16,36,27,0.08)', position: { lg: 'sticky' }, top: { lg: 110 } }}>
-      <Typography variant="overline" color="secondary.main" sx={{ display: 'flex', alignItems: 'center', gap: 0.7, mb: 1.2 }}>
+    <Box sx={{ p: 2.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+      <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center', mb: 1.35, color: 'text.secondary' }}>
         {icon}
-        {title}
-      </Typography>
-      <Stack spacing={0.8}>{children}</Stack>
-    </Paper>
+        <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary' }}>{title}</Typography>
+      </Stack>
+      <Stack spacing={0.55}>{children}</Stack>
+    </Box>
   );
+}
+
+function FilterButton({ active, onClick, children }) {
+  return (
+    <Button
+      fullWidth
+      variant={active ? 'contained' : 'text'}
+      onClick={onClick}
+      aria-pressed={active}
+      aria-label={typeof children === 'string' ? children : undefined}
+      sx={{ justifyContent: 'space-between', px: 1.5, minHeight: 42 }}
+      endIcon={active ? <ArrowForward fontSize="small" /> : null}
+    >
+      {children}
+    </Button>
+  );
+}
+
+function SchemeCard({ scheme }) {
+  const image = getSchemeImage(scheme);
+
+  return (
+    <Card
+      className="scroll-reveal"
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        transition: 'transform 240ms var(--site-ease), border-color 240ms var(--site-ease)',
+        '&:hover': { transform: 'translateY(-4px)', borderColor: alpha('#176044', 0.34) },
+        '&:focus-within': { outline: '3px solid', outlineColor: alpha('#d69a35', 0.5), outlineOffset: 2 },
+      }}
+    >
+      {image ? (
+        <CardMedia
+          component="img"
+          image={image}
+          alt={`${cleanDisplayText(scheme.name)} scheme`}
+          loading="lazy"
+          sx={{ height: 208, objectFit: 'cover' }}
+        />
+      ) : (
+        <Box
+          sx={{
+            height: 208,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1,
+            bgcolor: 'primary.dark',
+            color: 'rgba(248,251,249,0.76)',
+          }}
+        >
+          <Image sx={{ color: 'secondary.light' }} />
+          <Typography variant="body2" sx={{ fontWeight: 700 }}>Project media pending</Typography>
+        </Box>
+      )}
+
+      <CardContent sx={{ p: 2.7, display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+        <Stack direction="row" spacing={0.8} useFlexGap sx={{ mb: 1.5, flexWrap: 'wrap' }}>
+          <Chip size="small" label={statusLabel(scheme.status)} color={statusColor(scheme.status)} />
+          {scheme.category_name && <Chip size="small" label={cleanDisplayText(scheme.category_name)} variant="outlined" />}
+        </Stack>
+        <Typography variant="h5" sx={{ overflowWrap: 'anywhere' }}>{cleanDisplayText(scheme.name)}</Typography>
+        <Typography
+          color="text.secondary"
+          sx={{
+            mt: 1,
+            display: '-webkit-box',
+            WebkitBoxOrient: 'vertical',
+            WebkitLineClamp: 2,
+            overflow: 'hidden',
+          }}
+        >
+          {cleanDisplayText(scheme.description || 'Details will be published as the scheme progresses.')}
+        </Typography>
+        <Button
+          component={RouterLink}
+          to={`/schemes/${scheme.id}`}
+          endIcon={<ArrowOutward />}
+          sx={{ mt: 'auto', pt: 2.2, alignSelf: 'flex-start', px: 0.5 }}
+        >
+          View scheme
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LoadingGrid() {
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 2.5, mt: 3 }}>
+      {[0, 1, 2, 3].map((item) => (
+        <Box key={item} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', bgcolor: 'background.paper' }}>
+          <Skeleton variant="rectangular" height={208} animation="wave" />
+          <Box sx={{ p: 2.7 }}>
+            <Skeleton width="42%" />
+            <Skeleton width="76%" height={36} sx={{ mt: 1 }} />
+            <Skeleton width="92%" />
+            <Skeleton width="62%" />
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
+function EmptyResults({ onReset }) {
+  return (
+    <Box
+      sx={{
+        mt: 3,
+        py: { xs: 6, md: 9 },
+        px: 3,
+        textAlign: 'center',
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 2,
+        bgcolor: 'background.paper',
+      }}
+    >
+      <Box sx={{ width: 52, height: 52, mx: 'auto', display: 'grid', placeItems: 'center', borderRadius: 1.5, bgcolor: alpha('#176044', 0.1), color: 'primary.main' }}>
+        <FilterAlt />
+      </Box>
+      <Typography variant="h5" sx={{ mt: 2 }}>No schemes match these filters</Typography>
+      <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 480, mx: 'auto' }}>
+        Clear the current selection to return to the complete district portfolio.
+      </Typography>
+      <Button aria-label="Clear scheme filters" variant="contained" startIcon={<RestartAlt />} onClick={onReset} sx={{ mt: 2.5 }}>Clear filters</Button>
+    </Box>
+  );
+}
+
+function getSchemeImage(scheme) {
+  return resolveMediaUrl(scheme.image || scheme.images?.[0]?.image || '');
 }
