@@ -10,14 +10,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControlLabel,
   Grid,
   IconButton,
   InputAdornment,
   LinearProgress,
   MenuItem,
   Paper,
-  Switch,
   Table,
   TableBody,
   TableCell,
@@ -42,7 +40,6 @@ const defaultForm = {
   department: '',
   bio: '',
   status: 'published',
-  featured: false,
 };
 
 function formatApiError(data) {
@@ -132,7 +129,6 @@ export default function TeamManagementPage() {
       department: member.department || '',
       bio: member.bio || '',
       status: member.status || 'published',
-      featured: Boolean(member.featured),
     });
     setDialogOpen(true);
   };
@@ -350,7 +346,6 @@ export default function TeamManagementPage() {
                       variant={member.status === 'published' ? 'filled' : 'outlined'}
                       color={member.status === 'published' ? 'success' : 'default'}
                     />
-                    {member.featured && <Chip label="Featured" size="small" color="warning" sx={{ ml: 1 }} />}
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -489,17 +484,6 @@ export default function TeamManagementPage() {
                 <MenuItem value="draft">Draft</MenuItem>
                 <MenuItem value="published">Published</MenuItem>
               </TextField>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={form.featured}
-                    onChange={(event) => updateForm('featured', event.target.checked)}
-                  />
-                }
-                label="Feature on website"
-              />
             </Grid>
             <Grid item xs={12}>
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
