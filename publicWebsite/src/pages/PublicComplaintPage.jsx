@@ -30,6 +30,17 @@ const complaintCategories = [
   'Other',
 ];
 
+const requiredComplaintFields = {
+  name: 'Please enter your name.',
+  father_name: "Please enter your father's name.",
+  village: 'Please enter your village.',
+  union_council: 'Please enter your union council.',
+  cnic: 'Please enter your CNIC.',
+  phone: 'Please enter your phone number.',
+  category: 'Please select a complaint category.',
+  description: 'Please describe the issue and the support you need.',
+};
+
 const processNotes = [
   {
     title: 'Verified submission',
@@ -184,6 +195,7 @@ export default function PublicComplaintPage() {
   const [loading, setLoading] = useState(false);
   const [trackingLoading, setTrackingLoading] = useState(false);
   const [error, setError] = useState('');
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   const trackingItems = useMemo(() => {
     if (!trackingResult) return [];
@@ -194,9 +206,24 @@ export default function PublicComplaintPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = async () => {
-    if (!form.name || !form.father_name || !form.village || !form.union_council || !form.cnic || !form.phone || !form.category || !form.description) {
-      setError('Please complete all required fields before submitting the complaint.');
+  const hasFieldError = (field) => (
+    submitAttempted && !String(form[field] ?? '').trim()
+  );
+
+  const fieldHelperText = (field, defaultText = 'Required') => (
+    hasFieldError(field) ? requiredComplaintFields[field] : defaultText
+  );
+
+  const handleSubmit = async (event) => {
+    event?.preventDefault();
+    setSubmitAttempted(true);
+
+    const missingFields = Object.keys(requiredComplaintFields).filter(
+      (field) => !String(form[field] ?? '').trim(),
+    );
+
+    if (missingFields.length > 0) {
+      setError(`Please complete the ${missingFields.length} highlighted required ${missingFields.length === 1 ? 'field' : 'fields'}.`);
       return;
     }
 
@@ -218,6 +245,7 @@ export default function PublicComplaintPage() {
         description: '',
         attachment: null,
       });
+      setSubmitAttempted(false);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.detail || 'Unable to submit complaint right now.');
@@ -284,6 +312,7 @@ export default function PublicComplaintPage() {
               <TextField
                 fullWidth
                 label="Tracking Number"
+                placeholder="e.g. CMP-12AB34CD"
                 value={trackingSearch.tracking_number}
                 onChange={(event) => setTrackingSearch((prev) => ({ ...prev, tracking_number: event.target.value }))}
                 sx={{ mb: 2 }}
@@ -291,8 +320,10 @@ export default function PublicComplaintPage() {
               <TextField
                 fullWidth
                 label="CNIC"
+                placeholder="e.g. 42101-1234567-1"
                 value={trackingSearch.cnic}
                 onChange={(event) => setTrackingSearch((prev) => ({ ...prev, cnic: event.target.value }))}
+                helperText="Enter either a tracking number or CNIC."
                 sx={{ mb: 2.5 }}
               />
               <Button onClick={handleTrack} variant="contained" color="secondary" fullWidth disabled={trackingLoading}>
@@ -336,36 +367,114 @@ export default function PublicComplaintPage() {
                   Provide clear information so the office can review the issue and respond appropriately.
                 </Typography>
 
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 3 }}>
+                <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
+                  Fields marked with an asterisk (*) are required.
+                </Typography>
+
+                <Box
+                  component="form"
+                  noValidate
+                  onSubmit={handleSubmit}
+                  sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 3 }}
+                >
                   <Box>
-                    <TextField fullWidth label="Name" value={form.name} onChange={(event) => updateFormValue('name', event.target.value)} />
-                  </Box>
-                  <Box>
-                    <TextField fullWidth label="Father Name" value={form.father_name} onChange={(event) => updateFormValue('father_name', event.target.value)} />
-                  </Box>
-                  <Box>
-                    <TextField fullWidth label="Village" value={form.village} onChange={(event) => updateFormValue('village', event.target.value)} />
-                  </Box>
-                  <Box>
-                    <TextField fullWidth label="Union Council" value={form.union_council} onChange={(event) => updateFormValue('union_council', event.target.value)} />
-                  </Box>
-                  <Box>
-                    <TextField fullWidth label="CNIC" value={form.cnic} onChange={(event) => updateFormValue('cnic', event.target.value)} />
-                  </Box>
-                  <Box>
-                    <TextField fullWidth label="Department (Optional)" value={form.department} onChange={(event) => updateFormValue('department', event.target.value)} />
-                  </Box>
-                  <Box>
-                    <TextField fullWidth label="Phone Number" value={form.phone} onChange={(event) => updateFormValue('phone', event.target.value)} />
+                    <TextField
+                      required
+                      fullWidth
+                      label="Name"
+                      placeholder="Enter your full name"
+                      value={form.name}
+                      onChange={(event) => updateFormValue('name', event.target.value)}
+                      error={hasFieldError('name')}
+                      helperText={fieldHelperText('name')}
+                    />
                   </Box>
                   <Box>
                     <TextField
+                      required
+                      fullWidth
+                      label="Father's Name"
+                      placeholder="Enter your father's full name"
+                      value={form.father_name}
+                      onChange={(event) => updateFormValue('father_name', event.target.value)}
+                      error={hasFieldError('father_name')}
+                      helperText={fieldHelperText('father_name')}
+                    />
+                  </Box>
+                  <Box>
+                    <TextField
+                      required
+                      fullWidth
+                      label="Village"
+                      placeholder="Enter your village name"
+                      value={form.village}
+                      onChange={(event) => updateFormValue('village', event.target.value)}
+                      error={hasFieldError('village')}
+                      helperText={fieldHelperText('village')}
+                    />
+                  </Box>
+                  <Box>
+                    <TextField
+                      required
+                      fullWidth
+                      label="Union Council"
+                      placeholder="Enter your union council"
+                      value={form.union_council}
+                      onChange={(event) => updateFormValue('union_council', event.target.value)}
+                      error={hasFieldError('union_council')}
+                      helperText={fieldHelperText('union_council')}
+                    />
+                  </Box>
+                  <Box>
+                    <TextField
+                      required
+                      fullWidth
+                      label="CNIC"
+                      placeholder="e.g. 42101-1234567-1"
+                      value={form.cnic}
+                      onChange={(event) => updateFormValue('cnic', event.target.value)}
+                      error={hasFieldError('cnic')}
+                      helperText={fieldHelperText('cnic', 'Include digits and dashes as shown.')}
+                      slotProps={{ htmlInput: { inputMode: 'numeric' } }}
+                    />
+                  </Box>
+                  <Box>
+                    <TextField
+                      fullWidth
+                      label="Department (optional)"
+                      placeholder="e.g. Education Department"
+                      value={form.department}
+                      onChange={(event) => updateFormValue('department', event.target.value)}
+                      helperText="Add this if you know which department is responsible."
+                    />
+                  </Box>
+                  <Box>
+                    <TextField
+                      required
+                      fullWidth
+                      label="Phone Number"
+                      placeholder="e.g. 0300 1234567"
+                      value={form.phone}
+                      onChange={(event) => updateFormValue('phone', event.target.value)}
+                      error={hasFieldError('phone')}
+                      helperText={fieldHelperText('phone', 'Use a number where the office can reach you.')}
+                      slotProps={{ htmlInput: { inputMode: 'tel' } }}
+                    />
+                  </Box>
+                  <Box>
+                    <TextField
+                      required
                       select
                       fullWidth
                       label="Category"
                       value={form.category}
                       onChange={(event) => updateFormValue('category', event.target.value)}
+                      error={hasFieldError('category')}
+                      helperText={fieldHelperText('category', 'Choose the category that best matches the issue.')}
                     >
+                      <MenuItem value="" disabled>
+                        Select a category
+                      </MenuItem>
                       {complaintCategories.map((category) => (
                         <MenuItem key={category} value={category}>
                           {category}
@@ -375,13 +484,16 @@ export default function PublicComplaintPage() {
                   </Box>
                   <Box sx={{ gridColumn: '1 / -1' }}>
                     <TextField
+                      required
                       fullWidth
                       label="Description"
+                      placeholder="Describe the location, what happened, and the support you need."
                       multiline
                       rows={5}
                       value={form.description}
                       onChange={(event) => updateFormValue('description', event.target.value)}
-                      helperText="Include the location, nature of the issue, and what support is required."
+                      error={hasFieldError('description')}
+                      helperText={fieldHelperText('description', 'Include the location, nature of the issue, and what support is required.')}
                     />
                   </Box>
                   <Box sx={{ gridColumn: '1 / -1' }}>
@@ -399,7 +511,7 @@ export default function PublicComplaintPage() {
                     </Typography>
                   </Box>
                   <Box sx={{ gridColumn: '1 / -1' }}>
-                    <Button onClick={handleSubmit} variant="contained" color="secondary" size="large" fullWidth disabled={loading}>
+                    <Button type="submit" variant="contained" color="secondary" size="large" fullWidth disabled={loading}>
                       {loading ? 'Submitting...' : 'Submit Complaint'}
                     </Button>
                   </Box>

@@ -37,6 +37,8 @@ const navItems = [
   { label: 'Complaints', path: '/complaints' },
 ];
 
+const headerNavItems = navItems.filter((item) => item.path !== '/complaints');
+
 function isActivePath(pathname, path) {
   return pathname === path || (path !== '/' && pathname.startsWith(path));
 }
@@ -225,7 +227,7 @@ export default function PublicSiteLayout() {
             </Box>
 
             <Stack direction="row" spacing={0.1} sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
-              {navItems.map((item) => {
+              {headerNavItems.map((item) => {
                 const active = isActivePath(location.pathname, item.path);
                 return (
                   <Button
@@ -290,7 +292,7 @@ export default function PublicSiteLayout() {
             </IconButton>
           </Box>
           <List disablePadding sx={{ mb: 2.5 }}>
-            {navItems.map((item) => {
+            {headerNavItems.map((item) => {
               const active = isActivePath(location.pathname, item.path);
               return (
                 <ListItemButton
