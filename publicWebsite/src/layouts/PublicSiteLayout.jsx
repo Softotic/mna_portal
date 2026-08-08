@@ -124,6 +124,7 @@ export default function PublicSiteLayout() {
 
       <Box
         sx={{
+          display: { xs: settings?.contact_phone ? 'block' : 'none', sm: 'block' },
           bgcolor: 'primary.dark',
           color: 'rgba(248,251,249,0.88)',
           borderBottom: '1px solid rgba(255,255,255,0.1)',

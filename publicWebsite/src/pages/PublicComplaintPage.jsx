@@ -15,7 +15,17 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Attachment, Gavel, ManageSearch, ReceiptLong, Shield, Timeline } from '@mui/icons-material';
+import {
+  Attachment,
+  DescriptionOutlined,
+  Gavel,
+  LocationOnOutlined,
+  ManageSearch,
+  PersonOutlineOutlined,
+  ReceiptLong,
+  Shield,
+  Timeline,
+} from '@mui/icons-material';
 import { useOutletContext } from 'react-router-dom';
 import { publicComplaintsAPI, resolveMediaUrl } from '../api/index.js';
 
@@ -43,21 +53,64 @@ const requiredComplaintFields = {
 
 const processNotes = [
   {
-    title: 'Verified submission',
-    body: 'Every complaint captures citizen identity, category, case details, and optional supporting files.',
-    icon: <Shield fontSize="small" />,
-  },
-  {
-    title: 'Trackable reference',
-    body: 'A complaint number is issued immediately so the case can be followed clearly from submission onward.',
+    title: 'Receive a reference',
+    body: 'A tracking number is issued as soon as the office receives your complaint.',
     icon: <ReceiptLong fontSize="small" />,
   },
   {
-    title: 'Visible progress',
-    body: 'Office remarks, status changes, and attachments can be reviewed from the public tracking interface.',
+    title: 'Office review',
+    body: 'The office reviews the details and records each change to the case status.',
+    icon: <Shield fontSize="small" />,
+  },
+  {
+    title: 'Follow progress',
+    body: 'Use your tracking number or CNIC to see updates, remarks, and attachments.',
     icon: <Timeline fontSize="small" />,
   },
 ];
+
+function getApiErrorMessage(error, fallback) {
+  const data = error?.response?.data;
+  if (typeof data?.detail === 'string') return data.detail;
+  if (typeof data === 'string') return data;
+
+  if (data && typeof data === 'object') {
+    const firstError = Object.entries(data).find(([, value]) => value);
+    if (firstError) {
+      const [field, value] = firstError;
+      const message = Array.isArray(value) ? value[0] : value;
+      const fieldLabel = field.replace(/_/g, ' ');
+      return `${fieldLabel.charAt(0).toUpperCase()}${fieldLabel.slice(1)}: ${message}`;
+    }
+  }
+
+  return fallback;
+}
+
+function FormSectionHeader({ icon, title, body }) {
+  return (
+    <Stack direction="row" spacing={1.5} sx={{ alignItems: 'flex-start', mb: 2.5 }}>
+      <Box
+        sx={{
+          width: 40,
+          height: 40,
+          borderRadius: 2,
+          display: 'grid',
+          placeItems: 'center',
+          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.09),
+          color: 'primary.main',
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </Box>
+      <Box>
+        <Typography variant="h6" sx={{ lineHeight: 1.25 }}>{title}</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>{body}</Typography>
+      </Box>
+    </Stack>
+  );
+}
 
 function formatStatus(status) {
   return (status || 'submitted').replace(/_/g, ' ');
@@ -194,7 +247,8 @@ export default function PublicComplaintPage() {
   const [trackingResult, setTrackingResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [trackingLoading, setTrackingLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [submissionError, setSubmissionError] = useState('');
+  const [trackingError, setTrackingError] = useState('');
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
   const trackingItems = useMemo(() => {
@@ -206,6 +260,11 @@ export default function PublicComplaintPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const updateTrackingValue = (field, value) => {
+    setTrackingSearch((prev) => ({ ...prev, [field]: value }));
+    if (trackingError) setTrackingError('');
+  };
+
   const hasFieldError = (field) => (
     submitAttempted && !String(form[field] ?? '').trim()
   );
@@ -214,21 +273,24 @@ export default function PublicComplaintPage() {
     hasFieldError(field) ? requiredComplaintFields[field] : defaultText
   );
 
+  const missingFieldCount = Object.keys(requiredComplaintFields).filter(
+    (field) => !String(form[field] ?? '').trim(),
+  ).length;
+  const validationMessage = submitAttempted && missingFieldCount > 0
+    ? `Please complete the ${missingFieldCount} highlighted required ${missingFieldCount === 1 ? 'field' : 'fields'}.`
+    : '';
+  const formError = validationMessage || submissionError;
+  const officeName = String(settings?.leader_name || settings?.site_name || 'The constituency office')
+    .replace(/^about\s+/i, '')
+    .trim();
+
   const handleSubmit = async (event) => {
     event?.preventDefault();
     setSubmitAttempted(true);
-
-    const missingFields = Object.keys(requiredComplaintFields).filter(
-      (field) => !String(form[field] ?? '').trim(),
-    );
-
-    if (missingFields.length > 0) {
-      setError(`Please complete the ${missingFields.length} highlighted required ${missingFields.length === 1 ? 'field' : 'fields'}.`);
-      return;
-    }
+    setSubmissionError('');
+    if (missingFieldCount > 0) return;
 
     setLoading(true);
-    setError('');
     try {
       const response = await publicComplaintsAPI.create(form);
       setSubmissionStatus(response.data.tracking_number);
@@ -247,21 +309,21 @@ export default function PublicComplaintPage() {
       });
       setSubmitAttempted(false);
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.detail || 'Unable to submit complaint right now.');
+      setSubmissionError(getApiErrorMessage(err, 'We could not submit your complaint. Please check your connection and try again.'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTrack = async () => {
+  const handleTrack = async (event) => {
+    event?.preventDefault();
     if (!trackingSearch.tracking_number && !trackingSearch.cnic) {
-      setError('Enter a tracking number or CNIC to search.');
+      setTrackingError('Enter a tracking number or CNIC to search.');
       return;
     }
 
     setTrackingLoading(true);
-    setError('');
+    setTrackingError('');
     try {
       const params = {};
       if (trackingSearch.tracking_number) params.tracking_number = trackingSearch.tracking_number;
@@ -269,115 +331,148 @@ export default function PublicComplaintPage() {
       const response = await publicComplaintsAPI.track(params);
       setTrackingResult(response.data);
     } catch (err) {
-      console.error(err);
       setTrackingResult(null);
-      setError(err.response?.data?.detail || 'Unable to locate a matching complaint.');
+      setTrackingError(getApiErrorMessage(err, 'We could not find a matching complaint. Check the details and try again.'));
     } finally {
       setTrackingLoading(false);
     }
   };
 
   return (
-    <Box sx={{ pb: { xs: 6, md: 9 }, px: { xs: 3, md: 6 } }}>
-      <Container sx={{ pt: { xs: 5, md: 8 }, pb: { xs: 4, md: 8 },  }}>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) minmax(320px, 420px)' },
-            gap: { xs: 3, md: 5 },
-            alignItems: 'start',
-          }}
-        >
-          <Box>
-            <Typography variant="overline" color="secondary.main">
-              Citizen Complaint Portal
-            </Typography>
-            <Typography variant="h2" sx={{ mt: 1.2, maxWidth: 820 }}>
-              A formal channel for complaints, service requests, and transparent follow-up
-            </Typography>
-            <Typography color="text.secondary" sx={{ mt: 2.4, maxWidth: 760 }}>
-              {settings?.leader_name || settings?.site_name || 'This office'} provides a structured complaint system so citizens can raise issues formally, submit supporting material, and monitor progress through a dedicated tracking interface.
-            </Typography>
-          </Box>
+    <Box sx={{ pb: { xs: 6, md: 9 } }}>
+      <Box
+        component="section"
+        sx={{
+          py: { xs: 4, md: 6 },
+          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.035),
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Container>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.25fr) minmax(340px, 0.75fr)' },
+              gap: { xs: 4, md: 6 },
+              alignItems: 'center',
+            }}
+          >
+            <Box>
+              <Typography variant="overline" color="primary.main">
+                Citizen complaint portal
+              </Typography>
+              <Typography
+                variant="h2"
+                sx={{
+                  mt: 1.2,
+                  maxWidth: 780,
+                  fontSize: { xs: '2.45rem', sm: '3.15rem', md: '3.65rem', xl: '4rem' },
+                  lineHeight: 1.04,
+                }}
+              >
+                Report an issue. Track what happens next.
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 2.2, maxWidth: 650, fontSize: { md: '1.05rem' } }}>
+                {officeName} records complaints, issues a tracking number, and keeps citizens informed as each case moves forward.
+              </Typography>
+            </Box>
 
-          <Box>
-            <Paper sx={{ p: 3.2, border: '1px solid rgba(16,36,27,0.08)' }}>
-              <Typography variant="h6" sx={{ mb: 1.2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <ManageSearch fontSize="small" color="secondary" />
-                Track a complaint
+            <Paper
+              component="form"
+              noValidate
+              onSubmit={handleTrack}
+              sx={{ p: { xs: 2.5, sm: 3 }, border: '1px solid', borderColor: 'divider' }}
+            >
+              <Stack direction="row" spacing={1.2} sx={{ alignItems: 'center', mb: 1 }}>
+                <Box
+                  sx={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 2,
+                    display: 'grid',
+                    placeItems: 'center',
+                    bgcolor: (theme) => alpha(theme.palette.secondary.main, 0.14),
+                    color: 'secondary.dark',
+                  }}
+                >
+                  <ManageSearch fontSize="small" />
+                </Box>
+                <Typography variant="h5" sx={{ fontSize: '1.25rem' }}>Track a complaint</Typography>
+              </Stack>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 2.25 }}>
+                Enter either your tracking number or CNIC.
               </Typography>
-              <Typography color="text.secondary" sx={{ mb: 2.5 }}>
-                Search one case by complaint number or all cases by CNIC.
-              </Typography>
-              <TextField
-                fullWidth
-                label="Tracking Number"
-                placeholder="e.g. CMP-12AB34CD"
-                value={trackingSearch.tracking_number}
-                onChange={(event) => setTrackingSearch((prev) => ({ ...prev, tracking_number: event.target.value }))}
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                fullWidth
-                label="CNIC"
-                placeholder="e.g. 42101-1234567-1"
-                value={trackingSearch.cnic}
-                onChange={(event) => setTrackingSearch((prev) => ({ ...prev, cnic: event.target.value }))}
-                helperText="Enter either a tracking number or CNIC."
-                sx={{ mb: 2.5 }}
-              />
-              <Button onClick={handleTrack} variant="contained" color="secondary" fullWidth disabled={trackingLoading}>
-                {trackingLoading ? 'Searching...' : 'Track Complaint'}
-              </Button>
+              {trackingError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {trackingError}
+                </Alert>
+              )}
+              <Stack spacing={2}>
+                <TextField
+                  fullWidth
+                  label="Tracking number"
+                  placeholder="e.g. CMP-12AB34CD"
+                  value={trackingSearch.tracking_number}
+                  onChange={(event) => updateTrackingValue('tracking_number', event.target.value)}
+                />
+                <TextField
+                  fullWidth
+                  label="CNIC"
+                  placeholder="e.g. 42101-1234567-1"
+                  value={trackingSearch.cnic}
+                  onChange={(event) => updateTrackingValue('cnic', event.target.value)}
+                  slotProps={{ htmlInput: { inputMode: 'numeric' } }}
+                />
+                <Button type="submit" variant="contained" color="primary" fullWidth disabled={trackingLoading}>
+                  {trackingLoading ? 'Searching...' : 'Find complaint'}
+                </Button>
+              </Stack>
             </Paper>
           </Box>
-        </Box>
-      </Container>
+        </Container>
+      </Box>
 
-      <Container>
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-        {submissionStatus && (
-          <Alert severity="success" sx={{ mb: 3 }}>
-            Complaint submitted successfully. Your tracking number is <strong>{submissionStatus}</strong>.
-          </Alert>
-        )}
-
+      <Container sx={{ pt: { xs: 4, md: 6 } }}>
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.35fr) minmax(300px, 0.85fr)' },
-            gap: { xs: 3, md: 4 },
+            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) 360px' },
+            gap: { xs: 4, md: 5 },
             alignItems: 'start',
           }}
         >
-          <Box>
-            <Card>
-              <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-                <Typography variant="overline" color="secondary.main">
-                  Submit Complaint
-                </Typography>
-                <Typography variant="h4" sx={{ mt: 1, mb: 1.4 }}>
-                  Register a new case
-                </Typography>
-                <Typography color="text.secondary" sx={{ mb: 3 }}>
-                  Provide clear information so the office can review the issue and respond appropriately.
-                </Typography>
+          <Card>
+            <CardContent sx={{ p: { xs: 2.5, sm: 3.5, md: 4.5 } }}>
+              <Typography variant="h3" sx={{ fontSize: { xs: '2rem', md: '2.35rem' }, mb: 1.2 }}>
+                Submit a complaint
+              </Typography>
+              <Typography color="text.secondary" sx={{ maxWidth: 680 }}>
+                Share enough detail for the office to understand the issue, contact you, and direct the case to the right department.
+              </Typography>
+              <Typography color="text.secondary" variant="body2" sx={{ mt: 1 }}>
+                Fields marked with an asterisk (*) are required.
+              </Typography>
 
-                <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
-                  Fields marked with an asterisk (*) are required.
-                </Typography>
+              {formError && (
+                <Alert severity="error" sx={{ mt: 3 }}>
+                  {formError}
+                </Alert>
+              )}
+              {submissionStatus && (
+                <Alert severity="success" sx={{ mt: 3 }}>
+                  Complaint submitted. Your tracking number is <strong>{submissionStatus}</strong>. Keep it for future updates.
+                </Alert>
+              )}
 
-                <Box
-                  component="form"
-                  noValidate
-                  onSubmit={handleSubmit}
-                  sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 3 }}
-                >
-                  <Box>
+              <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 4 }}>
+                <Box component="section">
+                  <FormSectionHeader
+                    icon={<PersonOutlineOutlined fontSize="small" />}
+                    title="Your identity"
+                    body="Tell us who is submitting the complaint."
+                  />
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 2.5 }}>
                     <TextField
                       required
                       fullWidth
@@ -388,12 +483,10 @@ export default function PublicComplaintPage() {
                       error={hasFieldError('name')}
                       helperText={fieldHelperText('name')}
                     />
-                  </Box>
-                  <Box>
                     <TextField
                       required
                       fullWidth
-                      label="Father's Name"
+                      label="Father's name"
                       placeholder="Enter your father's full name"
                       value={form.father_name}
                       onChange={(event) => updateFormValue('father_name', event.target.value)}
@@ -401,7 +494,17 @@ export default function PublicComplaintPage() {
                       helperText={fieldHelperText('father_name')}
                     />
                   </Box>
-                  <Box>
+                </Box>
+
+                <Divider sx={{ my: 4 }} />
+
+                <Box component="section">
+                  <FormSectionHeader
+                    icon={<LocationOnOutlined fontSize="small" />}
+                    title="Location and contact"
+                    body="Help the office identify the area and contact you about the case."
+                  />
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 2.5 }}>
                     <TextField
                       required
                       fullWidth
@@ -412,20 +515,16 @@ export default function PublicComplaintPage() {
                       error={hasFieldError('village')}
                       helperText={fieldHelperText('village')}
                     />
-                  </Box>
-                  <Box>
                     <TextField
                       required
                       fullWidth
-                      label="Union Council"
+                      label="Union council"
                       placeholder="Enter your union council"
                       value={form.union_council}
                       onChange={(event) => updateFormValue('union_council', event.target.value)}
                       error={hasFieldError('union_council')}
                       helperText={fieldHelperText('union_council')}
                     />
-                  </Box>
-                  <Box>
                     <TextField
                       required
                       fullWidth
@@ -437,8 +536,6 @@ export default function PublicComplaintPage() {
                       helperText={fieldHelperText('cnic', 'Include digits and dashes as shown.')}
                       slotProps={{ htmlInput: { inputMode: 'numeric' } }}
                     />
-                  </Box>
-                  <Box>
                     <TextField
                       fullWidth
                       label="Department (optional)"
@@ -447,12 +544,10 @@ export default function PublicComplaintPage() {
                       onChange={(event) => updateFormValue('department', event.target.value)}
                       helperText="Add this if you know which department is responsible."
                     />
-                  </Box>
-                  <Box>
                     <TextField
                       required
                       fullWidth
-                      label="Phone Number"
+                      label="Phone number"
                       placeholder="e.g. 0300 1234567"
                       value={form.phone}
                       onChange={(event) => updateFormValue('phone', event.target.value)}
@@ -461,7 +556,17 @@ export default function PublicComplaintPage() {
                       slotProps={{ htmlInput: { inputMode: 'tel' } }}
                     />
                   </Box>
-                  <Box>
+                </Box>
+
+                <Divider sx={{ my: 4 }} />
+
+                <Box component="section">
+                  <FormSectionHeader
+                    icon={<DescriptionOutlined fontSize="small" />}
+                    title="Complaint details"
+                    body="Explain what happened and what support you need."
+                  />
+                  <Stack spacing={2.5}>
                     <TextField
                       required
                       select
@@ -472,92 +577,117 @@ export default function PublicComplaintPage() {
                       error={hasFieldError('category')}
                       helperText={fieldHelperText('category', 'Choose the category that best matches the issue.')}
                     >
-                      <MenuItem value="" disabled>
-                        Select a category
-                      </MenuItem>
+                      <MenuItem value="" disabled>Select a category</MenuItem>
                       {complaintCategories.map((category) => (
-                        <MenuItem key={category} value={category}>
-                          {category}
-                        </MenuItem>
+                        <MenuItem key={category} value={category}>{category}</MenuItem>
                       ))}
                     </TextField>
-                  </Box>
-                  <Box sx={{ gridColumn: '1 / -1' }}>
                     <TextField
                       required
                       fullWidth
                       label="Description"
                       placeholder="Describe the location, what happened, and the support you need."
                       multiline
-                      rows={5}
+                      rows={6}
                       value={form.description}
                       onChange={(event) => updateFormValue('description', event.target.value)}
                       error={hasFieldError('description')}
-                      helperText={fieldHelperText('description', 'Include the location, nature of the issue, and what support is required.')}
+                      helperText={fieldHelperText('description', 'Include the location, nature of the issue, and support required.')}
                     />
-                  </Box>
-                  <Box sx={{ gridColumn: '1 / -1' }}>
-                    <Button variant="outlined" component="label" startIcon={<Attachment />}>
-                      Attach image, PDF, or video
-                      <input
-                        type="file"
-                        hidden
-                        accept="image/*,application/pdf,video/*"
-                        onChange={(event) => updateFormValue('attachment', event.target.files?.[0] || null)}
-                      />
-                    </Button>
-                    <Typography color="text.secondary" sx={{ mt: 1.1, fontSize: '0.92rem' }}>
-                      {form.attachment ? `Selected file: ${form.attachment.name}` : 'Supporting files are optional but often helpful.'}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ gridColumn: '1 / -1' }}>
-                    <Button type="submit" variant="contained" color="secondary" size="large" fullWidth disabled={loading}>
-                      {loading ? 'Submitting...' : 'Submit Complaint'}
-                    </Button>
-                  </Box>
+                    <Box
+                      sx={{
+                        p: 2.25,
+                        borderRadius: 2.5,
+                        border: '1px solid',
+                        borderColor: (theme) => alpha(theme.palette.primary.main, 0.2),
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.035),
+                      }}
+                    >
+                      <Button variant="outlined" component="label" startIcon={<Attachment />}>
+                        Attach image, PDF, or video
+                        <input
+                          type="file"
+                          hidden
+                          accept="image/*,application/pdf,video/*"
+                          onChange={(event) => updateFormValue('attachment', event.target.files?.[0] || null)}
+                        />
+                      </Button>
+                      <Typography color="text.secondary" variant="body2" sx={{ mt: 1 }}>
+                        {form.attachment ? `Selected file: ${form.attachment.name}` : 'Optional. A supporting file can help the office understand the issue.'}
+                      </Typography>
+                    </Box>
+                  </Stack>
                 </Box>
-              </CardContent>
-            </Card>
-          </Box>
 
-          <Box>
-            <Stack spacing={3}>
-              {processNotes.map((note) => (
-                <Paper key={note.title} sx={{ p: 3, border: '1px solid rgba(16,36,27,0.08)' }}>
-                  <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.1 }}>
-                    <Box sx={{ color: 'secondary.main', display: 'inline-flex' }}>{note.icon}</Box>
-                    {note.title}
-                  </Typography>
-                  <Typography color="text.secondary">{note.body}</Typography>
-                </Paper>
-              ))}
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 4, alignItems: { sm: 'center' } }}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    size="large"
+                    disabled={loading}
+                    sx={{ minWidth: { sm: 220 } }}
+                  >
+                    {loading ? 'Submitting...' : 'Submit complaint'}
+                  </Button>
+                  <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center', color: 'text.secondary' }}>
+                    <Shield sx={{ fontSize: 18, color: 'primary.main' }} />
+                    <Typography variant="body2">Your details are used only to review and follow up on this case.</Typography>
+                  </Stack>
+                </Stack>
+              </Box>
+            </CardContent>
+          </Card>
 
-              <Paper
-                sx={{
-                  p: 3,
-                  border: '1px solid rgba(24,41,63,0.08)',
-                  background: 'linear-gradient(135deg, rgba(31,95,70,0.96) 0%, rgba(47,127,91,0.96) 100%)',
-                  color: 'white',
-                }}
-              >
-                <Typography variant="h6" sx={{ color: 'white', mb: 1.2 }}>
-                  Complaint workflow
-                </Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.76)' }}>
-                  Submitted complaints can move through submitted, in progress, resolved, or declined stages, with remarks visible in the tracking history.
-                </Typography>
-              </Paper>
-            </Stack>
-          </Box>
+          <Stack spacing={3} sx={{ position: { lg: 'sticky' }, top: { lg: 96 } }}>
+            <Paper sx={{ p: { xs: 2.5, md: 3.25 }, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h5" sx={{ mb: 0.8 }}>What happens next</Typography>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 2.5 }}>
+                Your complaint stays connected to one trackable case.
+              </Typography>
+              <Stack divider={<Divider flexItem />} spacing={2.25}>
+                {processNotes.map((note) => (
+                  <Stack key={note.title} direction="row" spacing={1.5} sx={{ alignItems: 'flex-start' }}>
+                    <Box
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 2,
+                        display: 'grid',
+                        placeItems: 'center',
+                        bgcolor: (theme) => alpha(theme.palette.secondary.main, 0.14),
+                        color: 'secondary.dark',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {note.icon}
+                    </Box>
+                    <Box>
+                      <Typography sx={{ fontWeight: 800, lineHeight: 1.35 }}>{note.title}</Typography>
+                      <Typography color="text.secondary" variant="body2" sx={{ mt: 0.45 }}>{note.body}</Typography>
+                    </Box>
+                  </Stack>
+                ))}
+              </Stack>
+            </Paper>
+
+            <Paper sx={{ p: 3, bgcolor: 'primary.dark', color: 'primary.contrastText' }}>
+              <Gavel sx={{ color: 'secondary.light', mb: 1.5 }} />
+              <Typography variant="h6" sx={{ color: 'inherit', mb: 1 }}>A clear public record</Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(248,251,249,0.82)' }}>
+                A formal case record keeps requests documented, progress visible, and follow-up accountable.
+              </Typography>
+            </Paper>
+          </Stack>
         </Box>
 
         {trackingItems.length > 0 && (
-          <Box sx={{ mt: 6 }}>
-            <Typography variant="overline" color="secondary.main">
-              Tracking Results
-            </Typography>
-            <Typography variant="h4" sx={{ mt: 1, mb: 3 }}>
+          <Box component="section" sx={{ mt: { xs: 6, md: 8 } }}>
+            <Typography variant="h3" sx={{ fontSize: { xs: '2rem', md: '2.35rem' }, mb: 1 }}>
               Complaint status and history
+            </Typography>
+            <Typography color="text.secondary" sx={{ mb: 3 }}>
+              Review the latest status, office remarks, and case updates.
             </Typography>
             <Stack spacing={3}>
               {trackingItems.map((complaint) => (
@@ -566,16 +696,6 @@ export default function PublicComplaintPage() {
             </Stack>
           </Box>
         )}
-
-        <Paper sx={{ mt: 5, p: 3.2, border: '1px solid rgba(16,36,27,0.08)' }}>
-          <Typography variant="h6" sx={{ mb: 1.2, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Gavel fontSize="small" color="secondary" />
-            Why this system matters
-          </Typography>
-          <Typography color="text.secondary">
-            A formal complaint workflow helps ensure requests are documented, casework is visible, and public support is handled with professionalism rather than informal follow-up alone.
-          </Typography>
-        </Paper>
       </Container>
     </Box>
   );

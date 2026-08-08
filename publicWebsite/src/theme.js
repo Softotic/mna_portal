@@ -184,6 +184,16 @@ const theme = createTheme({
         notchedOutline: { borderColor: alpha(palette.green, 0.28) },
       },
     },
+    MuiInputBase: {
+      styleOverrides: {
+        input: {
+          '&::placeholder': {
+            color: palette.fog,
+            opacity: 1,
+          },
+        },
+      },
+    },
   },
 });
 
