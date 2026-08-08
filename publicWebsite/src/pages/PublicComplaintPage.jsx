@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -250,11 +250,30 @@ export default function PublicComplaintPage() {
   const [submissionError, setSubmissionError] = useState('');
   const [trackingError, setTrackingError] = useState('');
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [scrollToResults, setScrollToResults] = useState(false);
+  const trackingResultsRef = useRef(null);
+  const trackingResultsHeadingRef = useRef(null);
 
   const trackingItems = useMemo(() => {
     if (!trackingResult) return [];
     return Array.isArray(trackingResult) ? trackingResult : [trackingResult];
   }, [trackingResult]);
+
+  useEffect(() => {
+    if (!scrollToResults || trackingItems.length === 0) return;
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      trackingResultsRef.current?.scrollIntoView({
+        behavior: reduceMotion ? 'auto' : 'smooth',
+        block: 'start',
+      });
+      trackingResultsHeadingRef.current?.focus({ preventScroll: true });
+      setScrollToResults(false);
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [scrollToResults, trackingItems.length]);
 
   const updateFormValue = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -330,6 +349,7 @@ export default function PublicComplaintPage() {
       if (trackingSearch.cnic) params.cnic = trackingSearch.cnic;
       const response = await publicComplaintsAPI.track(params);
       setTrackingResult(response.data);
+      setScrollToResults(true);
     } catch (err) {
       setTrackingResult(null);
       setTrackingError(getApiErrorMessage(err, 'We could not find a matching complaint. Check the details and try again.'));
@@ -682,8 +702,19 @@ export default function PublicComplaintPage() {
         </Box>
 
         {trackingItems.length > 0 && (
-          <Box component="section" sx={{ mt: { xs: 6, md: 8 } }}>
-            <Typography variant="h3" sx={{ fontSize: { xs: '2rem', md: '2.35rem' }, mb: 1 }}>
+          <Box
+            ref={trackingResultsRef}
+            component="section"
+            aria-labelledby="complaint-results-heading"
+            sx={{ mt: { xs: 6, md: 8 }, scrollMarginTop: { xs: 80, md: 104 } }}
+          >
+            <Typography
+              ref={trackingResultsHeadingRef}
+              id="complaint-results-heading"
+              tabIndex={-1}
+              variant="h3"
+              sx={{ fontSize: { xs: '2rem', md: '2.35rem' }, mb: 1, outline: 'none' }}
+            >
               Complaint status and history
             </Typography>
             <Typography color="text.secondary" sx={{ mb: 3 }}>
