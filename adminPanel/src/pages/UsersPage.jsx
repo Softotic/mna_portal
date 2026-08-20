@@ -11,9 +11,11 @@ import { useAuth } from '../auth/AuthContext';
 import AdminTablePagination from '../components/AdminTablePagination';
 import PageHeader from '../components/PageHeader';
 import InputAdornment from '@mui/material/InputAdornment';
+import { useAdminFeedback } from '../feedback/AdminFeedbackContext';
 
 export default function UsersPage() {
   const { hasPermission } = useAuth();
+  const { notify } = useAdminFeedback();
   const canAdd = hasPermission('USERS', 'create');
   const canEdit = hasPermission('USERS', 'edit');
 
@@ -82,7 +84,7 @@ export default function UsersPage() {
       handleClose();
       fetchUsers();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Error saving user');
+      notify(err.response?.data?.detail || 'Unable to save the user.', 'error');
     }
   };
 
@@ -91,7 +93,7 @@ export default function UsersPage() {
       await usersAPI.toggleActive(id);
       fetchUsers();
     } catch {
-      alert('Error toggling active status');
+      notify('Unable to update the user status.', 'error');
     }
   };
 

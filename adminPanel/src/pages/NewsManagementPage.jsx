@@ -38,8 +38,10 @@ import {
 } from '@mui/icons-material';
 import { newsAdminAPI } from '../api';
 import AdminTablePagination from '../components/AdminTablePagination';
+import { useAdminFeedback } from '../feedback/AdminFeedbackContext';
 
 export default function NewsManagementPage() {
+  const { confirm } = useAdminFeedback();
   const [newsList, setNewsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -205,17 +207,23 @@ export default function NewsManagementPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this news?')) {
-      try {
-        await newsAdminAPI.delete(id);
-        setMessage('News deleted successfully!');
-        setTimeout(() => setMessage(''), 3000);
-        fetchNews();
-      } catch (err) {
-        setMessage('Error deleting news');
-        console.error(err);
-      }
+  const handleDelete = async (news) => {
+    const approved = await confirm({
+      title: 'Delete news article?',
+      description: 'This permanently removes the article and it will no longer appear on the public website.',
+      itemName: news.title,
+      confirmLabel: 'Delete article',
+    });
+    if (!approved) return;
+
+    try {
+      await newsAdminAPI.delete(news.id);
+      setMessage('News deleted successfully!');
+      setTimeout(() => setMessage(''), 3000);
+      fetchNews();
+    } catch (err) {
+      setMessage('Error deleting news');
+      console.error(err);
     }
   };
 
@@ -414,7 +422,7 @@ export default function NewsManagementPage() {
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => handleDelete(news.id)}
+                          onClick={() => handleDelete(news)}
                           title="Delete"
                         >
                           <Delete fontSize="small" />

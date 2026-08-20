@@ -9,9 +9,11 @@ import { schemeCategoriesAPI } from '../api';
 import { useAuth } from '../auth/AuthContext';
 import AdminTablePagination from '../components/AdminTablePagination';
 import PageHeader from '../components/PageHeader';
+import { useAdminFeedback } from '../feedback/AdminFeedbackContext';
 
 export default function CategoriesPage() {
   const { hasPermission } = useAuth();
+  const { confirm, notify } = useAdminFeedback();
   const canAdd = hasPermission('CATEGORIES', 'create');
   const canEdit = hasPermission('CATEGORIES', 'edit');
   const canDelete = hasPermission('CATEGORIES', 'delete');
@@ -73,7 +75,7 @@ export default function CategoriesPage() {
       handleClose();
       fetchCategories();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Error saving category');
+      notify(err.response?.data?.detail || 'Unable to save the category.', 'error');
     }
   };
 
@@ -82,23 +84,30 @@ export default function CategoriesPage() {
       await schemeCategoriesAPI.update(id, { is_active: !current_status });
       fetchCategories();
     } catch {
-      alert('Error toggling active status');
+      notify('Unable to update the category status.', 'error');
     }
   };
 
   const handleDelete = async (id, category) => {
-    if (window.confirm("Are you sure you want to permanently delete this category?")) {
-      try {
-        await schemeCategoriesAPI.delete(id);
-        fetchCategories();
-      } catch (error) {
-        if (error.response?.status === 400) {
-          setWarningCategory(category);
-          setWarningMessage(error.response?.data?.message || 'This category is still used by existing scheme records.');
-          setWarningOpen(true);
-        } else {
-          alert('Unable to delete this category.');
-        }
+    const approved = await confirm({
+      title: 'Delete scheme category?',
+      description: 'This permanently removes the category. Categories connected to existing scheme records cannot be deleted.',
+      itemName: category.name,
+      confirmLabel: 'Delete category',
+    });
+    if (!approved) return;
+
+    try {
+      await schemeCategoriesAPI.delete(id);
+      notify('Category deleted successfully.', 'success');
+      fetchCategories();
+    } catch (error) {
+      if (error.response?.status === 400) {
+        setWarningCategory(category);
+        setWarningMessage(error.response?.data?.message || 'This category is still used by existing scheme records.');
+        setWarningOpen(true);
+      } else {
+        notify('Unable to delete this category.', 'error');
       }
     }
   };
@@ -144,12 +153,12 @@ export default function CategoriesPage() {
                   <TableCell fontWeight={500}>{cat.name}</TableCell>
                   <TableCell align="right">
                     {canEdit && (
-                      <IconButton size="small" color="primary" onClick={() => handleOpen(cat)} sx={{ mr: 1 }}>
+                      <IconButton aria-label={`Edit ${cat.name}`} size="small" color="primary" onClick={() => handleOpen(cat)} sx={{ mr: 1 }}>
                         <Edit fontSize="small" />
                       </IconButton>
                     )}
                     {canDelete && (
-                      <IconButton size="small" color="error" onClick={() => handleDelete(cat.id, cat)}>
+                      <IconButton aria-label={`Delete ${cat.name}`} size="small" color="error" onClick={() => handleDelete(cat.id, cat)}>
                         <Delete fontSize="small" />
                       </IconButton>
                     )}

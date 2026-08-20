@@ -9,9 +9,11 @@ import { useAuth } from '../auth/AuthContext';
 import { rolesAPI } from '../api';
 import AdminTablePagination from '../components/AdminTablePagination';
 import PageHeader from '../components/PageHeader';
+import { useAdminFeedback } from '../feedback/AdminFeedbackContext';
 
 export default function RolesPage() {
   const { hasPermission } = useAuth();
+  const { confirm } = useAdminFeedback();
   
   const [roles, setRoles] = useState([]);
   const [modules, setModules] = useState([]);
@@ -130,13 +132,19 @@ export default function RolesPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this role?')) return;
+  const handleDelete = async (role) => {
+    const approved = await confirm({
+      title: 'Delete administrator role?',
+      description: 'This permanently removes the role and its permission configuration.',
+      itemName: role.name,
+      confirmLabel: 'Delete role',
+    });
+    if (!approved) return;
     try {
-      await rolesAPI.deleteRole(id);
+      await rolesAPI.deleteRole(role.id);
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to delete role');
+      setError(err.response?.data?.detail || 'Failed to delete role');
     }
   };
 
@@ -179,7 +187,7 @@ export default function RolesPage() {
                     <Edit fontSize="small" />
                   </IconButton>
                   <IconButton 
-                    onClick={() => handleDelete(role.id)} 
+                    onClick={() => handleDelete(role)}
                     disabled={!hasPermission('ROLES', 'delete') || role.user_count > 0 || role.name === 'Super Admin'} 
                     color="error"
                   >

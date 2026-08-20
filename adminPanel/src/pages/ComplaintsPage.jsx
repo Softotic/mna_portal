@@ -7,6 +7,7 @@ import {
 import { Close, Visibility, Assignment, Launch } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { complaintsAdminAPI } from '../api';
+import { useAdminFeedback } from '../feedback/AdminFeedbackContext';
 
 const STATUS_COLORS = {
   pending: 'warning',
@@ -27,6 +28,7 @@ const CATEGORIES = {
 };
 
 export default function ComplaintsPage() {
+  const { notify } = useAdminFeedback();
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -82,7 +84,7 @@ export default function ComplaintsPage() {
       setDrawerOpen(true);
     } catch (err) {
       console.error(err);
-      alert('Failed to load complaint details.');
+      notify('Failed to load complaint details.', 'error');
     }
   };
 
@@ -102,7 +104,7 @@ export default function ComplaintsPage() {
       closeDrawer();
     } catch (err) {
       console.error(err);
-      alert('Failed to update complaint.');
+      notify('Failed to update complaint.', 'error');
     } finally {
       setUpdateLoading(false);
     }

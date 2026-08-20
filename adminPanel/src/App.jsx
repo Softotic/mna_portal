@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { LinearProgress } from '@mui/material';
 import { AuthProvider } from './auth/AuthContext';
+import { AdminFeedbackProvider } from './feedback/AdminFeedbackContext';
 import ProtectedRoute from './auth/ProtectedRoute';
 import theme from './theme/theme';
 
@@ -27,8 +28,9 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <AuthProvider>
-        <BrowserRouter basename={basename}>
+      <AdminFeedbackProvider>
+        <AuthProvider>
+          <BrowserRouter basename={basename}>
           <Suspense fallback={<LinearProgress aria-label="Loading page" sx={{ position: 'fixed', inset: '0 0 auto', zIndex: 'tooltip' }} />}>
             <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -117,8 +119,9 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
-        </BrowserRouter>
-      </AuthProvider>
+          </BrowserRouter>
+        </AuthProvider>
+      </AdminFeedbackProvider>
     </ThemeProvider>
   );
 }

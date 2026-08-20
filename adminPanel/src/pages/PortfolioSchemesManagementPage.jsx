@@ -29,6 +29,7 @@ import {
 import { Add, Delete, Edit, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import { portfolioCategoriesAPI, portfolioSchemesAPI, portfolioUcsAPI } from '../api/index.js';
 import AdminTablePagination from '../components/AdminTablePagination.jsx';
+import { useAdminFeedback } from '../feedback/AdminFeedbackContext.jsx';
 
 const emptyUc = { name: '', description: '' };
 const emptyCategory = { union_council: '', name: '', description: '' };
@@ -60,6 +61,7 @@ function statusColor(status) {
 }
 
 export default function PortfolioSchemesManagementPage() {
+  const { confirm } = useAdminFeedback();
   const [tab, setTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -154,12 +156,19 @@ export default function PortfolioSchemesManagementPage() {
     }
   };
 
-  const remove = async (type, id) => {
-    if (!window.confirm('Delete this item?')) return;
+  const remove = async (type, item) => {
+    const typeLabel = type === 'uc' ? 'union council' : type === 'category' ? 'portfolio category' : 'portfolio scheme';
+    const approved = await confirm({
+      title: `Delete ${typeLabel}?`,
+      description: `This permanently removes the ${typeLabel} from the portfolio section.`,
+      itemName: item.name,
+      confirmLabel: 'Delete item',
+    });
+    if (!approved) return;
     try {
-      if (type === 'uc') await portfolioUcsAPI.delete(id);
-      if (type === 'category') await portfolioCategoriesAPI.delete(id);
-      if (type === 'scheme') await portfolioSchemesAPI.delete(id);
+      if (type === 'uc') await portfolioUcsAPI.delete(item.id);
+      if (type === 'category') await portfolioCategoriesAPI.delete(item.id);
+      if (type === 'scheme') await portfolioSchemesAPI.delete(item.id);
       setMessage('Portfolio item deleted.');
       loadAll();
     } catch (error) {
@@ -229,7 +238,7 @@ export default function PortfolioSchemesManagementPage() {
               <TableCell>{row.name}</TableCell>
               <TableCell>{row.description || 'N/A'}</TableCell>
               <TableCell><OrderButtons value={index + 1} isFirst={index === 0} isLast={index === orderedUcs.length - 1} onUp={() => move('uc', row, -1)} onDown={() => move('uc', row, 1)} /></TableCell>
-              <Actions onEdit={() => openDialog('uc', row)} onDelete={() => remove('uc', row.id)} />
+              <Actions onEdit={() => openDialog('uc', row)} onDelete={() => remove('uc', row)} />
             </TableRow>
           )} />
         )}
@@ -248,7 +257,7 @@ export default function PortfolioSchemesManagementPage() {
                   onDown={() => move('category', row, 1)}
                 />
               </TableCell>
-              <Actions onEdit={() => openDialog('category', row)} onDelete={() => remove('category', row.id)} />
+              <Actions onEdit={() => openDialog('category', row)} onDelete={() => remove('category', row)} />
             </TableRow>
           )} />
         )}
@@ -270,7 +279,7 @@ export default function PortfolioSchemesManagementPage() {
                   onDown={() => move('scheme', row, 1)}
                 />
               </TableCell>
-              <Actions onEdit={() => openDialog('scheme', row)} onDelete={() => remove('scheme', row.id)} />
+              <Actions onEdit={() => openDialog('scheme', row)} onDelete={() => remove('scheme', row)} />
             </TableRow>
           )} />
         )}

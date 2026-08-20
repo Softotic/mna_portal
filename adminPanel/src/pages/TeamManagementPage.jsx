@@ -29,6 +29,7 @@ import {
 import { Add, Delete, Edit, KeyboardArrowDown, KeyboardArrowUp, Search } from '@mui/icons-material';
 import { teamMembersAPI } from '../api/index.js';
 import AdminTablePagination from '../components/AdminTablePagination.jsx';
+import { useAdminFeedback } from '../feedback/AdminFeedbackContext.jsx';
 
 const defaultForm = {
   name: '',
@@ -57,6 +58,7 @@ function formatApiError(data) {
 }
 
 export default function TeamManagementPage() {
+  const { confirm } = useAdminFeedback();
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -184,10 +186,16 @@ export default function TeamManagementPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this team member?')) return;
+  const handleDelete = async (member) => {
+    const approved = await confirm({
+      title: 'Delete team member?',
+      description: 'This permanently removes the profile from the team directory and public website.',
+      itemName: member.name,
+      confirmLabel: 'Delete member',
+    });
+    if (!approved) return;
     try {
-      await teamMembersAPI.delete(id);
+      await teamMembersAPI.delete(member.id);
       setMessage('Team member deleted successfully.');
       fetchTeamMembers();
     } catch (error) {
@@ -375,7 +383,7 @@ export default function TeamManagementPage() {
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
-                      <IconButton size="small" color="error" onClick={() => handleDelete(member.id)}>
+                      <IconButton size="small" color="error" onClick={() => handleDelete(member)}>
                         <Delete fontSize="small" />
                       </IconButton>
                     </Tooltip>

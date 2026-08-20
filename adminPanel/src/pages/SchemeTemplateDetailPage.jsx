@@ -36,11 +36,13 @@ import { ArrowBack, Edit, Delete, Comment, Send, Search } from '@mui/icons-mater
 import { schemeTemplatesAPI, schemeTemplateEntriesAPI, schemeEntryCommentsAPI } from '../api';
 import { useAuth } from '../auth/AuthContext';
 import AdminTablePagination from '../components/AdminTablePagination';
+import { useAdminFeedback } from '../feedback/AdminFeedbackContext';
 
 export default function SchemeTemplateDetailPage() {
   const { category_slug, template_id } = useParams();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
+  const { notify } = useAdminFeedback();
   const canAdd = hasPermission(category_slug ? category_slug.toUpperCase() : 'SCHEMES', 'create');
 
   const [template, setTemplate] = useState(null);
@@ -125,7 +127,7 @@ export default function SchemeTemplateDetailPage() {
       setEditEntry(null);
       fetchEntries();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Error updating entry');
+      notify(err.response?.data?.detail || 'Unable to update the entry.', 'error');
     } finally {
       setSaving(false);
     }
@@ -145,7 +147,7 @@ export default function SchemeTemplateDetailPage() {
       setDeleteEntryId(null);
       fetchEntries();
     } catch {
-      alert('Error deleting entry');
+      notify('Unable to delete the entry.', 'error');
     }
   };
 
@@ -179,7 +181,7 @@ export default function SchemeTemplateDetailPage() {
       setComments(response.data.results || response.data);
       setNewComment('');
     } catch {
-      alert('Error adding comment');
+      notify('Unable to add the comment.', 'error');
     }
   };
 
@@ -218,7 +220,7 @@ export default function SchemeTemplateDetailPage() {
       setValues(Object.fromEntries(Object.keys(values).map((key) => [key, ''])));
       fetchEntries();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Error saving scheme entry');
+      notify(err.response?.data?.detail || 'Unable to save the scheme entry.', 'error');
     } finally {
       setSaving(false);
     }

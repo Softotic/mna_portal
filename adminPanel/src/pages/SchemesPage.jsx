@@ -27,8 +27,10 @@ import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import AdminTablePagination from '../components/AdminTablePagination';
 import PageHeader from '../components/PageHeader';
 import InputAdornment from '@mui/material/InputAdornment';
+import { useAdminFeedback } from '../feedback/AdminFeedbackContext';
 
 export default function SchemesPage() {
+  const { notify } = useAdminFeedback();
   const { category_slug } = useParams();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
@@ -149,7 +151,7 @@ export default function SchemesPage() {
       handleClose();
       fetchTemplates();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Error saving scheme template');
+      notify(err.response?.data?.detail || 'Unable to save the scheme template.', 'error');
     }
   };
 
@@ -159,7 +161,7 @@ export default function SchemesPage() {
       setDeleteId(null);
       fetchTemplates();
     } catch {
-      alert('Error deleting scheme template');
+      notify('Unable to delete the scheme template.', 'error');
     }
   };
 

@@ -30,6 +30,7 @@ import {
 import { Add, Delete, Edit } from '@mui/icons-material';
 import { feedbacksAPI } from '../api/index.js';
 import AdminTablePagination from '../components/AdminTablePagination.jsx';
+import { useAdminFeedback } from '../feedback/AdminFeedbackContext.jsx';
 
 const defaultForm = {
   name: '',
@@ -41,6 +42,7 @@ const defaultForm = {
 };
 
 export default function FeedbackManagementPage() {
+  const { confirm } = useAdminFeedback();
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -112,10 +114,16 @@ export default function FeedbackManagementPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this feedback entry?')) return;
+  const handleDelete = async (item) => {
+    const approved = await confirm({
+      title: 'Delete feedback entry?',
+      description: 'This feedback will be permanently removed from the admin portal and public website.',
+      itemName: item.name,
+      confirmLabel: 'Delete feedback',
+    });
+    if (!approved) return;
     try {
-      await feedbacksAPI.delete(id);
+      await feedbacksAPI.delete(item.id);
       setMessage('Feedback deleted successfully.');
       fetchFeedbacks();
     } catch (error) {
@@ -184,7 +192,7 @@ export default function FeedbackManagementPage() {
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
-                      <IconButton size="small" color="error" onClick={() => handleDelete(item.id)}>
+                      <IconButton size="small" color="error" onClick={() => handleDelete(item)}>
                         <Delete fontSize="small" />
                       </IconButton>
                     </Tooltip>
