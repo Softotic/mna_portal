@@ -46,7 +46,7 @@ export default function PublicWebsiteSettingsPage() {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(null);
 
   useEffect(() => {
     fetchSettings();
@@ -59,7 +59,7 @@ export default function PublicWebsiteSettingsPage() {
       setSettings(response.data);
     } catch (err) {
       console.error(err);
-      setMessage('Error loading website settings.');
+      setMessage({ severity: 'error', text: 'Error loading website settings.' });
     } finally {
       setLoading(false);
     }
@@ -83,20 +83,22 @@ export default function PublicWebsiteSettingsPage() {
       delete payload.created_at;
       delete payload.updated_at;
 
-      if (payload.logo && typeof payload.logo === 'string') {
+      // Existing file fields are URLs (or empty strings) returned by the API.
+      // Only send them back when the user has selected a real replacement file.
+      if (!(payload.logo instanceof File)) {
         delete payload.logo;
       }
-      if (payload.intro_image && typeof payload.intro_image === 'string') {
+      if (!(payload.intro_image instanceof File)) {
         delete payload.intro_image;
       }
 
       await publicSettingsAPI.update(settings.id, payload);
-      setMessage('Website settings saved successfully.');
-      setTimeout(() => setMessage(''), 3000);
-      fetchSettings();
+      await fetchSettings();
+      setMessage({ severity: 'success', text: 'Website settings saved successfully. Refresh the public website to see the changes.' });
+      setTimeout(() => setMessage(null), 5000);
     } catch (err) {
       console.error(err);
-      setMessage(formatApiError(err));
+      setMessage({ severity: 'error', text: formatApiError(err) });
     } finally {
       setSaving(false);
     }
@@ -127,11 +129,11 @@ export default function PublicWebsiteSettingsPage() {
 
       {message && (
         <Alert
-          severity={message.toLowerCase().includes('error') ? 'error' : 'success'}
+          severity={message.severity}
           sx={{ mb: 3 }}
-          onClose={() => setMessage('')}
+          onClose={() => setMessage(null)}
         >
-          {message}
+          {message.text}
         </Alert>
       )}
 

@@ -130,19 +130,27 @@ export const schemeCategoriesAPI = {
 export const publicSettingsAPI = {
   current: () => api.get('/public/settings/current/'),
   update: (id, data) => {
-    const hasFileUpload = data.logo instanceof File || data.intro_image instanceof File;
+    const fileFields = new Set(['logo', 'intro_image']);
+    const cleanData = Object.fromEntries(
+      Object.entries(data).filter(([key, value]) => {
+        if (!fileFields.has(key)) return true;
+        return value instanceof File;
+      })
+    );
+    const hasFileUpload = cleanData.logo instanceof File || cleanData.intro_image instanceof File;
+
     if (hasFileUpload) {
       const formData = new FormData();
-      Object.keys(data).forEach((key) => {
-        if (data[key] !== null && data[key] !== undefined) {
-          formData.append(key, data[key]);
+      Object.keys(cleanData).forEach((key) => {
+        if (cleanData[key] !== null && cleanData[key] !== undefined) {
+          formData.append(key, cleanData[key]);
         }
       });
       return api.patch(`/public/settings/${id}/`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
     }
-    return api.patch(`/public/settings/${id}/`, data);
+    return api.patch(`/public/settings/${id}/`, cleanData);
   },
 };
 
