@@ -16,7 +16,6 @@ import {
 } from '@mui/material';
 import {
   AccountTreeOutlined,
-  AccountBalanceWalletOutlined,
   ArrowForward,
   ArrowOutward,
   CampaignOutlined,
@@ -63,6 +62,25 @@ function EmptyChart({ message }) {
   return <Box sx={{ height: 190, display: 'grid', placeItems: 'center', textAlign: 'center', borderRadius: 2.5, bgcolor: 'background.default', px: 3 }}><Box><InsertChartOutlined sx={{ color: 'text.disabled', mb: 0.75 }} /><Typography variant="body2" color="text.secondary">{message}</Typography></Box></Box>;
 }
 
+function ChartBar({ label, value, percent, color, compact = false }) {
+  const countLabel = `${formatNumber(value)} ${Number(value) === 1 ? 'entry' : 'entries'}`;
+  return (
+    <Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto auto', alignItems: 'center', columnGap: { xs: 0.8, sm: 1.25 }, mb: compact ? 0.75 : 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
+          <Box sx={{ width: 8, height: 8, flex: '0 0 auto', mr: 0.9, borderRadius: '50%', bgcolor: color }} />
+          <Typography variant={compact ? 'body2' : 'subtitle2'} fontWeight={compact ? 650 : 700} noWrap>{label}</Typography>
+        </Box>
+        <Box component="span" sx={{ px: 0.8, py: 0.25, borderRadius: 1, bgcolor: 'background.default', color: 'text.secondary', fontSize: compact ? '0.6875rem' : '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{countLabel}</Box>
+        <Typography variant="caption" sx={{ minWidth: compact ? 34 : 38, textAlign: 'right', color: 'text.secondary', fontWeight: 700, whiteSpace: 'nowrap' }}>{percent}%</Typography>
+      </Box>
+      <Box sx={{ height: compact ? 8 : 10, borderRadius: 10, bgcolor: 'background.default', overflow: 'hidden' }}>
+        <Box sx={{ width: `${percent}%`, minWidth: value ? 10 : 0, height: '100%', borderRadius: 10, bgcolor: color, transition: 'width 700ms cubic-bezier(0.16, 1, 0.3, 1)' }} />
+      </Box>
+    </Box>
+  );
+}
+
 export default function DashboardPage() {
   const { user, hasPermission } = useAuth();
   const navigate = useNavigate();
@@ -92,14 +110,16 @@ export default function DashboardPage() {
 
   const schemeMix = useMemo(() => {
     const total = Number(stats?.total_schemes || 0);
-    const approved = Number(stats?.approved_schemes || 0);
-    const pending = Number(stats?.pending_schemes || 0);
+    const announced = Number(stats?.announced_schemes || 0);
+    const inProgress = Number(stats?.in_progress_schemes || 0);
+    const awaitingInauguration = Number(stats?.awaiting_inauguration_schemes || 0);
+    const inaugurated = Number(stats?.inaugurated_schemes || 0);
     return {
       total,
-      approved,
-      pending,
-      approvedPercent: total ? Math.min(100, Math.round((approved / total) * 100)) : 0,
-      pendingPercent: total ? Math.min(100, Math.round((pending / total) * 100)) : 0,
+      announced,
+      inProgress,
+      awaitingInauguration,
+      inaugurated,
     };
   }, [stats]);
   const complaintMix = stats?.complaints || {};
@@ -129,17 +149,19 @@ export default function DashboardPage() {
       )}
 
       <Grid container spacing={2.25}>
-        <Grid size={{ xs: 12, md: 6, xl: 3 }}><StatCard label="Total schemes" value={stats?.total_schemes} detail={`${formatNumber(stats?.completed_schemes)} completed & inaugurated`} icon={DescriptionOutlined} featured loading={loading} /></Grid>
-        <Grid size={{ xs: 12, md: 6, xl: 3 }}><StatCard label="Pending review" value={stats?.pending_schemes} detail="Awaiting an approval decision" icon={HourglassEmptyOutlined} tone="warning" loading={loading} /></Grid>
+        <Grid size={{ xs: 12, md: 6, xl: 3 }}><StatCard label="Total scheme entries" value={stats?.total_schemes} detail={`${formatNumber(schemeMix.inaugurated)} completed & inaugurated`} icon={DescriptionOutlined} featured loading={loading} /></Grid>
+        <Grid size={{ xs: 12, md: 6, xl: 3 }}><StatCard label="In progress" value={schemeMix.inProgress} detail="Actively being delivered" icon={HourglassEmptyOutlined} tone="warning" loading={loading} /></Grid>
         <Grid size={{ xs: 12, md: 6, xl: 3 }}><StatCard label="Open complaints" value={complaintMix.open} detail={`${formatNumber(complaintMix.in_progress)} currently in progress`} icon={ReportProblemOutlined} tone="warning" loading={loading} /></Grid>
-        <Grid size={{ xs: 12, md: 6, xl: 3 }}><StatCard label="Budget tracked" value={stats?.total_budget} prefix="PKR " detail="Across every scheme record" icon={AccountBalanceWalletOutlined} loading={loading} /></Grid>
+        <Grid size={{ xs: 12, md: 6, xl: 3 }}><StatCard label="Active users" value={stats?.active_users} detail={`${formatNumber(stats?.total_users)} total portal accounts`} icon={PeopleOutlined} loading={loading} /></Grid>
 
         <Grid size={{ xs: 12, lg: 7 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent sx={{ p: { xs: 2.25, md: 2.75 } }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={2}><Box><Typography variant="h6">Scheme pipeline</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Live distribution across approval stages.</Typography></Box><DonutLargeOutlined color="primary" /></Stack>
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={2}><Box><Typography variant="h6">Scheme pipeline</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Live distribution across delivery stages.</Typography></Box><Box sx={{ width: 42, height: 42, borderRadius: 2.5, bgcolor: 'action.selected', color: 'primary.main', display: 'grid', placeItems: 'center' }}><DonutLargeOutlined /></Box></Stack>
               {loading ? <Skeleton sx={{ mt: 3 }} height={205} /> : schemeMix.total === 0 ? <Box sx={{ mt: 2.5 }}><EmptyChart message="Add a scheme record to begin tracking the delivery pipeline." /></Box> : <Box sx={{ mt: 3 }}>
-                {[['Approved', schemeMix.approved, 'success.main'], ['Pending review', schemeMix.pending, 'warning.main'], ['Completed', Number(stats?.completed_schemes || 0), 'primary.main']].map(([label, value, color]) => <Box key={label} sx={{ mb: 2.2 }}><Stack direction="row" justifyContent="space-between" sx={{ mb: 0.8 }}><Typography variant="body2" fontWeight={700}>{label}</Typography><Typography variant="body2" color="text.secondary">{formatNumber(value)} <Box component="span" sx={{ color: 'text.disabled' }}>· {Math.round((value / schemeMix.total) * 100)}%</Box></Typography></Stack><Box sx={{ height: 11, borderRadius: 10, bgcolor: 'background.default', overflow: 'hidden' }}><Box sx={{ width: `${(value / schemeMix.total) * 100}%`, minWidth: value ? 10 : 0, height: '100%', borderRadius: 10, bgcolor: color, transition: 'width 700ms cubic-bezier(0.16, 1, 0.3, 1)' }} /></Box></Box>)}
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5 }}>
+                  {[['Announced but not started', schemeMix.announced, 'secondary.main'], ['In progress', schemeMix.inProgress, 'warning.main'], ['Completed – to be inaugurated', schemeMix.awaitingInauguration, 'primary.main'], ['Completed & inaugurated', schemeMix.inaugurated, 'success.main']].map(([label, value, color]) => <ChartBar key={label} label={label} value={value} percent={Math.round((value / schemeMix.total) * 100)} color={color} />)}
+                </Box>
               </Box>}
             </CardContent>
           </Card>
@@ -147,8 +169,8 @@ export default function DashboardPage() {
         <Grid size={{ xs: 12, lg: 5 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent sx={{ p: { xs: 2.25, md: 2.75 } }}>
-              <Typography variant="h6">Scheme coverage</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Records by category.</Typography>
-              {loading ? <Skeleton sx={{ mt: 3 }} height={205} /> : !(stats?.categories || []).some((category) => category.scheme_count) ? <Box sx={{ mt: 2.5 }}><EmptyChart message="Category coverage will appear as schemes are added." /></Box> : <Stack spacing={1.75} sx={{ mt: 3 }}>{stats.categories.map((category) => <Box key={category.name}><Stack direction="row" justifyContent="space-between" sx={{ mb: 0.55 }}><Typography variant="caption" fontWeight={700}>{category.name}</Typography><Typography variant="caption" color="text.secondary">{formatNumber(category.scheme_count)}</Typography></Stack><Box sx={{ height: 7, borderRadius: 10, bgcolor: 'background.default' }}><Box sx={{ width: `${(category.scheme_count / categoryMax) * 100}%`, height: '100%', borderRadius: 10, bgcolor: 'secondary.main' }} /></Box></Box>)}</Stack>}
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={2}><Box><Typography variant="h6">Scheme coverage</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Records by category.</Typography></Box><Typography variant="caption" sx={{ px: 1, py: 0.5, borderRadius: 1.5, bgcolor: 'action.selected', color: 'primary.main', fontWeight: 700 }}>Top categories</Typography></Stack>
+              {loading ? <Skeleton sx={{ mt: 3 }} height={205} /> : !(stats?.categories || []).some((category) => category.scheme_count) ? <Box sx={{ mt: 2.5 }}><EmptyChart message="Category coverage will appear as schemes are added." /></Box> : <Stack spacing={2.1} sx={{ mt: 3 }}>{stats.categories.map((category) => <ChartBar key={category.name} label={category.name} value={category.scheme_count} percent={Math.round((category.scheme_count / categoryMax) * 100)} color="secondary.main" compact />)}</Stack>}
             </CardContent>
           </Card>
         </Grid>

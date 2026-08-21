@@ -173,18 +173,18 @@ def my_permissions_view(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def dashboard_stats_view(request):
-    from django.db.models import Count, Sum
-    from schemes.models import Scheme, SchemeCategory
+    from django.db.models import Count
+    from schemes.models import SchemeCategory, SchemeEntry
     from public_site.models import (
         CitizenFeedback, Complaint, News, PortfolioScheme, TeamMember,
     )
 
     scheme_statuses = {
         row['status']: row['count']
-        for row in Scheme.objects.values('status').annotate(count=Count('id'))
+        for row in SchemeEntry.objects.values('status').annotate(count=Count('id'))
     }
     categories = list(
-        SchemeCategory.objects.annotate(scheme_count=Count('schemes'))
+        SchemeCategory.objects.annotate(scheme_count=Count('templates__entries'))
         .values('name', 'scheme_count')
         .order_by('-scheme_count', 'name')[:6]
     )
@@ -192,17 +192,15 @@ def dashboard_stats_view(request):
         row['status']: row['count']
         for row in Complaint.objects.values('status').annotate(count=Count('id'))
     }
-    total_scheme_budget = Scheme.objects.aggregate(total=Sum('budget'))['total'] or 0
-
     return Response({
         'total_users': CustomUser.objects.count(),
         'active_users': CustomUser.objects.filter(is_active=True).count(),
-        'total_schemes': Scheme.objects.count(),
-        'pending_schemes': scheme_statuses.get('pending', 0),
-        'approved_schemes': scheme_statuses.get('approved', 0),
-        'completed_schemes': scheme_statuses.get('completed', 0),
+        'total_schemes': SchemeEntry.objects.count(),
+        'announced_schemes': scheme_statuses.get(SchemeEntry.STATUS_ANNOUNCED, 0),
+        'in_progress_schemes': scheme_statuses.get(SchemeEntry.STATUS_IN_PROGRESS, 0),
+        'awaiting_inauguration_schemes': scheme_statuses.get(SchemeEntry.STATUS_AWAITING_INAUGURATION, 0),
+        'inaugurated_schemes': scheme_statuses.get(SchemeEntry.STATUS_INAUGURATED, 0),
         'total_roles': Role.objects.count(),
-        'total_budget': total_scheme_budget,
         'categories': categories,
         'scheme_statuses': scheme_statuses,
         'complaints': {
