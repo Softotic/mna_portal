@@ -6,7 +6,7 @@ from rest_framework.test import APIClient
 
 from users.models import CustomUser
 
-from .models import Scheme, SchemeCategory, SchemeTemplate
+from .models import Scheme, SchemeCategory, SchemeEntry, SchemeTemplate
 from .views import SchemeCategoryViewSet
 
 
@@ -67,3 +67,62 @@ class SchemeCategoryDeletionTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertTrue(SchemeCategory.objects.filter(pk=category.pk).exists())
+
+
+class SchemeEntryStatusTests(TestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_superuser(
+            email='scheme-status-admin@example.com',
+            password='test-password',
+            name='Scheme Status Admin',
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(self.user)
+        self.category = SchemeCategory.objects.create(name='Status Category')
+        self.template = SchemeTemplate.objects.create(
+            title='Status Template',
+            category=self.category,
+            created_by=self.user,
+        )
+
+    def test_new_entry_defaults_to_announced_not_started(self):
+        response = self.client.post(
+            '/api/scheme-template-entries/',
+            {'template_id': self.template.pk, 'values': {'Name': 'New scheme'}},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['status'], SchemeEntry.STATUS_ANNOUNCED)
+        self.assertEqual(response.data['status_display'], 'Announced but not started')
+
+    def test_entry_status_can_be_updated(self):
+        entry = SchemeEntry.objects.create(
+            template=self.template,
+            values={'Name': 'Active scheme'},
+            created_by=self.user,
+        )
+
+        response = self.client.patch(
+            f'/api/scheme-template-entries/{entry.pk}/',
+            {'status': SchemeEntry.STATUS_IN_PROGRESS},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        entry.refresh_from_db()
+        self.assertEqual(entry.status, SchemeEntry.STATUS_IN_PROGRESS)
+
+    def test_unknown_entry_status_is_rejected(self):
+        response = self.client.post(
+            '/api/scheme-template-entries/',
+            {
+                'template_id': self.template.pk,
+                'values': {'Name': 'Invalid status scheme'},
+                'status': 'unknown',
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('status', response.data)

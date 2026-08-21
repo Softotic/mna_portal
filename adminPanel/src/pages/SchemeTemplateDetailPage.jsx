@@ -23,7 +23,6 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
-  Chip,
   Avatar,
   List,
   ListItem,
@@ -31,11 +30,18 @@ import {
   ListItemText,
   Paper,
   InputAdornment,
+  MenuItem,
 } from '@mui/material';
 import { ArrowBack, Edit, Delete, Comment, Send, Search } from '@mui/icons-material';
 import { schemeTemplatesAPI, schemeTemplateEntriesAPI, schemeEntryCommentsAPI } from '../api';
 import { useAuth } from '../auth/AuthContext';
 import AdminTablePagination from '../components/AdminTablePagination';
+import SchemeStatusChip from '../components/SchemeStatusChip';
+import {
+  DEFAULT_SCHEME_STATUS,
+  SCHEME_STATUS_OPTIONS,
+  getSchemeStatus,
+} from '../constants/schemeStatus';
 import { useAdminFeedback } from '../feedback/AdminFeedbackContext';
 
 export default function SchemeTemplateDetailPage() {
@@ -48,12 +54,14 @@ export default function SchemeTemplateDetailPage() {
   const [template, setTemplate] = useState(null);
   const [entries, setEntries] = useState([]);
   const [values, setValues] = useState({});
+  const [status, setStatus] = useState(DEFAULT_SCHEME_STATUS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   // Edit and Delete states
   const [editEntry, setEditEntry] = useState(null);
   const [editValues, setEditValues] = useState({});
+  const [editStatus, setEditStatus] = useState(DEFAULT_SCHEME_STATUS);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteEntryId, setDeleteEntryId] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -110,6 +118,7 @@ export default function SchemeTemplateDetailPage() {
   const handleEditEntry = (entry) => {
     setEditEntry(entry);
     setEditValues(entry.values || {});
+    setEditStatus(entry.status || DEFAULT_SCHEME_STATUS);
     setEditDialogOpen(true);
   };
 
@@ -122,6 +131,7 @@ export default function SchemeTemplateDetailPage() {
       await schemeTemplateEntriesAPI.update(editEntry.id, {
         template_id: template.id,
         values: editValues,
+        status: editStatus,
       });
       setEditDialogOpen(false);
       setEditEntry(null);
@@ -201,6 +211,10 @@ export default function SchemeTemplateDetailPage() {
     if (entry.created_by_name?.toLowerCase().includes(searchLower)) {
       return true;
     }
+
+    if (getSchemeStatus(entry.status).label.toLowerCase().includes(searchLower)) {
+      return true;
+    }
     
     return false;
   });
@@ -216,8 +230,10 @@ export default function SchemeTemplateDetailPage() {
       await schemeTemplateEntriesAPI.create({
         template_id: template.id,
         values,
+        status,
       });
       setValues(Object.fromEntries(Object.keys(values).map((key) => [key, ''])));
+      setStatus(DEFAULT_SCHEME_STATUS);
       fetchEntries();
     } catch (err) {
       notify(err.response?.data?.detail || 'Unable to save the scheme entry.', 'error');
@@ -267,6 +283,23 @@ export default function SchemeTemplateDetailPage() {
           ) : (
             <Box component="form" onSubmit={handleSubmit}>
               <Grid container spacing={2.5}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    select
+                    label="Status"
+                    name="status"
+                    value={status}
+                    onChange={(event) => setStatus(event.target.value)}
+                    fullWidth
+                    size="small"
+                  >
+                    {SCHEME_STATUS_OPTIONS.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
                 {template.field_definitions.map((field) => (
                   <Grid item xs={12} md={6} key={field}>
                     <TextField
@@ -288,7 +321,15 @@ export default function SchemeTemplateDetailPage() {
                 ))}
               </Grid>
               <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                <Button variant="outlined" onClick={() => setValues(Object.fromEntries(Object.keys(values).map((key) => [key, ''])))}>Clear</Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    setValues(Object.fromEntries(Object.keys(values).map((key) => [key, ''])));
+                    setStatus(DEFAULT_SCHEME_STATUS);
+                  }}
+                >
+                  Clear
+                </Button>
                 <Button type="submit" variant="contained" disabled={saving} sx={{ textTransform: 'none', fontWeight: 600 }}>
                   {saving ? 'Saving...' : 'Add Entry'}
                 </Button>
@@ -337,6 +378,7 @@ export default function SchemeTemplateDetailPage() {
                 <TableHead>
                   <TableRow sx={{ bgcolor: '#fafbfc', '& th': { fontWeight: 600, fontSize: '0.875rem', color: '#4a4a4a' } }}>
                     <TableCell sx={{ fontWeight: 600 }}>#</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                     {template.field_definitions.map((field) => (
                       <TableCell key={field} sx={{ fontWeight: 600 }}>{field}</TableCell>
                     ))}
@@ -348,38 +390,43 @@ export default function SchemeTemplateDetailPage() {
                 <TableBody>
                   {filteredEntries.length === 0 && searchQuery ? (
                     <TableRow>
-                      <TableCell colSpan={template.field_definitions.length + 4} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={template.field_definitions.length + 5} align="center" sx={{ py: 4 }}>
                         <Typography color="text.secondary" variant="body2">No entries match your search</Typography>
                       </TableCell>
                     </TableRow>
                   ) : null}
-                  {visibleEntries.map((entry, idx) => (
-                    <TableRow 
-                      key={entry.id} 
-                      hover 
-                      sx={{ 
-                        cursor: 'pointer',
-                        '&:hover': { bgcolor: '#f5f7fa' },
-                        '& td': { py: 1.5, px: 2 }
-                      }}
-                      onClick={() => handleEntryClick(entry)}
-                    >
-                      <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>{currentPage * rowsPerPage + idx + 1}</TableCell>
-                      {template.field_definitions.map((field) => (
-                        <TableCell key={field} sx={{ fontSize: '0.875rem' }}>{entry.values?.[field] || '-'}</TableCell>
-                      ))}
-                      <TableCell sx={{ fontSize: '0.875rem' }}>{entry.created_by_name || 'Not available'}</TableCell>
-                      <TableCell sx={{ fontSize: '0.875rem', color: '#666' }}>{new Date(entry.created_at).toLocaleString()}</TableCell>
-                      <TableCell sx={{ textAlign: 'center' }}>
-                        <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); handleEditEntry(entry); }} title="Edit">
-                          <Edit fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDeleteEntry(entry.id); }} title="Delete">
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {visibleEntries.map((entry, idx) => {
+                    const statusMeta = getSchemeStatus(entry.status);
+                    return (
+                      <TableRow
+                        key={entry.id}
+                        hover
+                        sx={{
+                          cursor: 'pointer',
+                          bgcolor: statusMeta.rowBackgroundColor,
+                          '&:hover': { bgcolor: statusMeta.rowHoverColor },
+                          '& td': { py: 1.5, px: 2 },
+                        }}
+                        onClick={() => handleEntryClick(entry)}
+                      >
+                        <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>{currentPage * rowsPerPage + idx + 1}</TableCell>
+                        <TableCell><SchemeStatusChip status={entry.status} /></TableCell>
+                        {template.field_definitions.map((field) => (
+                          <TableCell key={field} sx={{ fontSize: '0.875rem' }}>{entry.values?.[field] || '-'}</TableCell>
+                        ))}
+                        <TableCell sx={{ fontSize: '0.875rem' }}>{entry.created_by_name || 'Not available'}</TableCell>
+                        <TableCell sx={{ fontSize: '0.875rem', color: '#666' }}>{new Date(entry.created_at).toLocaleString()}</TableCell>
+                        <TableCell sx={{ textAlign: 'center' }}>
+                          <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); handleEditEntry(entry); }} title="Edit">
+                            <Edit fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDeleteEntry(entry.id); }} title="Delete">
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -403,6 +450,23 @@ export default function SchemeTemplateDetailPage() {
               Update the entry information below.
             </Typography>
             <Grid container spacing={2.5}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  label="Status"
+                  name="status"
+                  value={editStatus}
+                  onChange={(event) => setEditStatus(event.target.value)}
+                  fullWidth
+                  size="small"
+                >
+                  {SCHEME_STATUS_OPTIONS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
               {template?.field_definitions.map((field) => (
                 <Grid item xs={12} md={6} key={field}>
                   <TextField
@@ -460,6 +524,14 @@ export default function SchemeTemplateDetailPage() {
             <>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>Entry Information</Typography>
               <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2.5, bgcolor: '#fafbfc', border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, mb: 1 }}>
+                      Status
+                    </Typography>
+                    <SchemeStatusChip status={selectedEntry.status} />
+                  </Paper>
+                </Grid>
                 {template?.field_definitions.map((field) => (
                   <Grid item xs={12} md={6} key={field}>
                     <Paper sx={{ p: 2.5, bgcolor: '#fafbfc', border: '1px solid #e0e0e0', borderRadius: 1 }}>

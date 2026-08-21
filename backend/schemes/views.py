@@ -114,6 +114,7 @@ class SchemeEntryViewSet(viewsets.ModelViewSet):
     serializer_class = SchemeEntrySerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['template', 'status']
     ordering_fields = ['created_at']
     ordering = ['-created_at']
 

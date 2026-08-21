@@ -85,10 +85,27 @@ class SchemeTemplate(models.Model):
 
 class SchemeEntry(models.Model):
     """An instance of a scheme template with user-supplied values."""
+    STATUS_ANNOUNCED = 'announced_not_started'
+    STATUS_IN_PROGRESS = 'in_progress'
+    STATUS_AWAITING_INAUGURATION = 'completed_to_be_inaugurated'
+    STATUS_INAUGURATED = 'completed_inaugurated'
+
+    STATUS_CHOICES = [
+        (STATUS_ANNOUNCED, 'Announced but not started'),
+        (STATUS_IN_PROGRESS, 'In progress'),
+        (STATUS_AWAITING_INAUGURATION, 'Completed – to be inaugurated'),
+        (STATUS_INAUGURATED, 'Completed and inaugurated'),
+    ]
+
     template = models.ForeignKey(
         SchemeTemplate, on_delete=models.CASCADE, related_name='entries'
     )
     values = models.JSONField(default=dict, blank=True)
+    status = models.CharField(
+        max_length=40,
+        choices=STATUS_CHOICES,
+        default=STATUS_ANNOUNCED,
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, related_name='scheme_entries'
@@ -119,4 +136,3 @@ class SchemeEntryComment(models.Model):
 
     def __str__(self):
         return f"Comment by {self.created_by.name if self.created_by else 'Unknown'} on entry {self.entry.id}"
-

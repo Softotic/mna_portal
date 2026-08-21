@@ -96,6 +96,7 @@ class SchemeTemplateSerializer(serializers.ModelSerializer):
 
 class SchemeEntrySerializer(serializers.ModelSerializer):
     template_title = serializers.CharField(source='template.title', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
     template_id = serializers.PrimaryKeyRelatedField(
         queryset=SchemeTemplate.objects.all(), source='template', write_only=True, required=True
     )
@@ -103,8 +104,13 @@ class SchemeEntrySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SchemeEntry
-        fields = ['id', 'template', 'template_id', 'template_title', 'values', 'created_by', 'created_by_name', 'created_at']
-        read_only_fields = ['created_by', 'created_at', 'template', 'created_by_name']
+        fields = [
+            'id', 'template', 'template_id', 'template_title', 'values',
+            'status', 'status_display', 'created_by', 'created_by_name', 'created_at',
+        ]
+        read_only_fields = [
+            'created_by', 'created_at', 'template', 'created_by_name', 'status_display',
+        ]
 
     def create(self, validated_data):
         validated_data['created_by'] = self.context['request'].user
@@ -123,4 +129,3 @@ class SchemeEntryCommentSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data["created_by"] = self.context["request"].user
         return super().create(validated_data)
-
