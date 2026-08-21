@@ -7,7 +7,6 @@ import {
   CardContent,
   CardHeader,
   Divider,
-  Grid,
   TextField,
   Typography,
   Table,
@@ -24,15 +23,20 @@ import {
   DialogActions,
   DialogContentText,
   Avatar,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Paper,
   InputAdornment,
   MenuItem,
 } from '@mui/material';
-import { ArrowBack, Edit, Delete, Comment, Send, Search } from '@mui/icons-material';
+import {
+  ArrowBack,
+  CalendarTodayOutlined,
+  Close as CloseIcon,
+  Comment,
+  Delete,
+  Edit,
+  PersonOutlined,
+  Search,
+  Send,
+} from '@mui/icons-material';
 import { schemeTemplatesAPI, schemeTemplateEntriesAPI, schemeEntryCommentsAPI } from '../api';
 import { useAuth } from '../auth/AuthContext';
 import AdminTablePagination from '../components/AdminTablePagination';
@@ -43,6 +47,25 @@ import {
   getSchemeStatus,
 } from '../constants/schemeStatus';
 import { useAdminFeedback } from '../feedback/AdminFeedbackContext';
+
+function EntryDetailField({ label, value }) {
+  const hasValue = value !== null && value !== undefined && value !== '';
+
+  return (
+    <Box component="div" sx={{ minWidth: 0, minHeight: 84, p: 2, bgcolor: 'background.paper' }}>
+      <Typography component="dt" variant="caption" sx={{ mb: 0.75, color: 'text.secondary', fontWeight: 700 }}>
+        {label}
+      </Typography>
+      <Typography
+        component="dd"
+        variant="body2"
+        sx={{ m: 0, color: hasValue ? 'text.primary' : 'text.secondary', fontWeight: hasValue ? 560 : 400, overflowWrap: 'anywhere' }}
+      >
+        {hasValue ? String(value) : 'Not provided'}
+      </Typography>
+    </Box>
+  );
+}
 
 export default function SchemeTemplateDetailPage() {
   const { category_slug, template_id } = useParams();
@@ -72,6 +95,7 @@ export default function SchemeTemplateDetailPage() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentSaving, setCommentSaving] = useState(false);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -165,6 +189,7 @@ export default function SchemeTemplateDetailPage() {
     setSelectedEntry(entry);
     setDetailModalOpen(true);
     setCommentsLoading(true);
+    setNewComment('');
     
     try {
       const response = await schemeEntryCommentsAPI.list({ entry_id: entry.id });
@@ -178,7 +203,8 @@ export default function SchemeTemplateDetailPage() {
   };
 
   const handleAddComment = async () => {
-    if (!newComment.trim() || !selectedEntry) return;
+    if (!newComment.trim() || !selectedEntry || commentSaving) return;
+    setCommentSaving(true);
 
     try {
       await schemeEntryCommentsAPI.create({
@@ -192,6 +218,8 @@ export default function SchemeTemplateDetailPage() {
       setNewComment('');
     } catch {
       notify('Unable to add the comment.', 'error');
+    } finally {
+      setCommentSaving(false);
     }
   };
 
@@ -267,7 +295,7 @@ export default function SchemeTemplateDetailPage() {
       {canAdd && <Card sx={{ mb: 4 }}>
         <CardHeader
           title="Add New Entry"
-          titleTypographyProps={{ variant: 'h6', sx: { fontWeight: 600, fontSize: '1rem' } }}
+          slotProps={{ title: { variant: 'h6', sx: { fontWeight: 600, fontSize: '1rem' } } }}
           sx={{ pb: 2, pt: 3, px: 3, bgcolor: '#fafbfc' }}
         />
         <Divider />
@@ -282,44 +310,47 @@ export default function SchemeTemplateDetailPage() {
             </Typography>
           ) : (
             <Box component="form" onSubmit={handleSubmit}>
-              <Grid container spacing={2.5}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    select
-                    label="Status"
-                    name="status"
-                    value={status}
-                    onChange={(event) => setStatus(event.target.value)}
-                    fullWidth
-                    size="small"
-                  >
-                    {SCHEME_STATUS_OPTIONS.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(auto-fit, minmax(190px, 1fr))' },
+                  gap: 2.5,
+                }}
+              >
+                <TextField
+                  select
+                  label="Status"
+                  name="status"
+                  value={status}
+                  onChange={(event) => setStatus(event.target.value)}
+                  fullWidth
+                  size="small"
+                >
+                  {SCHEME_STATUS_OPTIONS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
                 {template.field_definitions.map((field) => (
-                  <Grid item xs={12} md={6} key={field}>
-                    <TextField
-                      label={field}
-                      name={field}
-                      value={values[field] || ''}
-                      onChange={(event) => handleValueChange(field, event.target.value)}
-                      fullWidth
-                      variant="outlined"
-                      size="small"
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          bgcolor: '#fff',
-                          '&:hover fieldset': { borderColor: '#d0d0d0' },
-                        },
-                      }}
-                    />
-                  </Grid>
+                  <TextField
+                    key={field}
+                    label={field}
+                    name={field}
+                    value={values[field] || ''}
+                    onChange={(event) => handleValueChange(field, event.target.value)}
+                    fullWidth
+                    variant="outlined"
+                    size="small"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: '#fff',
+                        '&:hover fieldset': { borderColor: '#d0d0d0' },
+                      },
+                    }}
+                  />
                 ))}
-              </Grid>
+              </Box>
               <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
                 <Button
                   variant="outlined"
@@ -344,7 +375,7 @@ export default function SchemeTemplateDetailPage() {
       <Card sx={{ borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', mt: 4 }}>
         <CardHeader
           title="Existing Entries"
-          titleTypographyProps={{ variant: 'h6', sx: { fontWeight: 600, fontSize: '1rem' } }}
+          slotProps={{ title: { variant: 'h6', sx: { fontWeight: 600, fontSize: '1rem' } } }}
           sx={{ pb: 2, pt: 3, px: 3, bgcolor: '#fafbfc' }}
           action={entries.length > 0 && (
             <TextField
@@ -447,38 +478,35 @@ export default function SchemeTemplateDetailPage() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               Update the entry information below.
             </Typography>
-            <Grid container spacing={2.5}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  select
-                  label="Status"
-                  name="status"
-                  value={editStatus}
-                  onChange={(event) => setEditStatus(event.target.value)}
-                  fullWidth
-                  size="small"
-                >
-                  {SCHEME_STATUS_OPTIONS.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 2.5 }}>
+              <TextField
+                select
+                label="Status"
+                name="status"
+                value={editStatus}
+                onChange={(event) => setEditStatus(event.target.value)}
+                fullWidth
+                size="small"
+              >
+                {SCHEME_STATUS_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </TextField>
               {template?.field_definitions.map((field) => (
-                <Grid item xs={12} md={6} key={field}>
-                  <TextField
-                    label={field}
-                    name={field}
-                    value={editValues[field] || ''}
-                    onChange={(event) => handleEditValueChange(field, event.target.value)}
-                    fullWidth
-                    variant="outlined"
-                    size="small"
-                  />
-                </Grid>
+                <TextField
+                  key={field}
+                  label={field}
+                  name={field}
+                  value={editValues[field] || ''}
+                  onChange={(event) => handleEditValueChange(field, event.target.value)}
+                  fullWidth
+                  variant="outlined"
+                  size="small"
+                />
               ))}
-            </Grid>
+            </Box>
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
             <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
@@ -506,137 +534,192 @@ export default function SchemeTemplateDetailPage() {
       </Dialog>
 
       {/* Entry Detail Modal */}
-      <Dialog 
-        open={detailModalOpen} 
-        onClose={() => setDetailModalOpen(false)} 
-        maxWidth="md" 
+      <Dialog
+        open={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        maxWidth="md"
         fullWidth
-        sx={{ '& .MuiDialog-paper': { height: '80vh' } }}
+        sx={{
+          '& .MuiDialog-paper': {
+            maxHeight: { xs: 'calc(100vh - 24px)', sm: 'calc(100vh - 48px)' },
+            overflow: 'hidden',
+          },
+        }}
       >
-        <DialogTitle sx={{ fontWeight: 600, fontSize: '1.25rem', pt: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Comment color="primary" />
-          Entry Details
+        <DialogTitle component="div" sx={{ p: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: { xs: 2, sm: 3 }, py: 2 }}>
+            <Box
+              sx={{
+                width: 36,
+                height: 36,
+                flexShrink: 0,
+                display: 'grid',
+                placeItems: 'center',
+                borderRadius: 2,
+                bgcolor: 'action.selected',
+                color: 'primary.main',
+              }}
+            >
+              <Comment fontSize="small" />
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography component="h2" variant="h6">Entry details</Typography>
+              <Typography variant="body2" color="text.secondary" noWrap>
+                {template.title}
+              </Typography>
+            </Box>
+            <IconButton aria-label="Close entry details" onClick={() => setDetailModalOpen(false)}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
         </DialogTitle>
-        <DialogContent dividers sx={{ pt: 3 }}>
+        <DialogContent dividers sx={{ p: { xs: 2, sm: 3 }, bgcolor: '#F7F9F8' }}>
           {selectedEntry && (
             <>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>Entry Information</Typography>
-              <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2.5, bgcolor: '#fafbfc', border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, mb: 1 }}>
-                      Status
-                    </Typography>
-                    <SchemeStatusChip status={selectedEntry.status} />
-                  </Paper>
-                </Grid>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  alignItems: { xs: 'flex-start', sm: 'center' },
+                  justifyContent: 'space-between',
+                  gap: 2,
+                  mb: 2,
+                }}
+              >
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Scheme information</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Current details and progress for this entry.
+                  </Typography>
+                </Box>
+                <SchemeStatusChip status={selectedEntry.status} />
+              </Box>
+
+              <Box
+                component="dl"
+                sx={{
+                  m: 0,
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(3, minmax(0, 1fr))' },
+                  gap: '1px',
+                  overflow: 'hidden',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  bgcolor: 'divider',
+                }}
+              >
                 {template?.field_definitions.map((field) => (
-                  <Grid item xs={12} md={6} key={field}>
-                    <Paper sx={{ p: 2.5, bgcolor: '#fafbfc', border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                      <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5 }}>
-                        {field}
-                      </Typography>
-                      <Typography variant="body2">
-                        {selectedEntry.values?.[field] || <em style={{ color: '#999' }}>Not provided</em>}
-                      </Typography>
-                    </Paper>
-                  </Grid>
+                  <EntryDetailField key={field} label={field} value={selectedEntry.values?.[field]} />
                 ))}
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2.5, bgcolor: '#fafbfc', border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5 }}>
-                      Added By
-                    </Typography>
-                    <Typography variant="body2">
-                      {selectedEntry.created_by_name || 'Unknown'}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2.5, bgcolor: '#fafbfc', border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5 }}>
-                      Added On
-                    </Typography>
-                    <Typography variant="body2">
-                      {new Date(selectedEntry.created_at).toLocaleString()}
-                    </Typography>
-                  </Paper>
-                </Grid>
-              </Grid>
+              </Box>
+
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 2, sm: 4 }, mt: 2, px: 0.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PersonOutlined sx={{ color: 'text.secondary', fontSize: 20 }} />
+                  <Typography variant="body2" color="text.secondary">Added by</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    {selectedEntry.created_by_name || 'Unknown'}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CalendarTodayOutlined sx={{ color: 'text.secondary', fontSize: 18 }} />
+                  <Typography variant="body2" color="text.secondary">Added on</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    {new Date(selectedEntry.created_at).toLocaleString()}
+                  </Typography>
+                </Box>
+              </Box>
 
               <Divider sx={{ my: 3 }} />
 
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>Comments</Typography>
-              
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Comments</Typography>
+                {!commentsLoading && (
+                  <Box
+                    component="span"
+                    sx={{ minWidth: 24, height: 24, px: 0.75, display: 'inline-grid', placeItems: 'center', borderRadius: 12, bgcolor: 'action.selected', color: 'primary.dark', fontSize: '0.75rem', fontWeight: 800 }}
+                  >
+                    {comments.length}
+                  </Box>
+                )}
+              </Box>
+
               {commentsLoading ? (
-                <LinearProgress />
+                <Box sx={{ py: 2 }}><LinearProgress /></Box>
+              ) : comments.length === 0 ? (
+                <Box sx={{ py: 3, textAlign: 'center' }}>
+                  <Comment sx={{ mb: 1, color: 'text.disabled' }} />
+                  <Typography variant="body2" color="text.secondary">
+                    No comments yet. Add the first update below.
+                  </Typography>
+                </Box>
               ) : (
-                <List sx={{ mb: 3 }}>
-                  {comments.length === 0 ? (
-                    <Typography color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                      No comments yet. Be the first to comment!
-                    </Typography>
-                  ) : (
-                    comments.map((comment) => (
-                      <ListItem key={comment.id} alignItems="flex-start">
-                        <ListItemAvatar>
-                          <Avatar>
-                            {comment.created_by_name?.charAt(0)?.toUpperCase() || 'U'}
-                          </Avatar>
-                        </ListItemAvatar>
-                        <ListItemText
-                          primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="subtitle2">
-                                {comment.created_by_name || 'Unknown User'}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {new Date(comment.created_at).toLocaleString()}
-                              </Typography>
-                            </Box>
-                          }
-                          secondary={comment.comment}
-                        />
-                      </ListItem>
-                    ))
-                  )}
-                </List>
+                <Box>
+                  {comments.map((comment) => (
+                    <Box
+                      key={comment.id}
+                      sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider', '&:last-of-type': { borderBottom: 0 } }}
+                    >
+                      <Avatar sx={{ width: 36, height: 36, bgcolor: 'action.selected', color: 'primary.dark', fontSize: '0.8rem', fontWeight: 800 }}>
+                        {comment.created_by_name?.charAt(0)?.toUpperCase() || 'U'}
+                      </Avatar>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 1, rowGap: 0.25, mb: 0.25 }}>
+                          <Typography variant="subtitle2">
+                            {comment.created_by_name || 'Unknown user'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(comment.created_at).toLocaleString()}
+                          </Typography>
+                        </Box>
+                        <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+                          {comment.comment}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
               )}
 
-              <Divider sx={{ my: 2 }} />
-
-              <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+              <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
                 <TextField
                   fullWidth
-                  placeholder="Add a comment..."
+                  label="Add a comment"
+                  placeholder="Write an update or note…"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  onKeyPress={(e) => {
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       handleAddComment();
                     }
                   }}
                   multiline
-                  rows={2}
+                  minRows={2}
+                  maxRows={5}
                   size="small"
                   variant="outlined"
                 />
-                <Button
-                  variant="outlined"
-                  onClick={handleAddComment}
-                  disabled={!newComment.trim()}
-                  sx={{ alignSelf: 'flex-end', textTransform: 'none', fontWeight: 600 }}
-                >
-                  <Send sx={{ mr: 1 }} />
-                  Send
-                </Button>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mt: 1.25 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Enter to send · Shift+Enter for a new line
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    startIcon={<Send />}
+                    onClick={handleAddComment}
+                    disabled={!newComment.trim() || commentSaving}
+                  >
+                    {commentSaving ? 'Sending…' : 'Send comment'}
+                  </Button>
+                </Box>
               </Box>
             </>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDetailModalOpen(false)}>Close</Button>
+        <DialogActions sx={{ px: { xs: 2, sm: 3 }, py: 1.5 }}>
+          <Button onClick={() => setDetailModalOpen(false)}>Done</Button>
         </DialogActions>
       </Dialog>
     </Box>
