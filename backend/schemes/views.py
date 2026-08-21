@@ -3,6 +3,8 @@ Schemes app views.
 """
 import logging
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
@@ -15,6 +17,7 @@ from .serializers import (
     SchemeTemplateSerializer, SchemeEntrySerializer, SchemeEntryCommentSerializer,
 )
 from users.permissions import SchemeModulePermission, HasModulePermission
+from .importers import SchemeImportError, parse_scheme_import
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +127,59 @@ class SchemeEntryViewSet(viewsets.ModelViewSet):
         if template_id:
             qs = qs.filter(template_id=template_id)
         return qs
+
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='import-file',
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def import_file(self, request):
+        """Preview or commit entries from an Excel/PDF table."""
+        uploaded_file = request.FILES.get('file')
+        template_id = request.data.get('template_id')
+        should_commit = str(request.data.get('commit', '')).lower() in {'1', 'true', 'yes'}
+        default_status = request.data.get('default_status', SchemeEntry.STATUS_ANNOUNCED)
+        valid_statuses = {choice[0] for choice in SchemeEntry.STATUS_CHOICES}
+
+        if not uploaded_file:
+            return Response({'detail': 'Choose a file to import.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not template_id:
+            return Response({'detail': 'A scheme template is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if default_status not in valid_statuses:
+            return Response({'detail': 'The selected default status is invalid.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            template = SchemeTemplate.objects.get(pk=template_id)
+        except (SchemeTemplate.DoesNotExist, ValueError):
+            return Response({'detail': 'The selected scheme template was not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            result = parse_scheme_import(uploaded_file, template.field_definitions, default_status)
+        except SchemeImportError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        if should_commit:
+            entries = [
+                SchemeEntry(
+                    template=template,
+                    values=row['values'],
+                    status=row['status'],
+                    created_by=request.user,
+                )
+                for row in result['rows']
+            ]
+            SchemeEntry.objects.bulk_create(entries)
+            return Response({'created_count': len(entries)}, status=status.HTTP_201_CREATED)
+
+        return Response({
+            'file_name': uploaded_file.name,
+            'total_rows': len(result['rows']),
+            'matched_headers': result['matched_headers'],
+            'unmatched_headers': result['unmatched_headers'],
+            'warnings': result['warnings'][:20],
+            'preview_rows': result['rows'][:10],
+        })
 
 
 

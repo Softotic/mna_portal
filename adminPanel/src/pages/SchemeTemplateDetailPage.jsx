@@ -24,6 +24,7 @@ import {
   DialogActions,
   DialogContentText,
   Avatar,
+  Alert,
   InputAdornment,
   MenuItem,
 } from '@mui/material';
@@ -34,7 +35,9 @@ import {
   Close as CloseIcon,
   Comment,
   Delete,
+  DescriptionOutlined,
   Edit,
+  FileUploadOutlined,
   PersonOutlined,
   Search,
   Send,
@@ -178,6 +181,207 @@ function SchemeStatusLegend({ selectedStatuses, onToggleStatus }) {
   );
 }
 
+function ImportEntriesDialog({ open, onClose, template, defaultStatus, onImported }) {
+  const [file, setFile] = useState(null);
+  const [importStatus, setImportStatus] = useState(defaultStatus);
+  const [preview, setPreview] = useState(null);
+  const [error, setError] = useState('');
+  const [reviewing, setReviewing] = useState(false);
+  const [importing, setImporting] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setFile(null);
+      setImportStatus(defaultStatus);
+      setPreview(null);
+      setError('');
+      setReviewing(false);
+      setImporting(false);
+    }
+  }, [defaultStatus, open]);
+
+  const handleFileChange = (selectedFile) => {
+    setFile(selectedFile || null);
+    setPreview(null);
+    setError('');
+  };
+
+  const handleReview = async () => {
+    if (!file || reviewing) return;
+    setReviewing(true);
+    setError('');
+    try {
+      const response = await schemeTemplateEntriesAPI.importFile(
+        file,
+        template.id,
+        importStatus,
+      );
+      setPreview(response.data);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Unable to read this file.');
+    } finally {
+      setReviewing(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!file || !preview || importing) return;
+    setImporting(true);
+    setError('');
+    try {
+      const response = await schemeTemplateEntriesAPI.importFile(
+        file,
+        template.id,
+        importStatus,
+        true,
+      );
+      onImported(response.data.created_count);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Unable to import these rows.');
+      setImporting(false);
+    }
+  };
+
+  const busy = reviewing || importing;
+
+  return (
+    <Dialog open={open} onClose={busy ? undefined : onClose} maxWidth="lg" fullWidth>
+      <DialogTitle>Import entries from a file</DialogTitle>
+      <DialogContent dividers sx={{ p: { xs: 2, sm: 3 } }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, maxWidth: '70ch' }}>
+          Upload a table with a header row. Column names are matched to this scheme’s fields; a Status column is optional.
+          PDFs must contain selectable table text.
+        </Typography>
+
+        {error && <Alert severity="error" sx={{ mb: 2.5 }}>{error}</Alert>}
+
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'stretch', sm: 'center' },
+            gap: 2,
+            p: 2,
+            border: '1px solid',
+            borderColor: file ? 'primary.main' : 'divider',
+            borderRadius: 2,
+            bgcolor: file ? 'action.selected' : 'background.paper',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                display: 'grid',
+                placeItems: 'center',
+                flexShrink: 0,
+                borderRadius: 2,
+                bgcolor: 'background.paper',
+                color: file ? 'primary.main' : 'text.secondary',
+              }}
+            >
+              <DescriptionOutlined />
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>
+                {file ? file.name : 'Choose an Excel or PDF file'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                .xlsx, .xlsm, .xls or .pdf · maximum 10 MB and 1,000 rows
+              </Typography>
+            </Box>
+          </Box>
+          <Button component="label" variant="outlined" startIcon={<FileUploadOutlined />} disabled={busy}>
+            {file ? 'Replace file' : 'Choose file'}
+            <input
+              hidden
+              type="file"
+              accept=".xlsx,.xlsm,.xls,.pdf,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              onChange={(event) => handleFileChange(event.target.files?.[0])}
+            />
+          </Button>
+        </Box>
+
+        <TextField
+          select
+          fullWidth
+          label="Default status"
+          value={importStatus}
+          onChange={(event) => {
+            setImportStatus(event.target.value);
+            setPreview(null);
+          }}
+          disabled={busy}
+          helperText="Used when the file does not include a Status column or a status value is not recognized."
+          sx={{ mt: 2.5, maxWidth: 440 }}
+        >
+          {SCHEME_STATUS_OPTIONS.map((option) => (
+            <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+          ))}
+        </TextField>
+
+        {reviewing && <LinearProgress sx={{ mt: 3 }} />}
+
+        {preview && (
+          <Box sx={{ mt: 3 }}>
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {preview.total_rows} {preview.total_rows === 1 ? 'row is' : 'rows are'} ready to import.
+            </Alert>
+            {preview.unmatched_headers.length > 0 && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                Ignored columns: {preview.unmatched_headers.join(', ')}
+              </Alert>
+            )}
+            {preview.warnings.length > 0 && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                {preview.warnings.join(' ')}
+              </Alert>
+            )}
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              Preview {preview.total_rows > preview.preview_rows.length ? `(first ${preview.preview_rows.length} rows)` : ''}
+            </Typography>
+            <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+              <Table size="small" aria-label="Imported file preview">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>File row</TableCell>
+                    {template.field_definitions.map((field) => <TableCell key={field}>{field}</TableCell>)}
+                    <TableCell>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {preview.preview_rows.map((row) => (
+                    <TableRow key={row.source_row}>
+                      <TableCell>{row.source_row}</TableCell>
+                      {template.field_definitions.map((field) => (
+                        <TableCell key={field}>{row.values[field] === '' ? '—' : String(row.values[field])}</TableCell>
+                      ))}
+                      <TableCell>{row.status_display}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} disabled={busy}>Cancel</Button>
+        {!preview ? (
+          <Button variant="contained" onClick={handleReview} disabled={!file || reviewing}>
+            {reviewing ? 'Reading file…' : 'Review rows'}
+          </Button>
+        ) : (
+          <Button variant="contained" onClick={handleImport} disabled={importing}>
+            {importing ? 'Importing…' : `Import ${preview.total_rows} ${preview.total_rows === 1 ? 'row' : 'rows'}`}
+          </Button>
+        )}
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 export default function SchemeTemplateDetailPage() {
   const { category_slug, template_id } = useParams();
   const navigate = useNavigate();
@@ -191,6 +395,7 @@ export default function SchemeTemplateDetailPage() {
   const [status, setStatus] = useState(DEFAULT_SCHEME_STATUS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   // Edit and Delete states
   const [editEntry, setEditEntry] = useState(null);
@@ -396,6 +601,13 @@ export default function SchemeTemplateDetailPage() {
     }
   };
 
+  const handleImported = (createdCount) => {
+    setImportDialogOpen(false);
+    setPage(0);
+    fetchEntries();
+    notify(`${createdCount} ${createdCount === 1 ? 'entry' : 'entries'} imported successfully.`, 'success');
+  };
+
   if (!template) {
     return <LinearProgress />;
   }
@@ -422,7 +634,26 @@ export default function SchemeTemplateDetailPage() {
         <CardHeader
           title="Add New Entry"
           slotProps={{ title: { variant: 'h6', sx: { fontWeight: 600, fontSize: '1rem' } } }}
-          sx={{ pb: 2, pt: 3, px: 3, bgcolor: '#fafbfc' }}
+          action={template.field_definitions.length > 0 && (
+            <Button
+              variant="outlined"
+              startIcon={<FileUploadOutlined />}
+              onClick={() => setImportDialogOpen(true)}
+            >
+              Import Excel / PDF
+            </Button>
+          )}
+          sx={{
+            pb: 2,
+            pt: 3,
+            px: 3,
+            bgcolor: '#fafbfc',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'stretch', sm: 'center' },
+            gap: 1.5,
+            '& .MuiCardHeader-action': { m: 0, alignSelf: { xs: 'stretch', sm: 'center' } },
+            '& .MuiCardHeader-action .MuiButton-root': { width: { xs: '100%', sm: 'auto' } },
+          }}
         />
         <Divider />
         <CardContent sx={{ pt: 3 }}>
@@ -496,6 +727,16 @@ export default function SchemeTemplateDetailPage() {
 
         </CardContent>
       </Card>}
+
+      {canAdd && (
+        <ImportEntriesDialog
+          open={importDialogOpen}
+          onClose={() => setImportDialogOpen(false)}
+          template={template}
+          defaultStatus={status}
+          onImported={handleImported}
+        />
+      )}
 
       {/* Existing Entries Card */}
       <Card sx={{ borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', mt: 4 }}>

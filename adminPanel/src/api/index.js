@@ -109,6 +109,16 @@ export const schemeTemplateEntriesAPI = {
   create: (data) => api.post('/scheme-template-entries/', data),
   update: (id, data) => api.patch(`/scheme-template-entries/${id}/`, data),
   delete: (id) => api.delete(`/scheme-template-entries/${id}/`),
+  importFile: (file, templateId, defaultStatus, commit = false) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('template_id', templateId);
+    formData.append('default_status', defaultStatus);
+    formData.append('commit', String(commit));
+    return api.post('/scheme-template-entries/import-file/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 // ─── Scheme Entry Comments API ───

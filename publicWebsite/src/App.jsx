@@ -9,6 +9,7 @@ const PublicNewsPage = lazy(() => import('./pages/PublicNewsPage.jsx'));
 const PublicNewsDetailPage = lazy(() => import('./pages/PublicNewsDetailPage.jsx'));
 const PublicComplaintPage = lazy(() => import('./pages/PublicComplaintPage.jsx'));
 const PublicTeamPage = lazy(() => import('./pages/PublicTeamPage.jsx'));
+const PublicAboutPage = lazy(() => import('./pages/PublicAboutPage.jsx'));
 const PublicSchemesPage = lazy(() => import('./pages/PublicSchemesPage.jsx'));
 const PublicSchemeDetailPage = lazy(() => import('./pages/PublicSchemeDetailPage.jsx'));
 
@@ -21,6 +22,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<PublicSiteLayout />}>
               <Route index element={<PublicLandingPage />} />
+              <Route path="about" element={<PublicAboutPage />} />
               <Route path="team" element={<PublicTeamPage />} />
               <Route path="schemes" element={<PublicSchemesPage />} />
               <Route path="schemes/:id" element={<PublicSchemeDetailPage />} />

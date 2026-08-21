@@ -442,6 +442,7 @@ export default function PublicLandingPage() {
         </Container>
       </Box>
 
+      {false && (
       <Box
         component="section"
         aria-labelledby="office-heading"
@@ -793,6 +794,7 @@ export default function PublicLandingPage() {
           </Box>
         </Container>
       </Box>
+      )}
 
       <Box component="section" aria-labelledby="news-heading" sx={{ py: { xs: 7, md: 11 }, bgcolor: alpha('#176044', 0.045), borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
         <Container>
