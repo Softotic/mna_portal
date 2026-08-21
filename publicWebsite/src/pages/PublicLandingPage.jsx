@@ -323,6 +323,36 @@ export default function PublicLandingPage() {
         </Container>
       </Box>
 
+      <Box component="section" aria-labelledby="news-heading" sx={{ py: { xs: 7, md: 11 }, bgcolor: alpha('#176044', 0.045), borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Container>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'end' }, mb: 4 }}>
+            <Box>
+              <Typography id="news-heading" variant="h2" sx={{ fontSize: { xs: '2.2rem', md: '3.5rem' } }}>Latest from the office</Typography>
+              <Typography color="text.secondary" sx={{ mt: 1.5 }}>Official news, constituency work, and public announcements.</Typography>
+            </Box>
+            <Button component={RouterLink} to="/news" variant="outlined" endIcon={<ArrowForward />}>All news</Button>
+          </Stack>
+
+          {loadError && (
+            <Alert severity="info" sx={{ mb: 3 }}>Live updates are temporarily unavailable. The rest of the public portal remains available.</Alert>
+          )}
+
+          {loading ? (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.35fr 0.65fr' }, gap: 2.5 }}>
+              <Skeleton variant="rounded" height={410} />
+              <Stack spacing={2.5}><Skeleton variant="rounded" height={192} /><Skeleton variant="rounded" height={192} /></Stack>
+            </Box>
+          ) : featuredNews.length > 0 ? (
+            <NewsGrid items={featuredNews.slice(0, 3)} />
+          ) : (
+            <Box sx={{ py: 5, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h5">No featured updates yet</Typography>
+              <Typography color="text.secondary" sx={{ mt: 1 }}>Published stories will appear here when they are marked as featured.</Typography>
+            </Box>
+          )}
+        </Container>
+      </Box>
+
       <Box component="section" aria-labelledby="services-heading" sx={{ py: { xs: 7, md: 11 } }}>
         <Container>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(250px, 0.72fr) minmax(0, 1.28fr)' }, gap: { xs: 4, md: 8 } }}>
@@ -795,36 +825,6 @@ export default function PublicLandingPage() {
         </Container>
       </Box>
       )}
-
-      <Box component="section" aria-labelledby="news-heading" sx={{ py: { xs: 7, md: 11 }, bgcolor: alpha('#176044', 0.045), borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Container>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'end' }, mb: 4 }}>
-            <Box>
-              <Typography id="news-heading" variant="h2" sx={{ fontSize: { xs: '2.2rem', md: '3.5rem' } }}>Latest from the office</Typography>
-              <Typography color="text.secondary" sx={{ mt: 1.5 }}>Official news, constituency work, and public announcements.</Typography>
-            </Box>
-            <Button component={RouterLink} to="/news" variant="outlined" endIcon={<ArrowForward />}>All news</Button>
-          </Stack>
-
-          {loadError && (
-            <Alert severity="info" sx={{ mb: 3 }}>Live updates are temporarily unavailable. The rest of the public portal remains available.</Alert>
-          )}
-
-          {loading ? (
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.35fr 0.65fr' }, gap: 2.5 }}>
-              <Skeleton variant="rounded" height={410} />
-              <Stack spacing={2.5}><Skeleton variant="rounded" height={192} /><Skeleton variant="rounded" height={192} /></Stack>
-            </Box>
-          ) : featuredNews.length > 0 ? (
-            <NewsGrid items={featuredNews.slice(0, 3)} />
-          ) : (
-            <Box sx={{ py: 5, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Typography variant="h5">No featured updates yet</Typography>
-              <Typography color="text.secondary" sx={{ mt: 1 }}>Published stories will appear here when they are marked as featured.</Typography>
-            </Box>
-          )}
-        </Container>
-      </Box>
 
       {feedbacks.length > 0 && (
         <Box component="section" aria-labelledby="feedback-heading" sx={{ py: { xs: 7, md: 11 } }}>
