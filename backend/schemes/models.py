@@ -121,13 +121,6 @@ class SchemeEntry(models.Model):
     template = models.ForeignKey(
         SchemeTemplate, on_delete=models.CASCADE, related_name='entries'
     )
-    union_council = models.ForeignKey(
-        UnionCouncil,
-        on_delete=models.PROTECT,
-        related_name='scheme_entries',
-        null=True,
-        blank=True,
-    )
     values = models.JSONField(default=dict, blank=True)
     status = models.CharField(
         max_length=40,

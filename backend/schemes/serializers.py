@@ -128,19 +128,10 @@ class SchemeEntrySerializer(serializers.ModelSerializer):
         queryset=SchemeTemplate.objects.all(), source='template', write_only=True, required=True
     )
     created_by_name = serializers.CharField(source='created_by.name', read_only=True)
-    union_council_id = serializers.PrimaryKeyRelatedField(
-        queryset=UnionCouncil.objects.all(),
-        source='union_council',
-        required=False,
-        allow_null=True,
-    )
-    union_council_name = serializers.CharField(source='union_council.name', read_only=True)
-
     class Meta:
         model = SchemeEntry
         fields = [
-            'id', 'template', 'template_id', 'template_title', 'union_council_id',
-            'union_council_name', 'values',
+            'id', 'template', 'template_id', 'template_title', 'values',
             'status', 'status_display', 'created_by', 'created_by_name', 'created_at',
         ]
         read_only_fields = [
@@ -148,8 +139,6 @@ class SchemeEntrySerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        if not validated_data.get('union_council'):
-            validated_data['union_council'] = validated_data['template'].union_council
         validated_data['created_by'] = self.context['request'].user
         return super().create(validated_data)
 

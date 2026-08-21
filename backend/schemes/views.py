@@ -145,16 +145,16 @@ class UnionCouncilViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.scheme_entries.exists():
+        if instance.scheme_templates.exists():
             return Response(
-                {'detail': 'This Union Council is used by scheme records and cannot be deleted.'},
+                {'detail': 'This Union Council is assigned to a scheme and cannot be deleted.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
             return super().destroy(request, *args, **kwargs)
         except ProtectedError:
             return Response(
-                {'detail': 'This Union Council is used by scheme records and cannot be deleted.'},
+                {'detail': 'This Union Council is assigned to a scheme and cannot be deleted.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -180,7 +180,7 @@ class SchemeTemplateViewSet(CategoryPermissionMixin, viewsets.ModelViewSet):
 
 class SchemeEntryViewSet(CategoryPermissionMixin, viewsets.ModelViewSet):
     """User-entered scheme data instances for a template."""
-    queryset = SchemeEntry.objects.select_related('template', 'created_by', 'union_council').all()
+    queryset = SchemeEntry.objects.select_related('template', 'created_by').all()
     serializer_class = SchemeEntrySerializer
     permission_classes = [IsAuthenticated, HasModulePermission]
     permission_source = 'entry'
@@ -231,7 +231,6 @@ class SchemeEntryViewSet(CategoryPermissionMixin, viewsets.ModelViewSet):
             entries = [
                 SchemeEntry(
                     template=template,
-                    union_council=template.union_council,
                     values=row['values'],
                     status=row['status'],
                     created_by=request.user,

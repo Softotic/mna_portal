@@ -158,7 +158,7 @@ class UnionCouncilMetadataTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data['name'], 'UC-12')
 
-    def test_scheme_entry_can_reference_union_council(self):
+    def test_union_council_belongs_to_scheme_not_entry(self):
         admin = CustomUser.objects.create_superuser(
             email='uc-scheme-admin@example.com',
             password='test-password',
@@ -181,8 +181,9 @@ class UnionCouncilMetadataTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data['union_council_id'], council.id)
-        self.assertEqual(response.data['union_council_name'], 'UC-20')
+        self.assertNotIn('union_council_id', response.data)
+        self.assertNotIn('union_council_name', response.data)
+        self.assertEqual(template.union_council, council)
 
     def test_scheme_template_can_be_created_with_union_council(self):
         admin = CustomUser.objects.create_superuser(
