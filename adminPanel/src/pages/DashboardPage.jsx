@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createElement, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { alpha } from '@mui/material/styles';
 import { useAuth } from '../auth/AuthContext';
@@ -16,33 +16,52 @@ import {
 } from '@mui/material';
 import {
   AccountTreeOutlined,
-  AdminPanelSettingsOutlined,
+  AccountBalanceWalletOutlined,
   ArrowForward,
-  CheckCircleOutlined,
+  ArrowOutward,
+  CampaignOutlined,
+  DonutLargeOutlined,
   DescriptionOutlined,
   GroupOutlined,
   HourglassEmptyOutlined,
+  InsertChartOutlined,
   NewspaperOutlined,
   PeopleOutlined,
   Refresh,
-  VerifiedOutlined,
+  ReportProblemOutlined,
+  TaskAltOutlined,
 } from '@mui/icons-material';
 import PageHeader from '../components/PageHeader';
-
-const METRICS = [
-  { key: 'total_users', label: 'Total users', icon: PeopleOutlined },
-  { key: 'active_users', label: 'Active users', icon: VerifiedOutlined },
-  { key: 'total_schemes', label: 'Total schemes', icon: DescriptionOutlined },
-  { key: 'pending_schemes', label: 'Pending review', icon: HourglassEmptyOutlined, tone: 'warning' },
-  { key: 'approved_schemes', label: 'Approved schemes', icon: CheckCircleOutlined, tone: 'success' },
-  { key: 'total_roles', label: 'Access roles', icon: AdminPanelSettingsOutlined },
-];
 
 const QUICK_ACTIONS = [
   { label: 'Manage users', description: 'Accounts, roles, and access', path: '/users', icon: GroupOutlined, module: 'USERS' },
   { label: 'Open scheme registers', description: 'Review and maintain scheme data', path: '/categories', icon: AccountTreeOutlined, module: 'CATEGORIES' },
   { label: 'Publish an update', description: 'Create public news and notices', path: '/news-management', icon: NewspaperOutlined },
 ];
+
+const formatNumber = (value) => Number(value || 0).toLocaleString();
+
+function StatCard({ label, value, detail, icon, prefix = '', tone = 'primary', featured = false, loading }) {
+  return (
+    <Card sx={{ height: '100%', minHeight: featured ? 176 : 150, bgcolor: featured ? 'primary.dark' : 'background.paper', color: featured ? 'primary.contrastText' : 'text.primary', borderColor: featured ? 'primary.dark' : 'divider', overflow: 'hidden', position: 'relative' }}>
+      {featured && <Box sx={{ position: 'absolute', width: 160, height: 160, borderRadius: '50%', border: '1px solid', borderColor: alpha('#fff', 0.12), right: -48, bottom: -74 }} />}
+      <CardContent sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+          <Typography variant="body2" sx={{ color: featured ? alpha('#fff', 0.72) : 'text.secondary', fontWeight: 700 }}>{label}</Typography>
+          <Box sx={{ width: 38, height: 38, borderRadius: 2.25, display: 'grid', placeItems: 'center', bgcolor: featured ? alpha('#fff', 0.12) : (theme) => alpha(theme.palette[tone].main, 0.1), color: featured ? '#fff' : `${tone}.main` }}>{createElement(icon, { sx: { fontSize: 20 } })}</Box>
+        </Box>
+        <Box sx={{ mt: 'auto' }}>
+          {loading ? <Skeleton width={85} height={52} sx={{ bgcolor: featured ? alpha('#fff', 0.12) : undefined }} /> : <Typography sx={{ fontSize: featured ? '2.55rem' : '2.1rem', lineHeight: 1, fontWeight: 780, letterSpacing: '-0.05em' }}>{prefix}{formatNumber(value)}</Typography>}
+          <Typography variant="caption" sx={{ display: 'block', mt: 1, color: featured ? alpha('#fff', 0.68) : 'text.secondary' }}>{detail}</Typography>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmptyChart({ message }) {
+  return <Box sx={{ height: 190, display: 'grid', placeItems: 'center', textAlign: 'center', borderRadius: 2.5, bgcolor: 'background.default', px: 3 }}><Box><InsertChartOutlined sx={{ color: 'text.disabled', mb: 0.75 }} /><Typography variant="body2" color="text.secondary">{message}</Typography></Box></Box>;
+}
 
 export default function DashboardPage() {
   const { user, hasPermission } = useAuth();
@@ -83,6 +102,9 @@ export default function DashboardPage() {
       pendingPercent: total ? Math.min(100, Math.round((pending / total) * 100)) : 0,
     };
   }, [stats]);
+  const complaintMix = stats?.complaints || {};
+  const publishing = stats?.publishing || {};
+  const categoryMax = Math.max(...(stats?.categories || []).map((category) => category.scheme_count), 1);
 
   return (
     <Box>
@@ -107,113 +129,39 @@ export default function DashboardPage() {
       )}
 
       <Grid container spacing={2.25}>
-        <Grid size={{ xs: 12, lg: 8 }}>
-          <Grid container spacing={2.25}>
-            {METRICS.map((metric, index) => {
-              const Icon = metric.icon;
-              const featured = index === 2;
-              return (
-                <Grid size={{ xs: 12, sm: 6, md: featured ? 8 : 4 }} key={metric.key}>
-                  <Card
-                    sx={{
-                      height: '100%',
-                      minHeight: featured ? 170 : 142,
-                      bgcolor: featured ? 'primary.dark' : 'background.paper',
-                      color: featured ? 'primary.contrastText' : 'text.primary',
-                      borderColor: featured ? 'primary.dark' : 'divider',
-                      transition: 'transform 180ms cubic-bezier(0.16, 1, 0.3, 1)',
-                      '&:hover': { transform: 'translateY(-2px)' },
-                    }}
-                  >
-                    <CardContent sx={{ p: { xs: 2.25, md: 2.5 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: featured ? alpha('#FFFFFF', 0.78) : 'text.secondary', fontWeight: 650 }}
-                        >
-                          {metric.label}
-                        </Typography>
-                        <Box
-                          sx={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: 2.25,
-                            display: 'grid',
-                            placeItems: 'center',
-                            bgcolor: featured ? alpha('#FFFFFF', 0.12) : (theme) => alpha(theme.palette.primary.main, 0.08),
-                            color: featured ? '#FFFFFF' : metric.tone ? `${metric.tone}.main` : 'primary.main',
-                          }}
-                        >
-                          <Icon sx={{ fontSize: 21 }} />
-                        </Box>
-                      </Box>
-                      <Box sx={{ mt: 'auto' }}>
-                        {loading ? (
-                          <Skeleton
-                            width={featured ? 100 : 70}
-                            height={52}
-                            sx={{ bgcolor: featured ? alpha('#FFFFFF', 0.12) : undefined }}
-                          />
-                        ) : (
-                          <Typography sx={{ fontSize: featured ? '2.5rem' : '2rem', lineHeight: 1, fontWeight: 780, letterSpacing: '-0.035em' }}>
-                            {Number(stats?.[metric.key] ?? 0).toLocaleString()}
-                          </Typography>
-                        )}
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              );
-            })}
-          </Grid>
+        <Grid size={{ xs: 12, md: 6, xl: 3 }}><StatCard label="Total schemes" value={stats?.total_schemes} detail={`${formatNumber(stats?.completed_schemes)} completed & inaugurated`} icon={DescriptionOutlined} featured loading={loading} /></Grid>
+        <Grid size={{ xs: 12, md: 6, xl: 3 }}><StatCard label="Pending review" value={stats?.pending_schemes} detail="Awaiting an approval decision" icon={HourglassEmptyOutlined} tone="warning" loading={loading} /></Grid>
+        <Grid size={{ xs: 12, md: 6, xl: 3 }}><StatCard label="Open complaints" value={complaintMix.open} detail={`${formatNumber(complaintMix.in_progress)} currently in progress`} icon={ReportProblemOutlined} tone="warning" loading={loading} /></Grid>
+        <Grid size={{ xs: 12, md: 6, xl: 3 }}><StatCard label="Budget tracked" value={stats?.total_budget} prefix="PKR " detail="Across every scheme record" icon={AccountBalanceWalletOutlined} loading={loading} /></Grid>
+
+        <Grid size={{ xs: 12, lg: 7 }}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: { xs: 2.25, md: 2.75 } }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={2}><Box><Typography variant="h6">Scheme pipeline</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Live distribution across approval stages.</Typography></Box><DonutLargeOutlined color="primary" /></Stack>
+              {loading ? <Skeleton sx={{ mt: 3 }} height={205} /> : schemeMix.total === 0 ? <Box sx={{ mt: 2.5 }}><EmptyChart message="Add a scheme record to begin tracking the delivery pipeline." /></Box> : <Box sx={{ mt: 3 }}>
+                {[['Approved', schemeMix.approved, 'success.main'], ['Pending review', schemeMix.pending, 'warning.main'], ['Completed', Number(stats?.completed_schemes || 0), 'primary.main']].map(([label, value, color]) => <Box key={label} sx={{ mb: 2.2 }}><Stack direction="row" justifyContent="space-between" sx={{ mb: 0.8 }}><Typography variant="body2" fontWeight={700}>{label}</Typography><Typography variant="body2" color="text.secondary">{formatNumber(value)} <Box component="span" sx={{ color: 'text.disabled' }}>· {Math.round((value / schemeMix.total) * 100)}%</Box></Typography></Stack><Box sx={{ height: 11, borderRadius: 10, bgcolor: 'background.default', overflow: 'hidden' }}><Box sx={{ width: `${(value / schemeMix.total) * 100}%`, minWidth: value ? 10 : 0, height: '100%', borderRadius: 10, bgcolor: color, transition: 'width 700ms cubic-bezier(0.16, 1, 0.3, 1)' }} /></Box></Box>)}
+              </Box>}
+            </CardContent>
+          </Card>
         </Grid>
-
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <Stack spacing={2.25} sx={{ height: '100%' }}>
-            <Card>
-              <CardContent sx={{ p: 2.5 }}>
-                <Typography variant="h6">Scheme overview</Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  Current approval and review distribution.
-                </Typography>
-
-                {loading ? (
-                  <Stack spacing={1.25} sx={{ mt: 3 }}>
-                    <Skeleton height={18} />
-                    <Skeleton width="70%" />
-                    <Skeleton width="55%" />
-                  </Stack>
-                ) : schemeMix.total === 0 ? (
-                  <Box sx={{ mt: 2.5, p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      No scheme records are available yet.
-                    </Typography>
-                  </Box>
-                ) : (
-                  <Box sx={{ mt: 2.5 }}>
-                    <Box
-                      aria-label={`${schemeMix.approvedPercent}% approved and ${schemeMix.pendingPercent}% pending`}
-                      sx={{ display: 'flex', height: 10, overflow: 'hidden', borderRadius: 5, bgcolor: '#E6ECE8' }}
-                    >
-                      <Box sx={{ width: `${schemeMix.approvedPercent}%`, bgcolor: 'success.main' }} />
-                      <Box sx={{ width: `${schemeMix.pendingPercent}%`, bgcolor: 'warning.main' }} />
-                    </Box>
-                    <Stack direction="row" spacing={3} sx={{ mt: 2 }}>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">Approved</Typography>
-                        <Typography variant="h6">{schemeMix.approved.toLocaleString()}</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">Pending</Typography>
-                        <Typography variant="h6">{schemeMix.pending.toLocaleString()}</Typography>
-                      </Box>
-                    </Stack>
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card sx={{ flex: 1 }}>
+        <Grid size={{ xs: 12, lg: 5 }}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: { xs: 2.25, md: 2.75 } }}>
+              <Typography variant="h6">Scheme coverage</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Records by category.</Typography>
+              {loading ? <Skeleton sx={{ mt: 3 }} height={205} /> : !(stats?.categories || []).some((category) => category.scheme_count) ? <Box sx={{ mt: 2.5 }}><EmptyChart message="Category coverage will appear as schemes are added." /></Box> : <Stack spacing={1.75} sx={{ mt: 3 }}>{stats.categories.map((category) => <Box key={category.name}><Stack direction="row" justifyContent="space-between" sx={{ mb: 0.55 }}><Typography variant="caption" fontWeight={700}>{category.name}</Typography><Typography variant="caption" color="text.secondary">{formatNumber(category.scheme_count)}</Typography></Stack><Box sx={{ height: 7, borderRadius: 10, bgcolor: 'background.default' }}><Box sx={{ width: `${(category.scheme_count / categoryMax) * 100}%`, height: '100%', borderRadius: 10, bgcolor: 'secondary.main' }} /></Box></Box>)}</Stack>}
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, lg: 7 }}>
+          <Card>
+            <CardContent sx={{ p: { xs: 2.25, md: 2.75 } }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={2}><Box><Typography variant="h6">Public presence</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>What citizens can currently see on the portal.</Typography></Box><Button size="small" endIcon={<ArrowOutward />} onClick={() => navigate('/news-management')}>Manage content</Button></Stack>
+              <Grid container spacing={1.5} sx={{ mt: 1.5 }}>{[[publishing.news_published, 'Published updates', NewspaperOutlined, 'primary.main'], [publishing.feedback_published, 'Published feedback', CampaignOutlined, 'secondary.main'], [publishing.team_published, 'Team profiles live', GroupOutlined, 'success.main'], [publishing.portfolio_ongoing, 'Ongoing portfolio', TaskAltOutlined, 'warning.main']].map(([value, label, icon, color]) => <Grid size={{ xs: 6, sm: 3 }} key={label}><Box sx={{ p: 1.6, height: '100%', borderRadius: 2.25, bgcolor: 'background.default' }}>{createElement(icon, { sx: { color, fontSize: 20 } })}<Typography sx={{ fontSize: '1.5rem', fontWeight: 760, mt: 1 }}>{loading ? '–' : formatNumber(value)}</Typography><Typography variant="caption" color="text.secondary">{label}</Typography></Box></Grid>)}</Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, lg: 5 }}>
+          <Card sx={{ height: '100%' }}>
               <CardContent sx={{ p: 2.5 }}>
                 <Typography variant="h6">Quick actions</Typography>
                 <Stack spacing={0.5} sx={{ mt: 1.5 }}>
@@ -256,7 +204,6 @@ export default function DashboardPage() {
                 </Stack>
               </CardContent>
             </Card>
-          </Stack>
         </Grid>
       </Grid>
     </Box>
