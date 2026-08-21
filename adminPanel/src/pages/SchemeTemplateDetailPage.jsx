@@ -404,8 +404,12 @@ export default function SchemeTemplateDetailPage() {
                         sx={{
                           cursor: 'pointer',
                           bgcolor: statusMeta.rowBackgroundColor,
-                          '&:hover': { bgcolor: statusMeta.rowHoverColor },
-                          '& td': { py: 1.5, px: 2 },
+                          '& td': {
+                            py: 1.5,
+                            px: 2,
+                            bgcolor: statusMeta.rowBackgroundColor,
+                          },
+                          '&:hover td': { bgcolor: statusMeta.rowHoverColor },
                         }}
                         onClick={() => handleEntryClick(entry)}
                       >
