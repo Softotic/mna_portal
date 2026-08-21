@@ -42,7 +42,7 @@ import {
   Search,
   Send,
 } from '@mui/icons-material';
-import { schemeTemplatesAPI, schemeTemplateEntriesAPI, schemeEntryCommentsAPI } from '../api';
+import { schemeTemplatesAPI, schemeTemplateEntriesAPI, schemeEntryCommentsAPI, unionCouncilsAPI } from '../api';
 import { useAuth } from '../auth/AuthContext';
 import AdminTablePagination from '../components/AdminTablePagination';
 import SchemeStatusChip from '../components/SchemeStatusChip';
@@ -388,11 +388,15 @@ export default function SchemeTemplateDetailPage() {
   const { hasPermission } = useAuth();
   const { notify } = useAdminFeedback();
   const canAdd = hasPermission(category_slug ? category_slug.toUpperCase() : 'SCHEMES', 'create');
+  const canEdit = hasPermission(category_slug ? category_slug.toUpperCase() : 'SCHEMES', 'edit');
+  const canDelete = hasPermission(category_slug ? category_slug.toUpperCase() : 'SCHEMES', 'delete');
 
   const [template, setTemplate] = useState(null);
   const [entries, setEntries] = useState([]);
   const [values, setValues] = useState({});
   const [status, setStatus] = useState(DEFAULT_SCHEME_STATUS);
+  const [unionCouncils, setUnionCouncils] = useState([]);
+  const [unionCouncilId, setUnionCouncilId] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -401,6 +405,7 @@ export default function SchemeTemplateDetailPage() {
   const [editEntry, setEditEntry] = useState(null);
   const [editValues, setEditValues] = useState({});
   const [editStatus, setEditStatus] = useState(DEFAULT_SCHEME_STATUS);
+  const [editUnionCouncilId, setEditUnionCouncilId] = useState('');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteEntryId, setDeleteEntryId] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -437,6 +442,9 @@ export default function SchemeTemplateDetailPage() {
   useEffect(() => {
     fetchTemplate();
     fetchEntries();
+    unionCouncilsAPI.list()
+      .then((response) => setUnionCouncils(response.data.results || response.data))
+      .catch(() => setUnionCouncils([]));
   }, [fetchEntries, fetchTemplate]);
 
   useEffect(() => {
@@ -446,6 +454,7 @@ export default function SchemeTemplateDetailPage() {
         initialValues[field] = values[field] ?? '';
       });
       setValues(initialValues);
+      setUnionCouncilId(template.union_council_id || '');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template]);
@@ -462,6 +471,7 @@ export default function SchemeTemplateDetailPage() {
     setEditEntry(entry);
     setEditValues(entry.values || {});
     setEditStatus(entry.status || DEFAULT_SCHEME_STATUS);
+    setEditUnionCouncilId(entry.union_council_id || '');
     setEditDialogOpen(true);
   };
 
@@ -473,6 +483,7 @@ export default function SchemeTemplateDetailPage() {
     try {
       await schemeTemplateEntriesAPI.update(editEntry.id, {
         template_id: template.id,
+        union_council_id: editUnionCouncilId || null,
         values: editValues,
         status: editStatus,
       });
@@ -558,6 +569,7 @@ export default function SchemeTemplateDetailPage() {
 
     if (!searchQuery.trim()) return true;
     const searchLower = searchQuery.toLowerCase();
+    if (entry.union_council_name?.toLowerCase().includes(searchLower)) return true;
     
     // Search in all field values
     for (const field of template?.field_definitions || []) {
@@ -588,11 +600,13 @@ export default function SchemeTemplateDetailPage() {
     try {
       await schemeTemplateEntriesAPI.create({
         template_id: template.id,
+        union_council_id: unionCouncilId || null,
         values,
         status,
       });
       setValues(Object.fromEntries(Object.keys(values).map((key) => [key, ''])));
       setStatus(DEFAULT_SCHEME_STATUS);
+      setUnionCouncilId('');
       fetchEntries();
     } catch (err) {
       notify(err.response?.data?.detail || 'Unable to save the scheme entry.', 'error');
@@ -624,7 +638,7 @@ export default function SchemeTemplateDetailPage() {
             {template.title}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {template.category_name}
+            {template.category_name}{template.union_council_name ? ` · ${template.union_council_name}` : ''}
           </Typography>
         </Box>
       </Box>
@@ -689,6 +703,19 @@ export default function SchemeTemplateDetailPage() {
                     </MenuItem>
                   ))}
                 </TextField>
+                <TextField
+                  select
+                  label="Union Council"
+                  value={unionCouncilId}
+                  onChange={(event) => setUnionCouncilId(event.target.value)}
+                  fullWidth
+                  size="small"
+                  required={unionCouncils.length > 0}
+                  helperText={unionCouncils.length ? 'Select where this scheme belongs.' : 'Add Union Council metadata to enable this field.'}
+                >
+                  <MenuItem value=""><em>Not assigned</em></MenuItem>
+                  {unionCouncils.map((council) => <MenuItem key={council.id} value={council.id}>{council.name}</MenuItem>)}
+                </TextField>
                 {template.field_definitions.map((field) => (
                   <TextField
                     key={field}
@@ -714,6 +741,7 @@ export default function SchemeTemplateDetailPage() {
                   onClick={() => {
                     setValues(Object.fromEntries(Object.keys(values).map((key) => [key, ''])));
                     setStatus(DEFAULT_SCHEME_STATUS);
+                    setUnionCouncilId('');
                   }}
                 >
                   Clear
@@ -794,6 +822,7 @@ export default function SchemeTemplateDetailPage() {
                 <TableHead>
                   <TableRow sx={{ bgcolor: '#fafbfc', '& th': { fontWeight: 600, fontSize: '0.875rem', color: '#4a4a4a' } }}>
                     <TableCell sx={{ fontWeight: 600 }}>#</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Union Council</TableCell>
                     {template.field_definitions.map((field) => (
                       <TableCell key={field} sx={{ fontWeight: 600 }}>{field}</TableCell>
                     ))}
@@ -803,7 +832,7 @@ export default function SchemeTemplateDetailPage() {
                 <TableBody>
                   {filteredEntries.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={template.field_definitions.length + 2} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={template.field_definitions.length + 3} align="center" sx={{ py: 4 }}>
                         <Typography color="text.secondary" variant="body2">
                           {selectedStatuses.length === 0
                             ? 'Select at least one status to show entries.'
@@ -833,16 +862,17 @@ export default function SchemeTemplateDetailPage() {
                         onClick={() => handleEntryClick(entry)}
                       >
                         <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>{currentPage * rowsPerPage + idx + 1}</TableCell>
+                        <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600 }}>{entry.union_council_name || '—'}</TableCell>
                         {template.field_definitions.map((field) => (
                           <TableCell key={field} sx={{ fontSize: '0.875rem' }}>{entry.values?.[field] || '-'}</TableCell>
                         ))}
                         <TableCell sx={{ textAlign: 'center' }}>
-                          <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); handleEditEntry(entry); }} title="Edit">
+                          {canEdit && <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); handleEditEntry(entry); }} title="Edit">
                             <Edit fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDeleteEntry(entry.id); }} title="Delete">
+                          </IconButton>}
+                          {canDelete && <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDeleteEntry(entry.id); }} title="Delete">
                             <Delete fontSize="small" />
-                          </IconButton>
+                          </IconButton>}
                         </TableCell>
                       </TableRow>
                     );
@@ -884,6 +914,17 @@ export default function SchemeTemplateDetailPage() {
                     {option.label}
                   </MenuItem>
                 ))}
+              </TextField>
+              <TextField
+                select
+                label="Union Council"
+                value={editUnionCouncilId}
+                onChange={(event) => setEditUnionCouncilId(event.target.value)}
+                fullWidth
+                size="small"
+              >
+                <MenuItem value=""><em>Not assigned</em></MenuItem>
+                {unionCouncils.map((council) => <MenuItem key={council.id} value={council.id}>{council.name}</MenuItem>)}
               </TextField>
               {template?.field_definitions.map((field) => (
                 <TextField
@@ -1000,6 +1041,7 @@ export default function SchemeTemplateDetailPage() {
                   bgcolor: 'divider',
                 }}
               >
+                <EntryDetailField label="Union Council" value={selectedEntry.union_council_name} />
                 {template?.field_definitions.map((field) => (
                   <EntryDetailField key={field} label={field} value={selectedEntry.values?.[field]} />
                 ))}

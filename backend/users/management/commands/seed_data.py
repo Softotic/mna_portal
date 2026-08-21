@@ -14,6 +14,7 @@ class Command(BaseCommand):
             {'name': 'Users Management', 'key': 'USERS'},
             {'name': 'Roles Management', 'key': 'ROLES'},
             {'name': 'Categories', 'key': 'CATEGORIES'},
+            {'name': 'Union Councils', 'key': 'UNION_COUNCILS'},
             {'name': 'Settings', 'key': 'SETTINGS'},
             {'name': 'News Management', 'key': 'NEWS'},
             {'name': 'Feedback Management', 'key': 'FEEDBACK'},

@@ -7,9 +7,9 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 from openpyxl import Workbook
 
-from users.models import CustomUser
+from users.models import CustomUser, Module, Role, RolePermission
 
-from .models import Scheme, SchemeCategory, SchemeEntry, SchemeTemplate
+from .models import Scheme, SchemeCategory, SchemeEntry, SchemeTemplate, UnionCouncil
 from .views import SchemeCategoryViewSet
 
 
@@ -129,6 +129,85 @@ class SchemeEntryStatusTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn('status', response.data)
+
+
+class UnionCouncilMetadataTests(TestCase):
+    def setUp(self):
+        self.role = Role.objects.create(name='Union Council Editor')
+        self.user = CustomUser.objects.create_user(
+            email='uc-editor@example.com',
+            password='test-password',
+            name='UC Editor',
+            role=self.role,
+        )
+        module = Module.objects.get(key='UNION_COUNCILS')
+        RolePermission.objects.create(
+            role=self.role,
+            module=module,
+            can_view=True,
+            can_create=True,
+            can_edit=True,
+            can_delete=True,
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(self.user)
+
+    def test_union_council_is_simple_name_metadata(self):
+        response = self.client.post('/api/union-councils/', {'name': 'UC-12'}, format='json')
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['name'], 'UC-12')
+
+    def test_scheme_entry_can_reference_union_council(self):
+        admin = CustomUser.objects.create_superuser(
+            email='uc-scheme-admin@example.com',
+            password='test-password',
+            name='UC Scheme Admin',
+        )
+        category = SchemeCategory.objects.create(name='UC Schemes')
+        council = UnionCouncil.objects.create(name='UC-20')
+        template = SchemeTemplate.objects.create(
+            title='UC Register',
+            category=category,
+            union_council=council,
+            created_by=admin,
+        )
+        self.client.force_authenticate(admin)
+
+        response = self.client.post(
+            '/api/scheme-template-entries/',
+            {'template_id': template.id, 'values': {}},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['union_council_id'], council.id)
+        self.assertEqual(response.data['union_council_name'], 'UC-20')
+
+    def test_scheme_template_can_be_created_with_union_council(self):
+        admin = CustomUser.objects.create_superuser(
+            email='uc-template-admin@example.com',
+            password='test-password',
+            name='UC Template Admin',
+        )
+        category = SchemeCategory.objects.create(name='Education UC')
+        council = UnionCouncil.objects.create(name='UC-30')
+        self.client.force_authenticate(admin)
+
+        response = self.client.post(
+            '/api/scheme-templates/',
+            {
+                'title': 'Education Works',
+                'category_slug': category.slug,
+                'union_council_id': council.id,
+                'field_definitions': ['Name'],
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['union_council_id'], council.id)
+        self.assertEqual(response.data['union_council_name'], 'UC-30')
 
 
 class SchemeEntryImportTests(TestCase):

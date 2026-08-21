@@ -33,6 +33,20 @@ class SchemeCategory(models.Model):
         return self.name
 
 
+class UnionCouncil(models.Model):
+    """Reusable Union Council name metadata for scheme records."""
+
+    name = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Scheme(models.Model):
     """Scheme managed by MNA."""
     STATUS_CHOICES = [
@@ -68,6 +82,13 @@ class SchemeTemplate(models.Model):
     category = models.ForeignKey(
         SchemeCategory, on_delete=models.PROTECT, related_name='templates'
     )
+    union_council = models.ForeignKey(
+        UnionCouncil,
+        on_delete=models.PROTECT,
+        related_name='scheme_templates',
+        null=True,
+        blank=True,
+    )
     field_definitions = models.JSONField(default=list, blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
@@ -99,6 +120,13 @@ class SchemeEntry(models.Model):
 
     template = models.ForeignKey(
         SchemeTemplate, on_delete=models.CASCADE, related_name='entries'
+    )
+    union_council = models.ForeignKey(
+        UnionCouncil,
+        on_delete=models.PROTECT,
+        related_name='scheme_entries',
+        null=True,
+        blank=True,
     )
     values = models.JSONField(default=dict, blank=True)
     status = models.CharField(

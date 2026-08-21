@@ -21,7 +21,7 @@ import {
   DialogContentText,
 } from '@mui/material';
 import { Add, Edit, Delete, Search } from '@mui/icons-material';
-import { schemeCategoriesAPI, schemeTemplatesAPI } from '../api';
+import { schemeCategoriesAPI, schemeTemplatesAPI, unionCouncilsAPI } from '../api';
 import { useAuth } from '../auth/AuthContext';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import AdminTablePagination from '../components/AdminTablePagination';
@@ -43,6 +43,7 @@ export default function SchemesPage() {
 
   const [templates, setTemplates] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [unionCouncils, setUnionCouncils] = useState([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -51,7 +52,7 @@ export default function SchemesPage() {
 
   const [open, setOpen] = useState(false);
   const [editTemplate, setEditTemplate] = useState(null);
-  const [formData, setFormData] = useState({ title: '', category_slug: category_slug || '', field_definitions: [''] });
+  const [formData, setFormData] = useState({ title: '', category_slug: category_slug || '', union_council_id: '', field_definitions: [''] });
 
   const [deleteId, setDeleteId] = useState(null);
 
@@ -77,9 +78,22 @@ export default function SchemesPage() {
     schemeCategoriesAPI.list().then(res => setCategories(res.data));
   }, []);
 
+  const fetchUnionCouncils = useCallback(async () => {
+    try {
+      const response = await unionCouncilsAPI.list();
+      setUnionCouncils(response.data.results || response.data);
+    } catch (error) {
+      notify(error.response?.data?.detail || 'Unable to load Union Councils.', 'error');
+      setUnionCouncils([]);
+    }
+  }, [notify]);
+
   useEffect(() => {
-    if (canView) fetchCategories();
-  }, [canView, fetchCategories]);
+    if (canView) {
+      fetchCategories();
+      fetchUnionCouncils();
+    }
+  }, [canView, fetchCategories, fetchUnionCouncils]);
 
   useEffect(() => {
     if (canView) fetchTemplates();
@@ -95,11 +109,12 @@ export default function SchemesPage() {
       setFormData({
         title: template.title,
         category_slug: template.category_slug,
+        union_council_id: template.union_council_id || '',
         field_definitions: template.field_definitions.length ? template.field_definitions : [''],
       });
     } else {
       setEditTemplate(null);
-      setFormData({ title: '', category_slug: category_slug || '', field_definitions: [''] });
+      setFormData({ title: '', category_slug: category_slug || '', union_council_id: '', field_definitions: [''] });
     }
     setOpen(true);
   };
@@ -139,6 +154,7 @@ export default function SchemesPage() {
     const payload = {
       title: formData.title,
       category_slug: formData.category_slug || category_slug,
+      union_council_id: formData.union_council_id,
       field_definitions: formData.field_definitions.filter((field) => field.trim()),
     };
 
@@ -201,6 +217,7 @@ export default function SchemesPage() {
                 <TableCell sx={{ fontWeight: 700 }}>#</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Scheme Title</TableCell>
                 {!category_slug && <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>}
+                <TableCell sx={{ fontWeight: 700 }}>Union Council</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Fields</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
               </TableRow>
@@ -219,6 +236,7 @@ export default function SchemesPage() {
                     </Typography>
                   </TableCell>
                   {!category_slug && <TableCell>{template.category_name}</TableCell>}
+                  <TableCell>{template.union_council_name || '—'}</TableCell>
                   <TableCell>{template.field_definitions?.length || 0}</TableCell>
                   <TableCell align="right">
                     {canEdit && (
@@ -236,7 +254,7 @@ export default function SchemesPage() {
               ))}
               {!loading && templates.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={category_slug ? 4 : 5} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={category_slug ? 5 : 6} align="center" sx={{ py: 4 }}>
                     <Typography color="text.secondary">No scheme templates found</Typography>
                   </TableCell>
                 </TableRow>
@@ -280,6 +298,19 @@ export default function SchemesPage() {
                   ))}
                 </TextField>
               )}
+              <TextField
+                select
+                label="Union Council"
+                value={formData.union_council_id}
+                onChange={(e) => setFormData({ ...formData, union_council_id: e.target.value })}
+                required
+                disabled={unionCouncils.length === 0}
+                helperText={unionCouncils.length ? 'Select the Union Council for this scheme.' : 'Add a Union Council from the metadata page first.'}
+              >
+                {unionCouncils.map((council) => (
+                  <MenuItem key={council.id} value={council.id}>{council.name}</MenuItem>
+                ))}
+              </TextField>
 
               <Box>
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>Fields</Typography>

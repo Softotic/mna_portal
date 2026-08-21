@@ -29,7 +29,7 @@ class RoleAdministrationBoundaryTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         keys = {module['key'] for module in response.data}
-        self.assertTrue({'NEWS', 'FEEDBACK', 'TEAM', 'PORTFOLIO', 'COMPLAINTS'} <= keys)
+        self.assertTrue({'NEWS', 'FEEDBACK', 'TEAM', 'PORTFOLIO', 'COMPLAINTS', 'UNION_COUNCILS'} <= keys)
         self.assertTrue({'USERS', 'ROLES', 'SETTINGS'}.isdisjoint(keys))
 
     def test_non_admin_cannot_access_users_or_roles_even_with_forged_permissions(self):

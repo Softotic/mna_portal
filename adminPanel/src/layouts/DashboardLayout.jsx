@@ -33,6 +33,7 @@ import {
   ForumOutlined,
   GroupOutlined,
   LanguageOutlined,
+  LocationCityOutlined,
   LogoutOutlined,
   Menu as MenuIcon,
   NewspaperOutlined,
@@ -49,6 +50,7 @@ const NAV_GROUPS = [
     items: [
       { text: 'Dashboard', icon: DashboardOutlined, path: '/dashboard' },
       { text: 'Categories', icon: CategoryOutlined, path: '/categories', module: 'CATEGORIES', action: 'view' },
+      { text: 'Union Councils', icon: LocationCityOutlined, path: '/union-councils', module: 'UNION_COUNCILS', action: 'view' },
     ],
   },
   {

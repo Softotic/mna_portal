@@ -136,6 +136,13 @@ export const schemeCategoriesAPI = {
   delete: (id) => api.delete(`/scheme-categories/${id}/`),
 };
 
+export const unionCouncilsAPI = {
+  list: (params) => api.get('/union-councils/', { params }),
+  create: (data) => api.post('/union-councils/', data),
+  update: (id, data) => api.patch(`/union-councils/${id}/`, data),
+  delete: (id) => api.delete(`/union-councils/${id}/`),
+};
+
 // ─── Public Site Settings API ───
 export const publicSettingsAPI = {
   current: () => api.get('/public/settings/current/'),

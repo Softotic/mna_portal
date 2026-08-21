@@ -2,7 +2,7 @@
 Schemes app serializers.
 """
 from rest_framework import serializers
-from .models import Scheme, SchemeCategory, SchemeTemplate, SchemeEntry, SchemeEntryComment
+from .models import Scheme, SchemeCategory, SchemeTemplate, SchemeEntry, SchemeEntryComment, UnionCouncil
 from users.serializers import UserSerializer
 
 
@@ -16,6 +16,22 @@ class SchemeCategorySerializer(serializers.ModelSerializer):
 
     def get_scheme_count(self, obj):
         return obj.schemes.count()
+
+
+class UnionCouncilSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UnionCouncil
+        fields = ['id', 'name', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate_name(self, value):
+        value = value.strip()
+        queryset = UnionCouncil.objects.filter(name__iexact=value)
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        if queryset.exists():
+            raise serializers.ValidationError('A Union Council with this name already exists.')
+        return value
 
 
 class SchemeSerializer(serializers.ModelSerializer):
@@ -66,10 +82,21 @@ class SchemeTemplateSerializer(serializers.ModelSerializer):
     category_slug = serializers.SlugRelatedField(
         queryset=SchemeCategory.objects.all(), source='category', slug_field='slug', required=True
     )
+    union_council_id = serializers.PrimaryKeyRelatedField(
+        queryset=UnionCouncil.objects.all(),
+        source='union_council',
+        required=False,
+        allow_null=True,
+    )
+    union_council_name = serializers.CharField(source='union_council.name', read_only=True)
 
     class Meta:
         model = SchemeTemplate
-        fields = ['id', 'title', 'category', 'category_name', 'category_slug', 'field_definitions', 'created_by', 'created_at', 'updated_at']
+        fields = [
+            'id', 'title', 'category', 'category_name', 'category_slug',
+            'union_council_id', 'union_council_name', 'field_definitions',
+            'created_by', 'created_at', 'updated_at',
+        ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at', 'category']
 
     def to_internal_value(self, data):
@@ -101,11 +128,19 @@ class SchemeEntrySerializer(serializers.ModelSerializer):
         queryset=SchemeTemplate.objects.all(), source='template', write_only=True, required=True
     )
     created_by_name = serializers.CharField(source='created_by.name', read_only=True)
+    union_council_id = serializers.PrimaryKeyRelatedField(
+        queryset=UnionCouncil.objects.all(),
+        source='union_council',
+        required=False,
+        allow_null=True,
+    )
+    union_council_name = serializers.CharField(source='union_council.name', read_only=True)
 
     class Meta:
         model = SchemeEntry
         fields = [
-            'id', 'template', 'template_id', 'template_title', 'values',
+            'id', 'template', 'template_id', 'template_title', 'union_council_id',
+            'union_council_name', 'values',
             'status', 'status_display', 'created_by', 'created_by_name', 'created_at',
         ]
         read_only_fields = [
@@ -113,6 +148,8 @@ class SchemeEntrySerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
+        if not validated_data.get('union_council'):
+            validated_data['union_council'] = validated_data['template'].union_council
         validated_data['created_by'] = self.context['request'].user
         return super().create(validated_data)
 

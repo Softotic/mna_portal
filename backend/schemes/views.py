@@ -11,10 +11,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models.deletion import ProtectedError
 from rest_framework.filters import SearchFilter, OrderingFilter
 
-from .models import SchemeCategory, Scheme, SchemeTemplate, SchemeEntry, SchemeEntryComment
+from .models import SchemeCategory, Scheme, SchemeTemplate, SchemeEntry, SchemeEntryComment, UnionCouncil
 from .serializers import (
     SchemeCategorySerializer, SchemeSerializer,
-    SchemeTemplateSerializer, SchemeEntrySerializer, SchemeEntryCommentSerializer,
+    SchemeTemplateSerializer, SchemeEntrySerializer, SchemeEntryCommentSerializer, UnionCouncilSerializer,
 )
 from users.permissions import HasModulePermission
 from .importers import SchemeImportError, parse_scheme_import
@@ -130,9 +130,38 @@ class SchemeCategoryViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
 
+class UnionCouncilViewSet(viewsets.ModelViewSet):
+    """CRUD for simple Union Council name metadata."""
+
+    queryset = UnionCouncil.objects.all()
+    serializer_class = UnionCouncilSerializer
+    permission_classes = [IsAuthenticated, HasModulePermission]
+    module_key = 'UNION_COUNCILS'
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['name']
+    ordering_fields = ['name', 'created_at']
+    ordering = ['name']
+    pagination_class = None
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.scheme_entries.exists():
+            return Response(
+                {'detail': 'This Union Council is used by scheme records and cannot be deleted.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {'detail': 'This Union Council is used by scheme records and cannot be deleted.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
 class SchemeTemplateViewSet(CategoryPermissionMixin, viewsets.ModelViewSet):
     """CRUD for scheme templates with user-defined fields."""
-    queryset = SchemeTemplate.objects.select_related('category', 'created_by').all()
+    queryset = SchemeTemplate.objects.select_related('category', 'created_by', 'union_council').all()
     serializer_class = SchemeTemplateSerializer
     permission_classes = [IsAuthenticated, HasModulePermission]
     permission_source = 'template'
@@ -151,7 +180,7 @@ class SchemeTemplateViewSet(CategoryPermissionMixin, viewsets.ModelViewSet):
 
 class SchemeEntryViewSet(CategoryPermissionMixin, viewsets.ModelViewSet):
     """User-entered scheme data instances for a template."""
-    queryset = SchemeEntry.objects.select_related('template', 'created_by').all()
+    queryset = SchemeEntry.objects.select_related('template', 'created_by', 'union_council').all()
     serializer_class = SchemeEntrySerializer
     permission_classes = [IsAuthenticated, HasModulePermission]
     permission_source = 'entry'
@@ -202,6 +231,7 @@ class SchemeEntryViewSet(CategoryPermissionMixin, viewsets.ModelViewSet):
             entries = [
                 SchemeEntry(
                     template=template,
+                    union_council=template.union_council,
                     values=row['values'],
                     status=row['status'],
                     created_by=request.user,

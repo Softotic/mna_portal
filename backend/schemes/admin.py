@@ -1,6 +1,8 @@
 """Schemes app admin configuration."""
 from django.contrib import admin
-from .models import SchemeCategory, Scheme
+from .models import SchemeCategory, Scheme, UnionCouncil
+
+admin.site.register(UnionCouncil)
 
 @admin.register(SchemeCategory)
 class SchemeCategoryAdmin(admin.ModelAdmin):

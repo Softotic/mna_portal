@@ -14,6 +14,7 @@ const UsersPage = lazy(() => import('./pages/UsersPage'));
 const SchemesPage = lazy(() => import('./pages/SchemesPage'));
 const RolesPage = lazy(() => import('./pages/RolesPage'));
 const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
+const UnionCouncilsPage = lazy(() => import('./pages/UnionCouncilsPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const SchemeTemplateDetailPage = lazy(() => import('./pages/SchemeTemplateDetailPage'));
 const PublicWebsiteSettingsPage = lazy(() => import('./pages/PublicWebsiteSettingsPage'));
@@ -95,6 +96,10 @@ function App() {
                     <CategoriesPage />
                   </ProtectedRoute>
                 } 
+              />
+              <Route
+                path="union-councils"
+                element={<ProtectedRoute module="UNION_COUNCILS" action="view"><UnionCouncilsPage /></ProtectedRoute>}
               />
               <Route path="settings" element={<ProtectedRoute module="SETTINGS" action="view"><SettingsPage /></ProtectedRoute>} />
               
