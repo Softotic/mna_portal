@@ -67,6 +67,70 @@ function EntryDetailField({ label, value }) {
   );
 }
 
+function SchemeStatusLegend() {
+  return (
+    <Box
+      component="section"
+      aria-labelledby="scheme-status-legend-title"
+      sx={{
+        display: 'flex',
+        alignItems: { xs: 'flex-start', md: 'center' },
+        flexDirection: { xs: 'column', md: 'row' },
+        gap: { xs: 1, md: 2 },
+        px: 3,
+        py: 1.5,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+      }}
+    >
+      <Typography
+        id="scheme-status-legend-title"
+        variant="caption"
+        sx={{ flexShrink: 0, color: 'text.secondary', fontWeight: 700 }}
+      >
+        Row colors
+      </Typography>
+      <Box
+        component="ul"
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: { xs: 1.25, sm: 2 },
+          m: 0,
+          p: 0,
+          listStyle: 'none',
+        }}
+      >
+        {SCHEME_STATUS_OPTIONS.map((option) => (
+          <Box
+            component="li"
+            key={option.value}
+            sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}
+          >
+            <Box
+              component="span"
+              aria-hidden="true"
+              sx={{
+                width: 14,
+                height: 14,
+                flexShrink: 0,
+                borderRadius: '3px',
+                bgcolor: option.rowBackgroundColor,
+                border: `1px solid ${option.color}80`,
+              }}
+            />
+            <Typography variant="caption" sx={{ color: 'text.primary', fontWeight: 600 }}>
+              {option.label}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
 export default function SchemeTemplateDetailPage() {
   const { category_slug, template_id } = useParams();
   const navigate = useNavigate();
@@ -376,7 +440,19 @@ export default function SchemeTemplateDetailPage() {
         <CardHeader
           title="Existing Entries"
           slotProps={{ title: { variant: 'h6', sx: { fontWeight: 600, fontSize: '1rem' } } }}
-          sx={{ pb: 2, pt: 3, px: 3, bgcolor: '#fafbfc' }}
+          sx={{
+            pb: 2,
+            pt: 3,
+            px: 3,
+            bgcolor: '#fafbfc',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'stretch', sm: 'center' },
+            gap: { xs: 1.5, sm: 2 },
+            '& .MuiCardHeader-action': {
+              width: { xs: '100%', sm: 'auto' },
+              m: 0,
+            },
+          }}
           action={entries.length > 0 && (
             <TextField
               placeholder="Search entries..."
@@ -391,11 +467,12 @@ export default function SchemeTemplateDetailPage() {
               }}
               variant="outlined"
               size="small"
-              sx={{ width: '280px', mr: 0 }}
+              sx={{ width: { xs: '100%', sm: '280px' }, mr: 0 }}
             />
           )}
         />
         <Divider />
+        {entries.length > 0 && <SchemeStatusLegend />}
         <CardContent sx={{ pt: 0 }}>
           {loading ? (
             <Box sx={{ py: 4 }}><LinearProgress /></Box>
