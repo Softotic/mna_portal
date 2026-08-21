@@ -229,13 +229,6 @@ const toFormData = (data) => {
   return formData;
 };
 
-export const portfolioUcsAPI = {
-  list: (params) => api.get('/public/portfolio/union-councils/', { params }),
-  create: (data) => api.post('/public/portfolio/union-councils/', data),
-  update: (id, data) => api.patch(`/public/portfolio/union-councils/${id}/`, data),
-  delete: (id) => api.delete(`/public/portfolio/union-councils/${id}/`),
-};
-
 export const portfolioCategoriesAPI = {
   list: (params) => api.get('/public/portfolio/categories/', { params }),
   create: (data) => api.post('/public/portfolio/categories/', data),

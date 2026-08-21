@@ -11,12 +11,12 @@ from .models import (
     ComplaintUpdate,
     CitizenFeedback,
     TeamMember,
-    PortfolioUnionCouncil,
     PortfolioCategory,
     PortfolioScheme,
     PortfolioSchemeImage,
     NewsImage,
 )
+from schemes.models import UnionCouncil
 
 
 class SafeFileUrlField(serializers.FileField):
@@ -134,15 +134,15 @@ class PortfolioUnionCouncilSerializer(serializers.ModelSerializer):
     scheme_count = serializers.SerializerMethodField()
 
     class Meta:
-        model = PortfolioUnionCouncil
-        fields = ['id', 'name', 'description', 'sort_order', 'category_count', 'scheme_count', 'created_at', 'updated_at']
+        model = UnionCouncil
+        fields = ['id', 'name', 'category_count', 'scheme_count', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
 
     def get_category_count(self, obj):
-        return obj.categories.count()
+        return obj.portfolio_categories.count()
 
     def get_scheme_count(self, obj):
-        return obj.schemes.count()
+        return obj.portfolio_schemes.count()
 
 
 class PortfolioCategorySerializer(serializers.ModelSerializer):

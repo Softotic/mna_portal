@@ -27,12 +27,11 @@ import {
   Typography,
 } from '@mui/material';
 import { Add, Delete, Edit, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
-import { portfolioCategoriesAPI, portfolioSchemesAPI, portfolioUcsAPI } from '../api/index.js';
+import { portfolioCategoriesAPI, portfolioSchemesAPI, unionCouncilsAPI } from '../api/index.js';
 import AdminTablePagination from '../components/AdminTablePagination.jsx';
 import { useAdminFeedback } from '../feedback/AdminFeedbackContext.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 
-const emptyUc = { name: '', description: '' };
 const emptyCategory = { union_council: '', name: '', description: '' };
 const emptyScheme = {
   union_council: '',
@@ -76,7 +75,7 @@ export default function PortfolioSchemesManagementPage() {
   const [schemes, setSchemes] = useState([]);
   const [dialog, setDialog] = useState(null);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(emptyUc);
+  const [form, setForm] = useState(emptyCategory);
 
   const orderedUcs = useMemo(() => ordered(ucs), [ucs]);
   const orderedCategories = useMemo(() => ordered(categories), [categories]);
@@ -86,7 +85,7 @@ export default function PortfolioSchemesManagementPage() {
     setLoading(true);
     try {
       const [ucResponse, categoryResponse, schemeResponse] = await Promise.all([
-        portfolioUcsAPI.list({ ordering: 'sort_order' }),
+        unionCouncilsAPI.list({ ordering: 'name' }),
         portfolioCategoriesAPI.list({ ordering: 'sort_order' }),
         portfolioSchemesAPI.list({ ordering: 'sort_order' }),
       ]);
@@ -108,7 +107,6 @@ export default function PortfolioSchemesManagementPage() {
   const openDialog = (type, item = null) => {
     setDialog(type);
     setEditing(item);
-    if (type === 'uc') setForm(item ? { name: item.name || '', description: item.description || '' } : emptyUc);
     if (type === 'category') {
       setForm(
         item
@@ -141,9 +139,6 @@ export default function PortfolioSchemesManagementPage() {
   const save = async () => {
     setSaving(true);
     try {
-      if (dialog === 'uc') {
-        editing ? await portfolioUcsAPI.update(editing.id, form) : await portfolioUcsAPI.create(form);
-      }
       if (dialog === 'category') {
         editing ? await portfolioCategoriesAPI.update(editing.id, form) : await portfolioCategoriesAPI.create(form);
       }
@@ -162,7 +157,7 @@ export default function PortfolioSchemesManagementPage() {
   };
 
   const remove = async (type, item) => {
-    const typeLabel = type === 'uc' ? 'union council' : type === 'category' ? 'portfolio category' : 'portfolio scheme';
+    const typeLabel = type === 'category' ? 'portfolio category' : 'portfolio scheme';
     const approved = await confirm({
       title: `Delete ${typeLabel}?`,
       description: `This permanently removes the ${typeLabel} from the portfolio section.`,
@@ -171,7 +166,6 @@ export default function PortfolioSchemesManagementPage() {
     });
     if (!approved) return;
     try {
-      if (type === 'uc') await portfolioUcsAPI.delete(item.id);
       if (type === 'category') await portfolioCategoriesAPI.delete(item.id);
       if (type === 'scheme') await portfolioSchemesAPI.delete(item.id);
       setMessage('Portfolio item deleted.');
@@ -184,12 +178,10 @@ export default function PortfolioSchemesManagementPage() {
 
   const move = async (type, item, direction) => {
     const source =
-      type === 'uc'
-        ? orderedUcs
-        : type === 'category'
-          ? orderedCategories.filter((row) => String(row.union_council) === String(item.union_council))
-          : orderedSchemes.filter((row) => String(row.union_council) === String(item.union_council) && String(row.category) === String(item.category));
-    const api = type === 'uc' ? portfolioUcsAPI : type === 'category' ? portfolioCategoriesAPI : portfolioSchemesAPI;
+      type === 'category'
+        ? orderedCategories.filter((row) => String(row.union_council) === String(item.union_council))
+        : orderedSchemes.filter((row) => String(row.union_council) === String(item.union_council) && String(row.category) === String(item.category));
+    const api = type === 'category' ? portfolioCategoriesAPI : portfolioSchemesAPI;
     const currentIndex = source.findIndex((sourceItem) => sourceItem.id === item.id);
     const targetIndex = currentIndex + direction;
     if (currentIndex === -1 || targetIndex < 0 || targetIndex >= source.length) return;
@@ -221,11 +213,11 @@ export default function PortfolioSchemesManagementPage() {
             Portfolio Scheme Management
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Manage public district schemes by union council and category.
+            Manage public district schemes using the shared Union Council metadata.
           </Typography>
         </Box>
-        {canCreate && <Button variant="contained" startIcon={<Add />} onClick={() => openDialog(tab === 0 ? 'uc' : tab === 1 ? 'category' : 'scheme')}>
-          Add {tab === 0 ? 'Union Council' : tab === 1 ? 'Category' : 'Scheme'}
+        {canCreate && <Button variant="contained" startIcon={<Add />} onClick={() => openDialog(tab === 0 ? 'category' : 'scheme')}>
+          Add {tab === 0 ? 'Category' : 'Scheme'}
         </Button>}
       </Box>
 
@@ -233,21 +225,10 @@ export default function PortfolioSchemesManagementPage() {
       <Card sx={{ overflow: 'hidden' }}>
         {loading && <LinearProgress />}
         <Tabs value={tab} onChange={(_, value) => setTab(value)} sx={{ px: 2, bgcolor: '#fafbfc' }}>
-          <Tab label="Union Councils" />
           <Tab label="Categories" />
           <Tab label="Schemes" />
         </Tabs>
         {tab === 0 && (
-          <PortfolioTable rows={orderedUcs} columns={['Name', 'Description', 'Order']} renderRow={(row, index) => (
-            <TableRow key={row.id} hover>
-              <TableCell>{row.name}</TableCell>
-              <TableCell>{row.description || 'N/A'}</TableCell>
-              <TableCell><OrderButtons disabled={!canEdit} value={index + 1} isFirst={index === 0} isLast={index === orderedUcs.length - 1} onUp={() => move('uc', row, -1)} onDown={() => move('uc', row, 1)} /></TableCell>
-              <Actions canEdit={canEdit} canDelete={canDelete} onEdit={() => openDialog('uc', row)} onDelete={() => remove('uc', row)} />
-            </TableRow>
-          )} />
-        )}
-        {tab === 1 && (
           <PortfolioTable rows={orderedCategories} columns={['Name', 'Union Council', 'Description', 'Order']} renderRow={(row, index) => (
             <TableRow key={row.id} hover>
               <TableCell>{row.name}</TableCell>
@@ -267,7 +248,7 @@ export default function PortfolioSchemesManagementPage() {
             </TableRow>
           )} />
         )}
-        {tab === 2 && (
+        {tab === 1 && (
           <PortfolioTable rows={orderedSchemes} columns={['Scheme', 'UC / Category', 'Status', 'Order']} renderRow={(row, index) => (
             <TableRow key={row.id} hover>
               <TableCell>
@@ -293,16 +274,14 @@ export default function PortfolioSchemesManagementPage() {
       </Card>
 
       <Dialog open={Boolean(dialog)} onClose={() => setDialog(null)} fullWidth maxWidth="md">
-        <DialogTitle>{editing ? 'Edit' : 'Add'} {dialog === 'uc' ? 'Union Council' : dialog === 'category' ? 'Category' : 'Scheme'}</DialogTitle>
+        <DialogTitle>{editing ? 'Edit' : 'Add'} {dialog === 'category' ? 'Category' : 'Scheme'}</DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={2.5} sx={{ pt: 1 }}>
-            {dialog !== 'uc' && (
-              <Grid item xs={12} md={6}>
-                <TextField select fullWidth label="Union Council" value={form.union_council} onChange={(event) => setForm((prev) => ({ ...prev, union_council: event.target.value, category: '' }))}>
-                  {orderedUcs.map((uc) => <MenuItem key={uc.id} value={uc.id}>{uc.name}</MenuItem>)}
-                </TextField>
-              </Grid>
-            )}
+            <Grid item xs={12} md={6}>
+              <TextField select fullWidth required label="Union Council" value={form.union_council} onChange={(event) => setForm((prev) => ({ ...prev, union_council: event.target.value, category: '' }))}>
+                {orderedUcs.map((uc) => <MenuItem key={uc.id} value={uc.id}>{uc.name}</MenuItem>)}
+              </TextField>
+            </Grid>
             {dialog === 'scheme' && (
               <Grid item xs={12} md={6}>
                 <TextField select fullWidth label="Category" value={form.category} onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}>
@@ -310,7 +289,7 @@ export default function PortfolioSchemesManagementPage() {
                 </TextField>
               </Grid>
             )}
-            <Grid item xs={12} md={dialog === 'uc' ? 12 : 6}>
+            <Grid item xs={12} md={6}>
               <TextField fullWidth required label={dialog === 'scheme' ? 'Scheme Name' : 'Name'} value={form.name} onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))} />
             </Grid>
             {dialog === 'scheme' && (

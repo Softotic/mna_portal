@@ -15,12 +15,12 @@ from .models import (
     ComplaintUpdate,
     CitizenFeedback,
     TeamMember,
-    PortfolioUnionCouncil,
     PortfolioCategory,
     PortfolioScheme,
     PortfolioSchemeImage,
     NewsImage,
 )
+from schemes.models import UnionCouncil
 from .serializers import (
     PublicSettingsSerializer,
     CitizenFeedbackSerializer,
@@ -124,17 +124,15 @@ class TeamMemberViewSet(PublicReadModulePermissionMixin, viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class PortfolioUnionCouncilViewSet(PublicReadModulePermissionMixin, viewsets.ModelViewSet):
-    """Public portfolio union councils and admin management."""
+class PortfolioUnionCouncilViewSet(viewsets.ReadOnlyModelViewSet):
+    """Shared Union Council metadata used by public portfolio records."""
 
-    queryset = PortfolioUnionCouncil.objects.all().order_by('sort_order', 'name')
+    queryset = UnionCouncil.objects.filter(
+        Q(portfolio_categories__isnull=False) | Q(portfolio_schemes__isnull=False)
+    ).distinct().order_by('name')
     serializer_class = PortfolioUnionCouncilSerializer
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-    search_fields = ['name', 'description']
-    ordering_fields = ['sort_order', 'name', 'created_at', 'updated_at']
+    permission_classes = [AllowAny]
     pagination_class = None
-
-    module_key = 'PORTFOLIO'
 
 
 class PortfolioCategoryViewSet(PublicReadModulePermissionMixin, viewsets.ModelViewSet):

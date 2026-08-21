@@ -146,16 +146,20 @@ class UnionCouncilViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.scheme_templates.exists():
+        if (
+            instance.scheme_templates.exists()
+            or instance.portfolio_categories.exists()
+            or instance.portfolio_schemes.exists()
+        ):
             return Response(
-                {'detail': 'This Union Council is assigned to a scheme and cannot be deleted.'},
+                {'detail': 'This Union Council is in use and cannot be deleted.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
             return super().destroy(request, *args, **kwargs)
         except ProtectedError:
             return Response(
-                {'detail': 'This Union Council is assigned to a scheme and cannot be deleted.'},
+                {'detail': 'This Union Council is in use and cannot be deleted.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
