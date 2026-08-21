@@ -224,6 +224,12 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
+        'request_errors': {
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'request-errors.log',
+            'formatter': 'verbose',
+            'level': 'ERROR',
+        },
     },
     'loggers': {
         'users': {
@@ -235,6 +241,11 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['console', 'request_errors'],
+            'level': 'ERROR',
+            'propagate': False,
         },
     },
 }

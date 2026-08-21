@@ -6,6 +6,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models.deletion import ProtectedError
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .models import SchemeCategory, Scheme, SchemeTemplate, SchemeEntry, SchemeEntryComment
@@ -67,14 +68,22 @@ class SchemeCategoryViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         
-        # Check strict constraints constraint
+        # Give the client a clear response for known category dependencies.
         if Scheme.objects.filter(category=instance).exists() or SchemeTemplate.objects.filter(category=instance).exists():
             return Response(
                 {"success": False, "message": "This category cannot be deleted because it has associated schemes or templates."},
                 status=status.HTTP_400_BAD_REQUEST
             )
             
-        self.perform_destroy(instance)
+        try:
+            self.perform_destroy(instance)
+        except ProtectedError:
+            # A related record may be created after the checks above. Return a
+            # useful client response instead of exposing a database exception.
+            return Response(
+                {"success": False, "message": "This category cannot be deleted because it has associated schemes or templates."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
     filter_backends = [SearchFilter]
     search_fields = ['name']
@@ -133,4 +142,3 @@ class SchemeEntryCommentViewSet(viewsets.ModelViewSet):
         if entry_id:
             qs = qs.filter(entry_id=entry_id)
         return qs
-
