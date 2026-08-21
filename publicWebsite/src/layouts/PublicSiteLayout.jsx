@@ -31,10 +31,10 @@ import { publicSettingsAPI, resolveMediaUrl } from '../api/index.js';
 
 const navItems = [
   { label: 'Home', path: '/' },
-  { label: 'About', path: '/about' },
-  { label: 'Team', path: '/team' },
-  { label: 'Schemes', path: '/schemes' },
   { label: 'News', path: '/news' },
+  { label: 'Schemes', path: '/schemes' },
+  { label: 'Team', path: '/team' },
+  { label: 'About', path: '/about' },
   { label: 'Complaints', path: '/complaints' },
 ];
 
