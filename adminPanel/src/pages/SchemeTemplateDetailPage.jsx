@@ -378,19 +378,16 @@ export default function SchemeTemplateDetailPage() {
                 <TableHead>
                   <TableRow sx={{ bgcolor: '#fafbfc', '& th': { fontWeight: 600, fontSize: '0.875rem', color: '#4a4a4a' } }}>
                     <TableCell sx={{ fontWeight: 600 }}>#</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                     {template.field_definitions.map((field) => (
                       <TableCell key={field} sx={{ fontWeight: 600 }}>{field}</TableCell>
                     ))}
-                    <TableCell sx={{ fontWeight: 600 }}>Added By</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Added On</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {filteredEntries.length === 0 && searchQuery ? (
                     <TableRow>
-                      <TableCell colSpan={template.field_definitions.length + 5} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={template.field_definitions.length + 2} align="center" sx={{ py: 4 }}>
                         <Typography color="text.secondary" variant="body2">No entries match your search</Typography>
                       </TableCell>
                     </TableRow>
@@ -414,12 +411,9 @@ export default function SchemeTemplateDetailPage() {
                         onClick={() => handleEntryClick(entry)}
                       >
                         <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>{currentPage * rowsPerPage + idx + 1}</TableCell>
-                        <TableCell><SchemeStatusChip status={entry.status} /></TableCell>
                         {template.field_definitions.map((field) => (
                           <TableCell key={field} sx={{ fontSize: '0.875rem' }}>{entry.values?.[field] || '-'}</TableCell>
                         ))}
-                        <TableCell sx={{ fontSize: '0.875rem' }}>{entry.created_by_name || 'Not available'}</TableCell>
-                        <TableCell sx={{ fontSize: '0.875rem', color: '#666' }}>{new Date(entry.created_at).toLocaleString()}</TableCell>
                         <TableCell sx={{ textAlign: 'center' }}>
                           <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); handleEditEntry(entry); }} title="Edit">
                             <Edit fontSize="small" />
