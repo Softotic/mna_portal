@@ -16,10 +16,47 @@ from .serializers import (
     SchemeCategorySerializer, SchemeSerializer,
     SchemeTemplateSerializer, SchemeEntrySerializer, SchemeEntryCommentSerializer,
 )
-from users.permissions import SchemeModulePermission, HasModulePermission
+from users.permissions import HasModulePermission
 from .importers import SchemeImportError, parse_scheme_import
 
 logger = logging.getLogger(__name__)
+
+
+class CategoryPermissionMixin:
+    """Resolve the scheme category before DRF evaluates RBAC permissions."""
+
+    permission_source = None
+
+    def _module_key(self, request, *args, **kwargs):
+        category_slug = request.query_params.get('category_slug') or request.data.get('category_slug')
+        if category_slug:
+            return str(category_slug).upper()
+
+        template_id = request.query_params.get('template_id') or request.data.get('template_id')
+        entry_id = request.query_params.get('entry_id') or request.data.get('entry')
+        pk = kwargs.get('pk')
+
+        if self.permission_source == 'template':
+            template_id = template_id or pk
+        elif self.permission_source == 'entry':
+            entry_id = entry_id or pk
+        elif self.permission_source == 'comment' and pk:
+            comment = SchemeEntryComment.objects.select_related('entry__template__category').filter(pk=pk).first()
+            return comment.entry.template.category.slug.upper() if comment else None
+
+        if template_id:
+            template = SchemeTemplate.objects.select_related('category').filter(pk=template_id).first()
+            return template.category.slug.upper() if template else None
+        if entry_id:
+            entry = SchemeEntry.objects.select_related('template__category').filter(pk=entry_id).first()
+            return entry.template.category.slug.upper() if entry else None
+        return None
+
+    def initial(self, request, *args, **kwargs):
+        module_key = self._module_key(request, *args, **kwargs)
+        if module_key:
+            setattr(request, 'module_key', module_key)
+        super().initial(request, *args, **kwargs)
 
 
 class SchemeViewSet(viewsets.ModelViewSet):
@@ -93,11 +130,12 @@ class SchemeCategoryViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
 
-class SchemeTemplateViewSet(viewsets.ModelViewSet):
+class SchemeTemplateViewSet(CategoryPermissionMixin, viewsets.ModelViewSet):
     """CRUD for scheme templates with user-defined fields."""
     queryset = SchemeTemplate.objects.select_related('category', 'created_by').all()
     serializer_class = SchemeTemplateSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasModulePermission]
+    permission_source = 'template'
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['title']
     ordering_fields = ['title', 'created_at']
@@ -111,11 +149,12 @@ class SchemeTemplateViewSet(viewsets.ModelViewSet):
         return qs
 
 
-class SchemeEntryViewSet(viewsets.ModelViewSet):
+class SchemeEntryViewSet(CategoryPermissionMixin, viewsets.ModelViewSet):
     """User-entered scheme data instances for a template."""
     queryset = SchemeEntry.objects.select_related('template', 'created_by').all()
     serializer_class = SchemeEntrySerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasModulePermission]
+    permission_source = 'entry'
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ['template', 'status']
     ordering_fields = ['created_at']
@@ -183,11 +222,12 @@ class SchemeEntryViewSet(viewsets.ModelViewSet):
 
 
 
-class SchemeEntryCommentViewSet(viewsets.ModelViewSet):
+class SchemeEntryCommentViewSet(CategoryPermissionMixin, viewsets.ModelViewSet):
     """Comments on scheme entries."""
     queryset = SchemeEntryComment.objects.select_related("entry", "created_by").all()
     serializer_class = SchemeEntryCommentSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasModulePermission]
+    permission_source = 'comment'
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ["entry"]
     ordering_fields = ["created_at"]

@@ -54,11 +54,11 @@ const NAV_GROUPS = [
   {
     label: 'Public website',
     items: [
-      { text: 'News Management', icon: NewspaperOutlined, path: '/news-management' },
-      { text: 'Feedback Management', icon: ForumOutlined, path: '/feedback-management' },
-      { text: 'Team Management', icon: GroupOutlined, path: '/team-management' },
-      { text: 'Portfolio Schemes', icon: AccountTreeOutlined, path: '/portfolio-schemes' },
-      { text: 'Complaints Management', icon: TuneOutlined, path: '/complaints-management' },
+      { text: 'News Management', icon: NewspaperOutlined, path: '/news-management', module: 'NEWS', action: 'view' },
+      { text: 'Feedback Management', icon: ForumOutlined, path: '/feedback-management', module: 'FEEDBACK', action: 'view' },
+      { text: 'Team Management', icon: GroupOutlined, path: '/team-management', module: 'TEAM', action: 'view' },
+      { text: 'Portfolio Schemes', icon: AccountTreeOutlined, path: '/portfolio-schemes', module: 'PORTFOLIO', action: 'view' },
+      { text: 'Complaints Management', icon: TuneOutlined, path: '/complaints-management', module: 'COMPLAINTS', action: 'view' },
     ],
   },
   {
@@ -71,8 +71,8 @@ const NAV_GROUPS = [
   {
     label: 'Settings',
     items: [
-      { text: 'Public Website Settings', icon: LanguageOutlined, path: '/website-settings' },
-      { text: 'Admin Portal Settings', icon: SettingsOutlined, path: '/settings' },
+      { text: 'Public Website Settings', icon: LanguageOutlined, path: '/website-settings', module: 'SETTINGS', action: 'view' },
+      { text: 'Admin Portal Settings', icon: SettingsOutlined, path: '/settings', module: 'SETTINGS', action: 'view' },
     ],
   },
 ];
@@ -357,9 +357,11 @@ export default function DashboardLayout() {
           </Typography>
         </Box>
         <Divider />
-        <MenuItem onClick={() => { setAnchorEl(null); goTo('/settings'); }}>
-          <SettingsOutlined fontSize="small" sx={{ mr: 1.25 }} /> Account settings
-        </MenuItem>
+        {hasPermission('SETTINGS', 'view') && (
+          <MenuItem onClick={() => { setAnchorEl(null); goTo('/settings'); }}>
+            <SettingsOutlined fontSize="small" sx={{ mr: 1.25 }} /> Account settings
+          </MenuItem>
+        )}
         <MenuItem onClick={() => { setAnchorEl(null); handleLogout(); }} sx={{ color: 'error.main' }}>
           <LogoutOutlined fontSize="small" sx={{ mr: 1.25 }} /> Sign out
         </MenuItem>

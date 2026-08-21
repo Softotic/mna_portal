@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { LinearProgress } from '@mui/material';
 import { AuthProvider } from './auth/AuthContext';
@@ -22,6 +22,15 @@ const ComplaintsManagementPage = lazy(() => import('./pages/ComplaintsManagement
 const FeedbackManagementPage = lazy(() => import('./pages/FeedbackManagementPage'));
 const TeamManagementPage = lazy(() => import('./pages/TeamManagementPage'));
 const PortfolioSchemesManagementPage = lazy(() => import('./pages/PortfolioSchemesManagementPage'));
+
+function CategoryProtectedRoute({ children }) {
+  const { category_slug } = useParams();
+  return (
+    <ProtectedRoute module={category_slug?.toUpperCase()} action="view">
+      {children}
+    </ProtectedRoute>
+  );
+}
 
 function App() {
   const basename = window.location.pathname.startsWith('/admin') ? '/admin' : '';
@@ -58,17 +67,17 @@ function App() {
               <Route 
                 path="schemes/:category_slug" 
                 element={
-                  <ProtectedRoute module="SCHEMES" action="view">
+                  <CategoryProtectedRoute>
                     <SchemesPage />
-                  </ProtectedRoute>
+                  </CategoryProtectedRoute>
                 } 
               />
               <Route 
                 path="schemes/:category_slug/:template_id" 
                 element={
-                  <ProtectedRoute module="SCHEMES" action="view">
+                  <CategoryProtectedRoute>
                     <SchemeTemplateDetailPage />
-                  </ProtectedRoute>
+                  </CategoryProtectedRoute>
                 }
               />
               <Route 
@@ -87,32 +96,32 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route path="settings" element={<SettingsPage />} />
+              <Route path="settings" element={<ProtectedRoute module="SETTINGS" action="view"><SettingsPage /></ProtectedRoute>} />
               
               {/* Public Website Management Routes */}
               <Route 
                 path="website-settings" 
-                element={<PublicWebsiteSettingsPage />} 
+                element={<ProtectedRoute module="SETTINGS" action="view"><PublicWebsiteSettingsPage /></ProtectedRoute>}
               />
               <Route 
                 path="news-management" 
-                element={<NewsManagementPage />} 
+                element={<ProtectedRoute module="NEWS" action="view"><NewsManagementPage /></ProtectedRoute>}
               />
               <Route
                 path="feedback-management"
-                element={<FeedbackManagementPage />}
+                element={<ProtectedRoute module="FEEDBACK" action="view"><FeedbackManagementPage /></ProtectedRoute>}
               />
               <Route
                 path="team-management"
-                element={<TeamManagementPage />}
+                element={<ProtectedRoute module="TEAM" action="view"><TeamManagementPage /></ProtectedRoute>}
               />
               <Route
                 path="portfolio-schemes"
-                element={<PortfolioSchemesManagementPage />}
+                element={<ProtectedRoute module="PORTFOLIO" action="view"><PortfolioSchemesManagementPage /></ProtectedRoute>}
               />
               <Route 
                 path="complaints-management"
-                element={<ComplaintsManagementPage />}
+                element={<ProtectedRoute module="COMPLAINTS" action="view"><ComplaintsManagementPage /></ProtectedRoute>}
               />
             </Route>
 

@@ -34,6 +34,18 @@ from .serializers import (
     ComplaintSerializer,
     ComplaintAdminSerializer,
 )
+from users.permissions import HasModulePermission, IsAdminUser
+
+
+class PublicReadModulePermissionMixin:
+    """Keep published reads public while enforcing RBAC in the admin portal."""
+
+    public_actions = ('list', 'retrieve')
+
+    def get_permissions(self):
+        if self.action in self.public_actions and not self.request.user.is_authenticated:
+            return [AllowAny()]
+        return [IsAuthenticated(), HasModulePermission()]
 
 
 class PublicSettingsViewSet(viewsets.ModelViewSet):
@@ -48,7 +60,7 @@ class PublicSettingsViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'current']:
             return [AllowAny()]
-        return [IsAuthenticated()]
+        return [IsAuthenticated(), IsAdminUser()]
     
     @action(detail=False, methods=['get'], permission_classes=[AllowAny()])
     def current(self, request):
@@ -60,7 +72,7 @@ class PublicSettingsViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class CitizenFeedbackViewSet(viewsets.ModelViewSet):
+class CitizenFeedbackViewSet(PublicReadModulePermissionMixin, viewsets.ModelViewSet):
     """Public feedback listing and admin feedback management."""
 
     queryset = CitizenFeedback.objects.all().order_by('sort_order', '-created_at')
@@ -70,10 +82,8 @@ class CitizenFeedbackViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'location', 'quote']
     ordering_fields = ['sort_order', 'created_at', 'updated_at']
 
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'featured']:
-            return [AllowAny()]
-        return [IsAuthenticated()]
+    module_key = 'FEEDBACK'
+    public_actions = ('list', 'retrieve', 'featured')
 
     def get_queryset(self):
         queryset = CitizenFeedback.objects.all().order_by('sort_order', '-created_at')
@@ -88,7 +98,7 @@ class CitizenFeedbackViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class TeamMemberViewSet(viewsets.ModelViewSet):
+class TeamMemberViewSet(PublicReadModulePermissionMixin, viewsets.ModelViewSet):
     """Public team listing and admin team management."""
 
     queryset = TeamMember.objects.all().order_by('sort_order', 'name')
@@ -98,10 +108,8 @@ class TeamMemberViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'designation', 'email', 'phone', 'union_council', 'department', 'bio']
     ordering_fields = ['sort_order', 'name', 'created_at', 'updated_at']
 
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'featured']:
-            return [AllowAny()]
-        return [IsAuthenticated()]
+    module_key = 'TEAM'
+    public_actions = ('list', 'retrieve', 'featured')
 
     def get_queryset(self):
         queryset = TeamMember.objects.all().order_by('sort_order', 'name')
@@ -116,7 +124,7 @@ class TeamMemberViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class PortfolioUnionCouncilViewSet(viewsets.ModelViewSet):
+class PortfolioUnionCouncilViewSet(PublicReadModulePermissionMixin, viewsets.ModelViewSet):
     """Public portfolio union councils and admin management."""
 
     queryset = PortfolioUnionCouncil.objects.all().order_by('sort_order', 'name')
@@ -126,13 +134,10 @@ class PortfolioUnionCouncilViewSet(viewsets.ModelViewSet):
     ordering_fields = ['sort_order', 'name', 'created_at', 'updated_at']
     pagination_class = None
 
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [AllowAny()]
-        return [IsAuthenticated()]
+    module_key = 'PORTFOLIO'
 
 
-class PortfolioCategoryViewSet(viewsets.ModelViewSet):
+class PortfolioCategoryViewSet(PublicReadModulePermissionMixin, viewsets.ModelViewSet):
     """Public portfolio categories and admin management."""
 
     queryset = PortfolioCategory.objects.select_related('union_council').all().order_by('sort_order', 'name')
@@ -143,10 +148,7 @@ class PortfolioCategoryViewSet(viewsets.ModelViewSet):
     ordering_fields = ['sort_order', 'name', 'created_at', 'updated_at']
     pagination_class = None
 
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [AllowAny()]
-        return [IsAuthenticated()]
+    module_key = 'PORTFOLIO'
 
     def get_queryset(self):
         queryset = PortfolioCategory.objects.select_related('union_council').all().order_by('sort_order', 'name')
@@ -156,7 +158,7 @@ class PortfolioCategoryViewSet(viewsets.ModelViewSet):
         return queryset
 
 
-class PortfolioSchemeViewSet(viewsets.ModelViewSet):
+class PortfolioSchemeViewSet(PublicReadModulePermissionMixin, viewsets.ModelViewSet):
     """Public portfolio schemes and admin management."""
 
     queryset = PortfolioScheme.objects.select_related('union_council', 'category').all().order_by('sort_order', 'name')
@@ -167,10 +169,7 @@ class PortfolioSchemeViewSet(viewsets.ModelViewSet):
     ordering_fields = ['sort_order', 'name', 'created_at', 'updated_at', 'status']
     pagination_class = None
 
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [AllowAny()]
-        return [IsAuthenticated()]
+    module_key = 'PORTFOLIO'
 
     def get_queryset(self):
         queryset = PortfolioScheme.objects.select_related('union_council', 'category').prefetch_related('images').all().order_by('sort_order', 'name')
@@ -256,7 +255,8 @@ class NewsAdminViewSet(viewsets.ModelViewSet):
     """
     queryset = News.objects.prefetch_related('images').all().order_by('-created_at')
     serializer_class = NewsAdminSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasModulePermission]
+    module_key = 'NEWS'
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def perform_create(self, serializer):
@@ -321,11 +321,12 @@ class ComplaintViewSet(viewsets.ModelViewSet):
         'admin_remarks',
     ]
     ordering_fields = ['created_at', 'updated_at', 'status']
+    module_key = 'COMPLAINTS'
 
     def get_permissions(self):
         if self.action in ['create', 'track']:
             return [AllowAny()]
-        return [IsAuthenticated()]
+        return [IsAuthenticated(), HasModulePermission()]
 
     def get_serializer_class(self):
         if self.action in ['update', 'partial_update', 'retrieve', 'list']:

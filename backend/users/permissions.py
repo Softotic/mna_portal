@@ -17,6 +17,11 @@ class HasModulePermission(BasePermission):
         'partial_update': 'edit',
         'destroy': 'delete',
         'toggle_active': 'edit', # Custom endpoints map to standard actions
+        'publish': 'edit',
+        'unpublish': 'edit',
+        'toggle_featured': 'edit',
+        'add_update': 'edit',
+        'import_file': 'create',
     }
 
     def has_permission(self, request, view):
@@ -47,7 +52,7 @@ class HasModulePermission(BasePermission):
         # This allows us to check GET /api/schemes/1/ securely utilizing the Scheme's parent category.
         module_key = getattr(request, 'module_key', None)
         
-        if hasattr(obj, 'category') and obj.category:
+        if hasattr(obj, 'category') and obj.category and hasattr(obj.category, 'slug'):
             module_key = obj.category.slug.upper()
 
         if not module_key:

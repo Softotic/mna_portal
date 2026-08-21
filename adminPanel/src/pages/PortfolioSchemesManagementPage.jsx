@@ -30,6 +30,7 @@ import { Add, Delete, Edit, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icon
 import { portfolioCategoriesAPI, portfolioSchemesAPI, portfolioUcsAPI } from '../api/index.js';
 import AdminTablePagination from '../components/AdminTablePagination.jsx';
 import { useAdminFeedback } from '../feedback/AdminFeedbackContext.jsx';
+import { useAuth } from '../auth/AuthContext.jsx';
 
 const emptyUc = { name: '', description: '' };
 const emptyCategory = { union_council: '', name: '', description: '' };
@@ -62,6 +63,10 @@ function statusColor(status) {
 
 export default function PortfolioSchemesManagementPage() {
   const { confirm } = useAdminFeedback();
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission('PORTFOLIO', 'create');
+  const canEdit = hasPermission('PORTFOLIO', 'edit');
+  const canDelete = hasPermission('PORTFOLIO', 'delete');
   const [tab, setTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -219,9 +224,9 @@ export default function PortfolioSchemesManagementPage() {
             Manage public district schemes by union council and category.
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={() => openDialog(tab === 0 ? 'uc' : tab === 1 ? 'category' : 'scheme')}>
+        {canCreate && <Button variant="contained" startIcon={<Add />} onClick={() => openDialog(tab === 0 ? 'uc' : tab === 1 ? 'category' : 'scheme')}>
           Add {tab === 0 ? 'Union Council' : tab === 1 ? 'Category' : 'Scheme'}
-        </Button>
+        </Button>}
       </Box>
 
       {message && <Alert sx={{ mb: 2 }} onClose={() => setMessage('')}>{message}</Alert>}
@@ -237,8 +242,8 @@ export default function PortfolioSchemesManagementPage() {
             <TableRow key={row.id} hover>
               <TableCell>{row.name}</TableCell>
               <TableCell>{row.description || 'N/A'}</TableCell>
-              <TableCell><OrderButtons value={index + 1} isFirst={index === 0} isLast={index === orderedUcs.length - 1} onUp={() => move('uc', row, -1)} onDown={() => move('uc', row, 1)} /></TableCell>
-              <Actions onEdit={() => openDialog('uc', row)} onDelete={() => remove('uc', row)} />
+              <TableCell><OrderButtons disabled={!canEdit} value={index + 1} isFirst={index === 0} isLast={index === orderedUcs.length - 1} onUp={() => move('uc', row, -1)} onDown={() => move('uc', row, 1)} /></TableCell>
+              <Actions canEdit={canEdit} canDelete={canDelete} onEdit={() => openDialog('uc', row)} onDelete={() => remove('uc', row)} />
             </TableRow>
           )} />
         )}
@@ -250,6 +255,7 @@ export default function PortfolioSchemesManagementPage() {
               <TableCell>{row.description || 'N/A'}</TableCell>
               <TableCell>
                 <OrderButtons
+                  disabled={!canEdit}
                   value={index + 1}
                   isFirst={orderedCategories.filter((item) => String(item.union_council) === String(row.union_council))[0]?.id === row.id}
                   isLast={orderedCategories.filter((item) => String(item.union_council) === String(row.union_council)).at(-1)?.id === row.id}
@@ -257,7 +263,7 @@ export default function PortfolioSchemesManagementPage() {
                   onDown={() => move('category', row, 1)}
                 />
               </TableCell>
-              <Actions onEdit={() => openDialog('category', row)} onDelete={() => remove('category', row)} />
+              <Actions canEdit={canEdit} canDelete={canDelete} onEdit={() => openDialog('category', row)} onDelete={() => remove('category', row)} />
             </TableRow>
           )} />
         )}
@@ -272,6 +278,7 @@ export default function PortfolioSchemesManagementPage() {
               <TableCell><Chip size="small" label={row.status} color={statusColor(row.status)} /></TableCell>
               <TableCell>
                 <OrderButtons
+                  disabled={!canEdit}
                   value={index + 1}
                   isFirst={orderedSchemes.filter((item) => String(item.union_council) === String(row.union_council) && String(item.category) === String(row.category))[0]?.id === row.id}
                   isLast={orderedSchemes.filter((item) => String(item.union_council) === String(row.union_council) && String(item.category) === String(row.category)).at(-1)?.id === row.id}
@@ -279,7 +286,7 @@ export default function PortfolioSchemesManagementPage() {
                   onDown={() => move('scheme', row, 1)}
                 />
               </TableCell>
-              <Actions onEdit={() => openDialog('scheme', row)} onDelete={() => remove('scheme', row)} />
+              <Actions canEdit={canEdit} canDelete={canDelete} onEdit={() => openDialog('scheme', row)} onDelete={() => remove('scheme', row)} />
             </TableRow>
           )} />
         )}
@@ -392,21 +399,21 @@ function PortfolioTable({ rows, columns, renderRow }) {
   );
 }
 
-function OrderButtons({ value, isFirst, isLast, onUp, onDown }) {
+function OrderButtons({ value, isFirst, isLast, onUp, onDown, disabled = false }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
       <Typography variant="body2" sx={{ minWidth: 28 }}>{value}</Typography>
-      <Tooltip title="Move up"><span><IconButton size="small" disabled={isFirst} onClick={onUp}><KeyboardArrowUp fontSize="small" /></IconButton></span></Tooltip>
-      <Tooltip title="Move down"><span><IconButton size="small" disabled={isLast} onClick={onDown}><KeyboardArrowDown fontSize="small" /></IconButton></span></Tooltip>
+      {!disabled && <Tooltip title="Move up"><span><IconButton size="small" disabled={isFirst} onClick={onUp}><KeyboardArrowUp fontSize="small" /></IconButton></span></Tooltip>}
+      {!disabled && <Tooltip title="Move down"><span><IconButton size="small" disabled={isLast} onClick={onDown}><KeyboardArrowDown fontSize="small" /></IconButton></span></Tooltip>}
     </Box>
   );
 }
 
-function Actions({ onEdit, onDelete }) {
+function Actions({ onEdit, onDelete, canEdit, canDelete }) {
   return (
     <TableCell align="right">
-      <Tooltip title="Edit"><IconButton size="small" onClick={onEdit}><Edit fontSize="small" /></IconButton></Tooltip>
-      <Tooltip title="Delete"><IconButton size="small" color="error" onClick={onDelete}><Delete fontSize="small" /></IconButton></Tooltip>
+      {canEdit && <Tooltip title="Edit"><IconButton size="small" onClick={onEdit}><Edit fontSize="small" /></IconButton></Tooltip>}
+      {canDelete && <Tooltip title="Delete"><IconButton size="small" color="error" onClick={onDelete}><Delete fontSize="small" /></IconButton></Tooltip>}
     </TableCell>
   );
 }

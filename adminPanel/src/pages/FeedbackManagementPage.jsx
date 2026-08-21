@@ -31,6 +31,7 @@ import { Add, Delete, Edit } from '@mui/icons-material';
 import { feedbacksAPI } from '../api/index.js';
 import AdminTablePagination from '../components/AdminTablePagination.jsx';
 import { useAdminFeedback } from '../feedback/AdminFeedbackContext.jsx';
+import { useAuth } from '../auth/AuthContext.jsx';
 
 const defaultForm = {
   name: '',
@@ -43,6 +44,10 @@ const defaultForm = {
 
 export default function FeedbackManagementPage() {
   const { confirm } = useAdminFeedback();
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission('FEEDBACK', 'create');
+  const canEdit = hasPermission('FEEDBACK', 'edit');
+  const canDelete = hasPermission('FEEDBACK', 'delete');
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -143,9 +148,9 @@ export default function FeedbackManagementPage() {
             Manage public testimonials and citizen feedback displayed on the public-facing MNA website.
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={openCreate}>
+        {canCreate && <Button variant="contained" startIcon={<Add />} onClick={openCreate}>
           Add Feedback
-        </Button>
+        </Button>}
       </Box>
 
       {message && (
@@ -186,16 +191,16 @@ export default function FeedbackManagementPage() {
                   <TableCell>{item.featured ? 'Yes' : 'No'}</TableCell>
                   <TableCell>{item.sort_order}</TableCell>
                   <TableCell align="right">
-                    <Tooltip title="Edit">
+                    {canEdit && <Tooltip title="Edit">
                       <IconButton size="small" onClick={() => openEdit(item)}>
                         <Edit fontSize="small" />
                       </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
+                    </Tooltip>}
+                    {canDelete && <Tooltip title="Delete">
                       <IconButton size="small" color="error" onClick={() => handleDelete(item)}>
                         <Delete fontSize="small" />
                       </IconButton>
-                    </Tooltip>
+                    </Tooltip>}
                   </TableCell>
                 </TableRow>
               ))}

@@ -15,6 +15,11 @@ class Command(BaseCommand):
             {'name': 'Roles Management', 'key': 'ROLES'},
             {'name': 'Categories', 'key': 'CATEGORIES'},
             {'name': 'Settings', 'key': 'SETTINGS'},
+            {'name': 'News Management', 'key': 'NEWS'},
+            {'name': 'Feedback Management', 'key': 'FEEDBACK'},
+            {'name': 'Team Management', 'key': 'TEAM'},
+            {'name': 'Portfolio Schemes', 'key': 'PORTFOLIO'},
+            {'name': 'Complaints Management', 'key': 'COMPLAINTS'},
         ]
         
         modules = {}
@@ -46,16 +51,8 @@ class Command(BaseCommand):
             defaults={'description': 'Can manage schemes and view users/settings'}
         )
         RolePermission.objects.get_or_create(
-            role=manager_role, module=modules['USERS'],
-            defaults={'can_view': True, 'can_create': False, 'can_edit': False, 'can_delete': False}
-        )
-        RolePermission.objects.get_or_create(
             role=manager_role, module=modules['CATEGORIES'],
             defaults={'can_view': True, 'can_create': False, 'can_edit': False, 'can_delete': False}
-        )
-        RolePermission.objects.get_or_create(
-            role=manager_role, module=modules['SETTINGS'],
-            defaults={'can_view': True, 'can_create': True, 'can_edit': True, 'can_delete': False}
         )
 
         # Viewer
@@ -67,10 +64,9 @@ class Command(BaseCommand):
             role=viewer_role, module=modules['CATEGORIES'],
             defaults={'can_view': True, 'can_create': False, 'can_edit': False, 'can_delete': False}
         )
-        RolePermission.objects.get_or_create(
-            role=viewer_role, module=modules['SETTINGS'],
-            defaults={'can_view': True, 'can_create': True, 'can_edit': True, 'can_delete': False}
-        )
+        RolePermission.objects.filter(
+            module__key__in=['USERS', 'ROLES', 'SETTINGS']
+        ).exclude(role=super_admin_role).delete()
 
         self.stdout.write('Seeding categories...')
         categories = sorted([

@@ -30,6 +30,7 @@ import { Add, Delete, Edit, KeyboardArrowDown, KeyboardArrowUp, Search } from '@
 import { teamMembersAPI } from '../api/index.js';
 import AdminTablePagination from '../components/AdminTablePagination.jsx';
 import { useAdminFeedback } from '../feedback/AdminFeedbackContext.jsx';
+import { useAuth } from '../auth/AuthContext.jsx';
 
 const defaultForm = {
   name: '',
@@ -59,6 +60,10 @@ function formatApiError(data) {
 
 export default function TeamManagementPage() {
   const { confirm } = useAdminFeedback();
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission('TEAM', 'create');
+  const canEdit = hasPermission('TEAM', 'edit');
+  const canDelete = hasPermission('TEAM', 'delete');
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -255,9 +260,9 @@ export default function TeamManagementPage() {
             Manage the public team directory shown on the website.
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={openCreate} sx={{ textTransform: 'none', fontWeight: 600 }}>
+        {canCreate && <Button variant="contained" startIcon={<Add />} onClick={openCreate} sx={{ textTransform: 'none', fontWeight: 600 }}>
           Add Team Member
-        </Button>
+        </Button>}
       </Box>
 
       {message && (
@@ -360,33 +365,33 @@ export default function TeamManagementPage() {
                       <Typography variant="body2" sx={{ minWidth: 28 }}>
                         {sortedIndex + 1}
                       </Typography>
-                      <Tooltip title="Move up">
+                      {canEdit && <Tooltip title="Move up">
                         <span>
                           <IconButton size="small" disabled={isFirst} onClick={() => handleMove(member, -1)}>
                             <KeyboardArrowUp fontSize="small" />
                           </IconButton>
                         </span>
-                      </Tooltip>
-                      <Tooltip title="Move down">
+                      </Tooltip>}
+                      {canEdit && <Tooltip title="Move down">
                         <span>
                           <IconButton size="small" disabled={isLast} onClick={() => handleMove(member, 1)}>
                             <KeyboardArrowDown fontSize="small" />
                           </IconButton>
                         </span>
-                      </Tooltip>
+                      </Tooltip>}
                     </Box>
                   </TableCell>
                   <TableCell align="right">
-                    <Tooltip title="Edit">
+                    {canEdit && <Tooltip title="Edit">
                       <IconButton size="small" onClick={() => openEdit(member)}>
                         <Edit fontSize="small" />
                       </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
+                    </Tooltip>}
+                    {canDelete && <Tooltip title="Delete">
                       <IconButton size="small" color="error" onClick={() => handleDelete(member)}>
                         <Delete fontSize="small" />
                       </IconButton>
-                    </Tooltip>
+                    </Tooltip>}
                   </TableCell>
                 </TableRow>
                 );

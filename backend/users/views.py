@@ -17,7 +17,8 @@ from .serializers import (
     ChangePasswordSerializer, ProfileSerializer, UserPermissionSerializer,
     ModuleSerializer
 )
-from .permissions import UserModulePermission, IsAdminUser
+from .permissions import IsAdminUser
+from .serializers import PROTECTED_MODULE_KEYS
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +85,7 @@ def token_refresh_view(request):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.select_related('role').all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated, UserModulePermission]
+    permission_classes = [IsAuthenticated, IsAdminUser]
     module_key = 'USERS'
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['is_active', 'role']
@@ -111,8 +112,19 @@ class RoleViewSet(viewsets.ModelViewSet):
     search_fields = ['name']
     pagination_class = None
 
+    def perform_update(self, serializer):
+        if serializer.instance.name == 'Super Admin':
+            serializer.save(name='Super Admin')
+            return
+        serializer.save()
+
     def destroy(self, request, *args, **kwargs):
         role = self.get_object()
+        if role.name == 'Super Admin':
+            return Response(
+                {"detail": "The Super Admin role is system-managed and cannot be deleted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         if role.users.exists():
             return Response(
                 {"detail": "Cannot delete role because it is assigned to users."},
@@ -123,7 +135,7 @@ class RoleViewSet(viewsets.ModelViewSet):
 
 class ModuleListView(generics.ListAPIView):
     """List all available modules."""
-    queryset = Module.objects.all()
+    queryset = Module.objects.exclude(key__in=PROTECTED_MODULE_KEYS)
     serializer_class = ModuleSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
     pagination_class = None

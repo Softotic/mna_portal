@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { 
+import {
   Box, Typography, Button, Paper, Table, TableBody, TableCell, TableContainer, 
   TableHead, TableRow, IconButton, Dialog, DialogTitle, DialogContent, 
-  DialogActions, TextField, Checkbox, FormControlLabel, CircularProgress, Alert, Chip
+  DialogActions, TextField, Checkbox, CircularProgress, Alert, Chip, Stack
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import { useAuth } from '../auth/AuthContext';
@@ -10,6 +10,21 @@ import { rolesAPI } from '../api';
 import AdminTablePagination from '../components/AdminTablePagination';
 import PageHeader from '../components/PageHeader';
 import { useAdminFeedback } from '../feedback/AdminFeedbackContext';
+
+const PUBLIC_MODULES = new Set(['NEWS', 'FEEDBACK', 'TEAM', 'PORTFOLIO', 'COMPLAINTS']);
+
+const groupModules = (modules) => [
+  {
+    label: 'Scheme management',
+    description: 'Category setup and access to each individual scheme register.',
+    modules: modules.filter((module) => !PUBLIC_MODULES.has(module.key)),
+  },
+  {
+    label: 'Public website',
+    description: 'Content and citizen-facing sections of the public website.',
+    modules: modules.filter((module) => PUBLIC_MODULES.has(module.key)),
+  },
+].filter((group) => group.modules.length);
 
 export default function RolesPage() {
   const { hasPermission } = useAuth();
@@ -82,14 +97,18 @@ export default function RolesPage() {
   const handlePermissionChange = (module, action, checked) => {
     setFormData(prev => {
       const current = prev.permissions[module.key] || { module_id: module.id, can_view: false, can_create: false, can_edit: false, can_delete: false };
+      const next = { ...current, [action]: checked };
+      if (checked && action !== 'can_view') next.can_view = true;
+      if (!checked && action === 'can_view') {
+        next.can_create = false;
+        next.can_edit = false;
+        next.can_delete = false;
+      }
       return {
         ...prev,
         permissions: {
           ...prev.permissions,
-          [module.key]: {
-            ...current,
-            [action]: checked
-          }
+            [module.key]: next
         }
       };
     });
@@ -183,7 +202,7 @@ export default function RolesPage() {
                   <Chip label={`${role.user_count || 0} users`} size="small" color={role.user_count > 0 ? "primary" : "default"} />
                 </TableCell>
                 <TableCell align="right">
-                  <IconButton onClick={() => handleOpen(role)} disabled={!hasPermission('ROLES', 'edit')} color="primary">
+                  <IconButton onClick={() => handleOpen(role)} disabled={!hasPermission('ROLES', 'edit') || role.name === 'Super Admin'} color="primary">
                     <Edit fontSize="small" />
                   </IconButton>
                   <IconButton 
@@ -231,7 +250,15 @@ export default function RolesPage() {
               />
             </Box>
 
-            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>Permissions Matrix</Typography>
+            <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={1} sx={{ mb: 1.5 }}>
+              <Box>
+                <Typography variant="subtitle1" fontWeight={700}>Permissions Matrix</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Create, edit, or delete access automatically includes view access.
+                </Typography>
+              </Box>
+              <Chip label={`${modules.length} assignable modules`} size="small" variant="outlined" />
+            </Stack>
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
                 <TableHead sx={{ bgcolor: 'grey.50' }}>
@@ -244,7 +271,14 @@ export default function RolesPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {modules.map(mod => {
+                  {groupModules(modules).flatMap((group) => [
+                    <TableRow key={`group-${group.label}`}>
+                      <TableCell colSpan={5} sx={{ bgcolor: 'primary.50', py: 1.25 }}>
+                        <Typography variant="subtitle2" fontWeight={750}>{group.label}</Typography>
+                        <Typography variant="caption" color="text.secondary">{group.description}</Typography>
+                      </TableCell>
+                    </TableRow>,
+                    ...group.modules.map(mod => {
                     const currentPerms = formData.permissions[mod.key] || {};
                     const isSuperAdmin = formData.name === 'Super Admin';
                     return (
@@ -262,7 +296,8 @@ export default function RolesPage() {
                         ))}
                       </TableRow>
                     );
-                  })}
+                    }),
+                  ])}
                 </TableBody>
               </Table>
             </TableContainer>

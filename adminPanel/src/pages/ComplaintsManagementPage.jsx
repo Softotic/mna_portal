@@ -31,6 +31,7 @@ import {
 import { Attachment, Edit, Refresh } from '@mui/icons-material';
 import { complaintsAPI } from '../api/index.js';
 import AdminTablePagination from '../components/AdminTablePagination.jsx';
+import { useAuth } from '../auth/AuthContext.jsx';
 
 const statusOptions = ['submitted', 'in_progress', 'resolved', 'declined'];
 
@@ -50,6 +51,8 @@ function attachmentName(path) {
 }
 
 export default function ComplaintsManagementPage() {
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission('COMPLAINTS', 'edit');
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
@@ -214,11 +217,11 @@ export default function ComplaintsManagementPage() {
                   <TableCell>{complaint.updates?.length || 0}</TableCell>
                   <TableCell>{complaint.created_at ? new Date(complaint.created_at).toLocaleDateString() : 'N/A'}</TableCell>
                   <TableCell align="right">
-                    <Tooltip title="Review and update">
+                    {canEdit && <Tooltip title="Review and update">
                       <IconButton size="small" onClick={() => openEditDialog(complaint)}>
                         <Edit fontSize="small" />
                       </IconButton>
-                    </Tooltip>
+                    </Tooltip>}
                   </TableCell>
                 </TableRow>
               ))}

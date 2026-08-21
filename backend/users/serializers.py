@@ -5,6 +5,8 @@ from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import CustomUser, Role, Module, RolePermission
 
+PROTECTED_MODULE_KEYS = {'USERS', 'ROLES', 'SETTINGS'}
+
 class ModuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Module
@@ -14,7 +16,7 @@ class RolePermissionSerializer(serializers.ModelSerializer):
     module_key = serializers.CharField(source='module.key', read_only=True)
     module_name = serializers.CharField(source='module.name', read_only=True)
     module_id = serializers.PrimaryKeyRelatedField(
-        queryset=Module.objects.all(), source='module', write_only=True
+        queryset=Module.objects.all(), source='module'
     )
 
     class Meta:
@@ -35,12 +37,25 @@ class RoleSerializer(serializers.ModelSerializer):
         return obj.users.count()
 
     def validate_name(self, value):
+        if value.strip().casefold() == 'super admin'.casefold() and (
+            not self.instance or self.instance.name != 'Super Admin'
+        ):
+            raise serializers.ValidationError("The Super Admin role is system-managed.")
         if self.instance:
             if Role.objects.filter(name__iexact=value).exclude(pk=self.instance.pk).exists():
                 raise serializers.ValidationError("Role with this name already exists.")
         else:
             if Role.objects.filter(name__iexact=value).exists():
                 raise serializers.ValidationError("Role with this name already exists.")
+        return value
+
+    def validate_permissions_data(self, value):
+        module_ids = [item.get('module_id') for item in value if item.get('module_id')]
+        protected = Module.objects.filter(id__in=module_ids, key__in=PROTECTED_MODULE_KEYS)
+        if protected.exists():
+            raise serializers.ValidationError(
+                "Users, roles, and settings permissions are reserved for Super Admin."
+            )
         return value
 
     def _sync_permissions(self, role, perms_data):
@@ -72,7 +87,7 @@ class RoleSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-        if perms_data is not None:
+        if perms_data is not None and instance.name != 'Super Admin':
             self._sync_permissions(instance, perms_data)
         return instance
 

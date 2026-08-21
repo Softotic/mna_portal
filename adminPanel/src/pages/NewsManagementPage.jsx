@@ -39,9 +39,14 @@ import {
 import { newsAdminAPI } from '../api';
 import AdminTablePagination from '../components/AdminTablePagination';
 import { useAdminFeedback } from '../feedback/AdminFeedbackContext';
+import { useAuth } from '../auth/AuthContext';
 
 export default function NewsManagementPage() {
   const { confirm } = useAdminFeedback();
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission('NEWS', 'create');
+  const canEdit = hasPermission('NEWS', 'edit');
+  const canDelete = hasPermission('NEWS', 'delete');
   const [newsList, setNewsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -288,14 +293,14 @@ export default function NewsManagementPage() {
             Manage news and updates for your public website
           </Typography>
         </Box>
-        <Button
+        {canCreate && <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
           sx={{ textTransform: 'none', fontWeight: 600 }}
         >
           Add News
-        </Button>
+        </Button>}
       </Box>
 
       {message && (
@@ -375,7 +380,7 @@ export default function NewsManagementPage() {
                           : '-'}
                       </TableCell>
                       <TableCell sx={{ fontSize: '0.875rem', textAlign: 'center' }}>
-                        <IconButton
+                        {canEdit && <IconButton
                           size="small"
                           color={news.featured ? 'warning' : 'default'}
                           onClick={() => handleToggleFeatured(news.id)}
@@ -386,21 +391,21 @@ export default function NewsManagementPage() {
                           ) : (
                             <StarBorder fontSize="small" />
                           )}
-                        </IconButton>
+                        </IconButton>}
                       </TableCell>
                       <TableCell sx={{ fontSize: '0.875rem', color: '#666' }}>
                         {new Date(news.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
-                        <IconButton
+                        {canEdit && <IconButton
                           size="small"
                           color="primary"
                           onClick={() => handleOpenDialog(news)}
                           title="Edit"
                         >
                           <Edit fontSize="small" />
-                        </IconButton>
-                        {news.status === 'draft' ? (
+                        </IconButton>}
+                        {canEdit && (news.status === 'draft' ? (
                           <IconButton
                             size="small"
                             color="success"
@@ -418,15 +423,15 @@ export default function NewsManagementPage() {
                           >
                             <VisibilityOff fontSize="small" />
                           </IconButton>
-                        )}
-                        <IconButton
+                        ))}
+                        {canDelete && <IconButton
                           size="small"
                           color="error"
                           onClick={() => handleDelete(news)}
                           title="Delete"
                         >
                           <Delete fontSize="small" />
-                        </IconButton>
+                        </IconButton>}
                       </TableCell>
                     </TableRow>
                   ))}
