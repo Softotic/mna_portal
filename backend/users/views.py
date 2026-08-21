@@ -175,8 +175,9 @@ def my_permissions_view(request):
 def dashboard_stats_view(request):
     from django.db.models import Count, Sum
     from schemes.models import Scheme, SchemeCategory
-    from complaints.models import Complaint
-    from public_site.models import CitizenFeedback, News, PortfolioScheme, TeamMember
+    from public_site.models import (
+        CitizenFeedback, Complaint, News, PortfolioScheme, TeamMember,
+    )
 
     scheme_statuses = {
         row['status']: row['count']
@@ -206,7 +207,7 @@ def dashboard_stats_view(request):
         'scheme_statuses': scheme_statuses,
         'complaints': {
             'total': Complaint.objects.count(),
-            'open': complaint_statuses.get('pending', 0) + complaint_statuses.get('in_progress', 0),
+            'open': complaint_statuses.get('submitted', 0) + complaint_statuses.get('in_progress', 0),
             'resolved': complaint_statuses.get('resolved', 0),
             'in_progress': complaint_statuses.get('in_progress', 0),
         },
