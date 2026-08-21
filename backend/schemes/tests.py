@@ -210,6 +210,54 @@ class UnionCouncilMetadataTests(TestCase):
         self.assertEqual(response.data['union_council_id'], council.id)
         self.assertEqual(response.data['union_council_name'], 'UC-30')
 
+    def test_scheme_templates_can_be_filtered_by_union_council(self):
+        admin = CustomUser.objects.create_superuser(
+            email='uc-filter-admin@example.com',
+            password='test-password',
+            name='UC Filter Admin',
+        )
+        category = SchemeCategory.objects.create(name='Filtered Education')
+        mithi = UnionCouncil.objects.create(name='Mithi')
+        diplo = UnionCouncil.objects.create(name='Diplo')
+        SchemeTemplate.objects.create(title='Mithi Scheme', category=category, union_council=mithi, created_by=admin)
+        SchemeTemplate.objects.create(title='Diplo Scheme', category=category, union_council=diplo, created_by=admin)
+        self.client.force_authenticate(admin)
+
+        response = self.client.get(
+            '/api/scheme-templates/',
+            {'category_slug': category.slug, 'union_council': mithi.id},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        rows = response.data['results'] if isinstance(response.data, dict) else response.data
+        self.assertEqual([row['title'] for row in rows], ['Mithi Scheme'])
+
+    def test_scheme_template_returns_all_four_status_counts(self):
+        admin = CustomUser.objects.create_superuser(
+            email='status-count-admin@example.com',
+            password='test-password',
+            name='Status Count Admin',
+        )
+        category = SchemeCategory.objects.create(name='Counted Schemes')
+        council = UnionCouncil.objects.create(name='Count UC')
+        template = SchemeTemplate.objects.create(
+            title='Counted Scheme', category=category, union_council=council, created_by=admin
+        )
+        SchemeEntry.objects.create(template=template, status=SchemeEntry.STATUS_ANNOUNCED, created_by=admin)
+        SchemeEntry.objects.create(template=template, status=SchemeEntry.STATUS_ANNOUNCED, created_by=admin)
+        SchemeEntry.objects.create(template=template, status=SchemeEntry.STATUS_IN_PROGRESS, created_by=admin)
+        self.client.force_authenticate(admin)
+
+        response = self.client.get('/api/scheme-templates/', {'category_slug': category.slug})
+
+        row = response.data['results'][0]
+        self.assertEqual(row['status_counts'], {
+            SchemeEntry.STATUS_ANNOUNCED: 2,
+            SchemeEntry.STATUS_IN_PROGRESS: 1,
+            SchemeEntry.STATUS_AWAITING_INAUGURATION: 0,
+            SchemeEntry.STATUS_INAUGURATED: 0,
+        })
+
 
 class SchemeEntryImportTests(TestCase):
     def setUp(self):

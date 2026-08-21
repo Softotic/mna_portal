@@ -29,6 +29,13 @@ import PageHeader from '../components/PageHeader';
 import InputAdornment from '@mui/material/InputAdornment';
 import { useAdminFeedback } from '../feedback/AdminFeedbackContext';
 
+const STATUS_COLUMNS = [
+  { key: 'announced_not_started', label: 'Announced', color: '#465057', background: 'rgba(128, 128, 128, 0.13)' },
+  { key: 'in_progress', label: 'In Progress', color: '#704500', background: 'rgba(230, 162, 60, 0.16)' },
+  { key: 'completed_to_be_inaugurated', label: 'Awaiting Inauguration', color: '#64297C', background: 'rgba(142, 68, 173, 0.13)' },
+  { key: 'completed_inaugurated', label: 'Inaugurated', color: '#17663D', background: 'rgba(39, 174, 96, 0.13)' },
+];
+
 export default function SchemesPage() {
   const { notify } = useAdminFeedback();
   const { category_slug } = useParams();
@@ -48,6 +55,7 @@ export default function SchemesPage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
+  const [selectedUnionCouncil, setSelectedUnionCouncil] = useState('');
   const [loading, setLoading] = useState(true);
 
   const [open, setOpen] = useState(false);
@@ -61,6 +69,7 @@ export default function SchemesPage() {
     try {
       const response = await schemeTemplatesAPI.list({
         category_slug: category_slug || undefined,
+        union_council: selectedUnionCouncil || undefined,
         search,
         page: page + 1,
         page_size: rowsPerPage,
@@ -72,7 +81,7 @@ export default function SchemesPage() {
     } finally {
       setLoading(false);
     }
-  }, [category_slug, page, rowsPerPage, search]);
+  }, [category_slug, page, rowsPerPage, search, selectedUnionCouncil]);
 
   const fetchCategories = useCallback(() => {
     schemeCategoriesAPI.list().then(res => setCategories(res.data));
@@ -203,6 +212,19 @@ export default function SchemesPage() {
             slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> } }}
             sx={{ width: { xs: '100%', sm: 340 } }}
           />
+          <TextField
+            select
+            size="small"
+            label="Union Council"
+            value={selectedUnionCouncil}
+            onChange={(event) => { setSelectedUnionCouncil(event.target.value); setPage(0); }}
+            sx={{ width: { xs: '100%', sm: 240 } }}
+          >
+            <MenuItem value="">All Union Councils</MenuItem>
+            {unionCouncils.map((council) => (
+              <MenuItem key={council.id} value={council.id}>{council.name}</MenuItem>
+            ))}
+          </TextField>
           {category_slug ? (
             <Typography variant="body2" sx={{ pt: 1 }}>Category: {category_slug.toUpperCase()}</Typography>
           ) : null}
@@ -211,14 +233,18 @@ export default function SchemesPage() {
         {loading && <LinearProgress color="primary" />}
 
         <TableContainer>
-          <Table>
+          <Table sx={{ minWidth: 1080 }}>
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 700 }}>#</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Scheme Title</TableCell>
                 {!category_slug && <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>}
                 <TableCell sx={{ fontWeight: 700 }}>Union Council</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Fields</TableCell>
+                {STATUS_COLUMNS.map((statusColumn) => (
+                  <TableCell key={statusColumn.key} align="center" sx={{ minWidth: 112, fontWeight: 700 }}>
+                    {statusColumn.label}
+                  </TableCell>
+                ))}
                 <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -237,7 +263,28 @@ export default function SchemesPage() {
                   </TableCell>
                   {!category_slug && <TableCell>{template.category_name}</TableCell>}
                   <TableCell>{template.union_council_name || '—'}</TableCell>
-                  <TableCell>{template.field_definitions?.length || 0}</TableCell>
+                  {STATUS_COLUMNS.map((statusColumn) => (
+                    <TableCell key={statusColumn.key} align="center">
+                      <Box
+                        component="span"
+                        aria-label={`${statusColumn.label}: ${template.status_counts?.[statusColumn.key] || 0}`}
+                        sx={{
+                          minWidth: 34,
+                          height: 28,
+                          px: 1,
+                          display: 'inline-grid',
+                          placeItems: 'center',
+                          borderRadius: 999,
+                          color: statusColumn.color,
+                          bgcolor: statusColumn.background,
+                          fontWeight: 800,
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {template.status_counts?.[statusColumn.key] || 0}
+                      </Box>
+                    </TableCell>
+                  ))}
                   <TableCell align="right">
                     {canEdit && (
                       <IconButton size="small" color="primary" onClick={() => handleOpen(template)}>
@@ -254,8 +301,10 @@ export default function SchemesPage() {
               ))}
               {!loading && templates.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={category_slug ? 5 : 6} align="center" sx={{ py: 4 }}>
-                    <Typography color="text.secondary">No scheme templates found</Typography>
+                  <TableCell colSpan={category_slug ? 8 : 9} align="center" sx={{ py: 4 }}>
+                    <Typography color="text.secondary">
+                      {selectedUnionCouncil ? 'No schemes found for this Union Council.' : 'No scheme templates found'}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               )}

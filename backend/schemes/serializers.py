@@ -89,15 +89,33 @@ class SchemeTemplateSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     union_council_name = serializers.CharField(source='union_council.name', read_only=True)
+    status_counts = serializers.SerializerMethodField()
 
     class Meta:
         model = SchemeTemplate
         fields = [
             'id', 'title', 'category', 'category_name', 'category_slug',
             'union_council_id', 'union_council_name', 'field_definitions',
+            'status_counts',
             'created_by', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at', 'category']
+
+    def get_status_counts(self, obj):
+        def count(annotation, status_value):
+            annotated = getattr(obj, annotation, None)
+            if annotated is not None:
+                return annotated
+            return obj.entries.filter(status=status_value).count()
+
+        return {
+            SchemeEntry.STATUS_ANNOUNCED: count('announced_count', SchemeEntry.STATUS_ANNOUNCED),
+            SchemeEntry.STATUS_IN_PROGRESS: count('in_progress_count', SchemeEntry.STATUS_IN_PROGRESS),
+            SchemeEntry.STATUS_AWAITING_INAUGURATION: count(
+                'awaiting_inauguration_count', SchemeEntry.STATUS_AWAITING_INAUGURATION
+            ),
+            SchemeEntry.STATUS_INAUGURATED: count('inaugurated_count', SchemeEntry.STATUS_INAUGURATED),
+        }
 
     def to_internal_value(self, data):
         if hasattr(data, 'dict'):

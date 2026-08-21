@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models.deletion import ProtectedError
+from django.db.models import Count, Q
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .models import SchemeCategory, Scheme, SchemeTemplate, SchemeEntry, SchemeEntryComment, UnionCouncil
@@ -161,7 +162,24 @@ class UnionCouncilViewSet(viewsets.ModelViewSet):
 
 class SchemeTemplateViewSet(CategoryPermissionMixin, viewsets.ModelViewSet):
     """CRUD for scheme templates with user-defined fields."""
-    queryset = SchemeTemplate.objects.select_related('category', 'created_by', 'union_council').all()
+    queryset = SchemeTemplate.objects.select_related('category', 'created_by', 'union_council').annotate(
+        announced_count=Count(
+            'entries',
+            filter=Q(entries__status=SchemeEntry.STATUS_ANNOUNCED),
+        ),
+        in_progress_count=Count(
+            'entries',
+            filter=Q(entries__status=SchemeEntry.STATUS_IN_PROGRESS),
+        ),
+        awaiting_inauguration_count=Count(
+            'entries',
+            filter=Q(entries__status=SchemeEntry.STATUS_AWAITING_INAUGURATION),
+        ),
+        inaugurated_count=Count(
+            'entries',
+            filter=Q(entries__status=SchemeEntry.STATUS_INAUGURATED),
+        ),
+    )
     serializer_class = SchemeTemplateSerializer
     permission_classes = [IsAuthenticated, HasModulePermission]
     permission_source = 'template'
@@ -173,8 +191,11 @@ class SchemeTemplateViewSet(CategoryPermissionMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         qs = self.queryset
         cat_slug = self.request.query_params.get('category_slug')
+        union_council_id = self.request.query_params.get('union_council')
         if cat_slug:
             qs = qs.filter(category__slug=cat_slug.upper())
+        if union_council_id:
+            qs = qs.filter(union_council_id=union_council_id)
         return qs
 
 
