@@ -6,6 +6,7 @@ import {
   Card,
   CardContent,
   CardHeader,
+  Checkbox,
   Divider,
   TextField,
   Typography,
@@ -29,6 +30,7 @@ import {
 import {
   ArrowBack,
   CalendarTodayOutlined,
+  Check,
   Close as CloseIcon,
   Comment,
   Delete,
@@ -67,7 +69,7 @@ function EntryDetailField({ label, value }) {
   );
 }
 
-function SchemeStatusLegend() {
+function SchemeStatusLegend({ selectedStatuses, onToggleStatus }) {
   return (
     <Box
       component="section"
@@ -89,7 +91,7 @@ function SchemeStatusLegend() {
         variant="caption"
         sx={{ flexShrink: 0, color: 'text.secondary', fontWeight: 700 }}
       >
-        Row colors
+        Filter rows
       </Typography>
       <Box
         component="ul"
@@ -107,23 +109,68 @@ function SchemeStatusLegend() {
           <Box
             component="li"
             key={option.value}
-            sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}
+            sx={{ minWidth: 0 }}
           >
             <Box
-              component="span"
-              aria-hidden="true"
+              component="label"
               sx={{
-                width: 14,
-                height: 14,
-                flexShrink: 0,
-                borderRadius: '3px',
-                bgcolor: option.rowBackgroundColor,
-                border: `1px solid ${option.color}80`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                minHeight: 30,
+                px: 0.5,
+                borderRadius: 1,
+                cursor: 'pointer',
+                '&:hover': { bgcolor: 'action.hover' },
               }}
-            />
-            <Typography variant="caption" sx={{ color: 'text.primary', fontWeight: 600 }}>
-              {option.label}
-            </Typography>
+            >
+              <Checkbox
+                checked={selectedStatuses.includes(option.value)}
+                onChange={() => onToggleStatus(option.value)}
+                size="small"
+                icon={(
+                  <Box
+                    sx={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: '3px',
+                      bgcolor: option.rowBackgroundColor,
+                      border: `1px solid ${option.color}80`,
+                    }}
+                  />
+                )}
+                checkedIcon={(
+                  <Box
+                    sx={{
+                      width: 16,
+                      height: 16,
+                      display: 'grid',
+                      placeItems: 'center',
+                      borderRadius: '3px',
+                      bgcolor: option.color,
+                    }}
+                  >
+                    <Check sx={{ color: '#fff', fontSize: 13 }} />
+                  </Box>
+                )}
+                slotProps={{ input: { 'aria-label': `Show ${option.label} rows` } }}
+                sx={{
+                  p: 0.5,
+                  borderRadius: 1,
+                  '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 1 },
+                }}
+              />
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'text.primary',
+                  fontWeight: 600,
+                  opacity: selectedStatuses.includes(option.value) ? 1 : 0.6,
+                }}
+              >
+                {option.label}
+              </Typography>
+            </Box>
           </Box>
         ))}
       </Box>
@@ -163,6 +210,9 @@ export default function SchemeTemplateDetailPage() {
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStatuses, setSelectedStatuses] = useState(() => (
+    SCHEME_STATUS_OPTIONS.map((option) => option.value)
+  ));
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -287,14 +337,26 @@ export default function SchemeTemplateDetailPage() {
     }
   };
 
-  // Filter entries based on search query
+  const handleStatusFilterToggle = (statusValue) => {
+    setSelectedStatuses((currentStatuses) => (
+      currentStatuses.includes(statusValue)
+        ? currentStatuses.filter((value) => value !== statusValue)
+        : [...currentStatuses, statusValue]
+    ));
+    setPage(0);
+  };
+
+  // Filter entries based on selected statuses and search query
   const filteredEntries = entries.filter((entry) => {
+    const entryStatus = getSchemeStatus(entry.status);
+    if (!selectedStatuses.includes(entryStatus.value)) return false;
+
     if (!searchQuery.trim()) return true;
     const searchLower = searchQuery.toLowerCase();
     
     // Search in all field values
     for (const field of template?.field_definitions || []) {
-      if (entry.values?.[field]?.toLowerCase().includes(searchLower)) {
+      if (String(entry.values?.[field] ?? '').toLowerCase().includes(searchLower)) {
         return true;
       }
     }
@@ -304,7 +366,7 @@ export default function SchemeTemplateDetailPage() {
       return true;
     }
 
-    if (getSchemeStatus(entry.status).label.toLowerCase().includes(searchLower)) {
+    if (entryStatus.label.toLowerCase().includes(searchLower)) {
       return true;
     }
     
@@ -472,7 +534,12 @@ export default function SchemeTemplateDetailPage() {
           )}
         />
         <Divider />
-        {entries.length > 0 && <SchemeStatusLegend />}
+        {entries.length > 0 && (
+          <SchemeStatusLegend
+            selectedStatuses={selectedStatuses}
+            onToggleStatus={handleStatusFilterToggle}
+          />
+        )}
         <CardContent sx={{ pt: 0 }}>
           {loading ? (
             <Box sx={{ py: 4 }}><LinearProgress /></Box>
@@ -493,10 +560,16 @@ export default function SchemeTemplateDetailPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredEntries.length === 0 && searchQuery ? (
+                  {filteredEntries.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={template.field_definitions.length + 2} align="center" sx={{ py: 4 }}>
-                        <Typography color="text.secondary" variant="body2">No entries match your search</Typography>
+                        <Typography color="text.secondary" variant="body2">
+                          {selectedStatuses.length === 0
+                            ? 'Select at least one status to show entries.'
+                            : searchQuery
+                              ? 'No entries match your search and status filters.'
+                              : 'No entries match the selected status filters.'}
+                        </Typography>
                       </TableCell>
                     </TableRow>
                   ) : null}
