@@ -7,7 +7,6 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.utils import timezone
-from django.db.models import Q
 from .models import (
     PublicSettings,
     News,
@@ -15,12 +14,11 @@ from .models import (
     ComplaintUpdate,
     CitizenFeedback,
     TeamMember,
-    PortfolioCategory,
     PortfolioScheme,
     PortfolioSchemeImage,
     NewsImage,
 )
-from schemes.models import UnionCouncil
+from schemes.models import SchemeCategory, UnionCouncil
 from .serializers import (
     PublicSettingsSerializer,
     CitizenFeedbackSerializer,
@@ -128,31 +126,26 @@ class PortfolioUnionCouncilViewSet(viewsets.ReadOnlyModelViewSet):
     """Shared Union Council metadata used by public portfolio records."""
 
     queryset = UnionCouncil.objects.filter(
-        Q(portfolio_categories__isnull=False) | Q(portfolio_schemes__isnull=False)
+        portfolio_schemes__isnull=False
     ).distinct().order_by('name')
     serializer_class = PortfolioUnionCouncilSerializer
     permission_classes = [AllowAny]
     pagination_class = None
 
 
-class PortfolioCategoryViewSet(PublicReadModulePermissionMixin, viewsets.ModelViewSet):
-    """Public portfolio categories and admin management."""
+class PortfolioCategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """Shared category metadata currently used by public portfolio schemes."""
 
-    queryset = PortfolioCategory.objects.select_related('union_council').all().order_by('sort_order', 'name')
+    queryset = SchemeCategory.objects.filter(portfolio_schemes__isnull=False).distinct().order_by('name')
     serializer_class = PortfolioCategorySerializer
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-    filterset_fields = ['union_council']
-    search_fields = ['name', 'description', 'union_council__name']
-    ordering_fields = ['sort_order', 'name', 'created_at', 'updated_at']
+    permission_classes = [AllowAny]
     pagination_class = None
 
-    module_key = 'PORTFOLIO'
-
     def get_queryset(self):
-        queryset = PortfolioCategory.objects.select_related('union_council').all().order_by('sort_order', 'name')
+        queryset = self.queryset
         union_council = self.request.query_params.get('union_council')
         if union_council:
-            queryset = queryset.filter(union_council_id=union_council)
+            queryset = queryset.filter(portfolio_schemes__union_council_id=union_council).distinct()
         return queryset
 
 

@@ -110,7 +110,11 @@ class SchemeCategoryViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         
         # Give the client a clear response for known category dependencies.
-        if Scheme.objects.filter(category=instance).exists() or SchemeTemplate.objects.filter(category=instance).exists():
+        if (
+            Scheme.objects.filter(category=instance).exists()
+            or SchemeTemplate.objects.filter(category=instance).exists()
+            or instance.portfolio_schemes.exists()
+        ):
             return Response(
                 {"success": False, "message": "This category cannot be deleted because it has associated schemes or templates."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -148,7 +152,6 @@ class UnionCouncilViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         if (
             instance.scheme_templates.exists()
-            or instance.portfolio_categories.exists()
             or instance.portfolio_schemes.exists()
         ):
             return Response(

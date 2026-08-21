@@ -133,35 +133,6 @@ class TeamMember(models.Model):
             TeamMember.objects.exclude(pk=self.pk).filter(featured=True).update(featured=False)
 
 
-class PortfolioCategory(models.Model):
-    """Category within a portfolio union council."""
-
-    union_council = models.ForeignKey(
-        'schemes.UnionCouncil',
-        related_name='portfolio_categories',
-        on_delete=models.PROTECT,
-    )
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    sort_order = models.PositiveIntegerField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['sort_order', 'name']
-        verbose_name = 'Portfolio Category'
-        verbose_name_plural = 'Portfolio Categories'
-
-    def __str__(self):
-        return f"{self.union_council.name} - {self.name}"
-
-    def save(self, *args, **kwargs):
-        if self.sort_order is None:
-            max_order = PortfolioCategory.objects.filter(union_council=self.union_council).aggregate(max_order=Max('sort_order'))['max_order']
-            self.sort_order = 0 if max_order is None else max_order + 1
-        super().save(*args, **kwargs)
-
-
 class PortfolioScheme(models.Model):
     """Public portfolio scheme displayed on the public website."""
 
@@ -176,7 +147,11 @@ class PortfolioScheme(models.Model):
         related_name='portfolio_schemes',
         on_delete=models.PROTECT,
     )
-    category = models.ForeignKey(PortfolioCategory, related_name='schemes', on_delete=models.CASCADE)
+    category = models.ForeignKey(
+        'schemes.SchemeCategory',
+        related_name='portfolio_schemes',
+        on_delete=models.PROTECT,
+    )
     name = models.CharField(max_length=500)
     description = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ongoing')

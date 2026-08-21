@@ -11,12 +11,11 @@ from .models import (
     ComplaintUpdate,
     CitizenFeedback,
     TeamMember,
-    PortfolioCategory,
     PortfolioScheme,
     PortfolioSchemeImage,
     NewsImage,
 )
-from schemes.models import UnionCouncil
+from schemes.models import SchemeCategory, UnionCouncil
 
 
 class SafeFileUrlField(serializers.FileField):
@@ -139,33 +138,22 @@ class PortfolioUnionCouncilSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
 
     def get_category_count(self, obj):
-        return obj.portfolio_categories.count()
+        return obj.portfolio_schemes.values('category_id').distinct().count()
 
     def get_scheme_count(self, obj):
         return obj.portfolio_schemes.count()
 
 
 class PortfolioCategorySerializer(serializers.ModelSerializer):
-    union_council_name = serializers.CharField(source='union_council.name', read_only=True)
     scheme_count = serializers.SerializerMethodField()
 
     class Meta:
-        model = PortfolioCategory
-        fields = [
-            'id',
-            'union_council',
-            'union_council_name',
-            'name',
-            'description',
-            'sort_order',
-            'scheme_count',
-            'created_at',
-            'updated_at',
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        model = SchemeCategory
+        fields = ['id', 'scheme_id', 'name', 'slug', 'scheme_count', 'created_at', 'updated_at']
+        read_only_fields = fields
 
     def get_scheme_count(self, obj):
-        return obj.schemes.count()
+        return obj.portfolio_schemes.count()
 
 
 class PortfolioSchemeSerializer(serializers.ModelSerializer):
@@ -212,14 +200,6 @@ class PortfolioSchemeSerializer(serializers.ModelSerializer):
             for item in obj.images.all()
             if SafeFileUrlField(context=self.context).to_representation(item.image)
         ]
-
-    def validate(self, attrs):
-        union_council = attrs.get('union_council') or getattr(self.instance, 'union_council', None)
-        category = attrs.get('category') or getattr(self.instance, 'category', None)
-        if union_council and category and category.union_council_id != union_council.id:
-            raise serializers.ValidationError({'category': 'Category must belong to the selected union council.'})
-        return attrs
-
 
 class NewsListSerializer(serializers.ModelSerializer):
     """Serializer for news list view (public)."""

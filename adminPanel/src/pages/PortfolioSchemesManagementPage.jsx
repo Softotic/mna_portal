@@ -9,30 +9,38 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Grid,
   IconButton,
   LinearProgress,
   MenuItem,
   Paper,
-  Tab,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Tabs,
   TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
-import { Add, Delete, Edit, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
-import { portfolioCategoriesAPI, portfolioSchemesAPI, unionCouncilsAPI } from '../api/index.js';
+import {
+  Add,
+  AttachFileOutlined,
+  Close,
+  Delete,
+  Edit,
+  ImageOutlined,
+  KeyboardArrowDown,
+  KeyboardArrowUp,
+  PhotoLibraryOutlined,
+} from '@mui/icons-material';
+import { portfolioSchemesAPI, schemeCategoriesAPI, unionCouncilsAPI } from '../api/index.js';
 import AdminTablePagination from '../components/AdminTablePagination.jsx';
 import { useAdminFeedback } from '../feedback/AdminFeedbackContext.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 
-const emptyCategory = { union_council: '', name: '', description: '' };
 const emptyScheme = {
   union_council: '',
   category: '',
@@ -66,16 +74,15 @@ export default function PortfolioSchemesManagementPage() {
   const canCreate = hasPermission('PORTFOLIO', 'create');
   const canEdit = hasPermission('PORTFOLIO', 'edit');
   const canDelete = hasPermission('PORTFOLIO', 'delete');
-  const [tab, setTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [ucs, setUcs] = useState([]);
   const [categories, setCategories] = useState([]);
   const [schemes, setSchemes] = useState([]);
-  const [dialog, setDialog] = useState(null);
+  const [dialog, setDialog] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(emptyCategory);
+  const [form, setForm] = useState(emptyScheme);
 
   const orderedUcs = useMemo(() => ordered(ucs), [ucs]);
   const orderedCategories = useMemo(() => ordered(categories), [categories]);
@@ -86,7 +93,7 @@ export default function PortfolioSchemesManagementPage() {
     try {
       const [ucResponse, categoryResponse, schemeResponse] = await Promise.all([
         unionCouncilsAPI.list({ ordering: 'name' }),
-        portfolioCategoriesAPI.list({ ordering: 'sort_order' }),
+        schemeCategoriesAPI.list(),
         portfolioSchemesAPI.list({ ordering: 'sort_order' }),
       ]);
       setUcs(Array.isArray(ucResponse.data) ? ucResponse.data : ucResponse.data?.results || []);
@@ -104,47 +111,35 @@ export default function PortfolioSchemesManagementPage() {
     loadAll();
   }, []);
 
-  const openDialog = (type, item = null) => {
-    setDialog(type);
+  const openDialog = (item = null) => {
+    setDialog(true);
     setEditing(item);
-    if (type === 'category') {
-      setForm(
-        item
-          ? { union_council: item.union_council || '', name: item.name || '', description: item.description || '' }
-          : { ...emptyCategory, union_council: orderedUcs[0]?.id || '' },
-      );
-    }
-    if (type === 'scheme') {
-      const firstUc = orderedUcs[0]?.id || '';
-      const firstCategory = orderedCategories.find((category) => String(category.union_council) === String(firstUc))?.id || '';
-      setForm(
-        item
-          ? {
-              union_council: item.union_council || '',
-              category: item.category || '',
-              name: item.name || '',
-              description: item.description || '',
-              status: item.status || 'ongoing',
-              image: null,
-              images: [],
-              attachment: null,
-              tags: item.tags || '',
-              notes: item.notes || '',
-            }
-          : { ...emptyScheme, union_council: firstUc, category: firstCategory },
-      );
-    }
+    setForm(
+      item
+        ? {
+            union_council: item.union_council || '',
+            category: item.category || '',
+            name: item.name || '',
+            description: item.description || '',
+            status: item.status || 'ongoing',
+            image: null,
+            images: [],
+            attachment: null,
+            tags: item.tags || '',
+            notes: item.notes || '',
+          }
+        : {
+            ...emptyScheme,
+            union_council: orderedUcs[0]?.id || '',
+            category: orderedCategories[0]?.id || '',
+          },
+    );
   };
 
   const save = async () => {
     setSaving(true);
     try {
-      if (dialog === 'category') {
-        editing ? await portfolioCategoriesAPI.update(editing.id, form) : await portfolioCategoriesAPI.create(form);
-      }
-      if (dialog === 'scheme') {
-        editing ? await portfolioSchemesAPI.update(editing.id, form) : await portfolioSchemesAPI.create(form);
-      }
+      editing ? await portfolioSchemesAPI.update(editing.id, form) : await portfolioSchemesAPI.create(form);
       setMessage('Portfolio saved successfully.');
       setDialog(null);
       await loadAll();
@@ -156,8 +151,8 @@ export default function PortfolioSchemesManagementPage() {
     }
   };
 
-  const remove = async (type, item) => {
-    const typeLabel = type === 'category' ? 'portfolio category' : 'portfolio scheme';
+  const remove = async (item) => {
+    const typeLabel = 'portfolio scheme';
     const approved = await confirm({
       title: `Delete ${typeLabel}?`,
       description: `This permanently removes the ${typeLabel} from the portfolio section.`,
@@ -166,8 +161,7 @@ export default function PortfolioSchemesManagementPage() {
     });
     if (!approved) return;
     try {
-      if (type === 'category') await portfolioCategoriesAPI.delete(item.id);
-      if (type === 'scheme') await portfolioSchemesAPI.delete(item.id);
+      await portfolioSchemesAPI.delete(item.id);
       setMessage('Portfolio item deleted.');
       loadAll();
     } catch (error) {
@@ -176,12 +170,10 @@ export default function PortfolioSchemesManagementPage() {
     }
   };
 
-  const move = async (type, item, direction) => {
-    const source =
-      type === 'category'
-        ? orderedCategories.filter((row) => String(row.union_council) === String(item.union_council))
-        : orderedSchemes.filter((row) => String(row.union_council) === String(item.union_council) && String(row.category) === String(item.category));
-    const api = type === 'category' ? portfolioCategoriesAPI : portfolioSchemesAPI;
+  const move = async (item, direction) => {
+    const source = orderedSchemes.filter(
+      (row) => String(row.union_council) === String(item.union_council) && String(row.category) === String(item.category),
+    );
     const currentIndex = source.findIndex((sourceItem) => sourceItem.id === item.id);
     const targetIndex = currentIndex + direction;
     if (currentIndex === -1 || targetIndex < 0 || targetIndex >= source.length) return;
@@ -193,7 +185,7 @@ export default function PortfolioSchemesManagementPage() {
     try {
       await Promise.all(
         reordered.map((row, index) =>
-          row.sort_order === index ? Promise.resolve() : api.update(row.id, { sort_order: index }),
+          row.sort_order === index ? Promise.resolve() : portfolioSchemesAPI.update(row.id, { sort_order: index }),
         ),
       );
       loadAll();
@@ -203,8 +195,6 @@ export default function PortfolioSchemesManagementPage() {
     }
   };
 
-  const categoryOptions = orderedCategories.filter((category) => String(category.union_council) === String(form.union_council));
-
   return (
     <Box>
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
@@ -213,122 +203,132 @@ export default function PortfolioSchemesManagementPage() {
             Portfolio Scheme Management
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Manage public district schemes using the shared Union Council metadata.
+            Manage public district schemes using shared Category and Union Council metadata.
           </Typography>
         </Box>
-        {canCreate && <Button variant="contained" startIcon={<Add />} onClick={() => openDialog(tab === 0 ? 'category' : 'scheme')}>
-          Add {tab === 0 ? 'Category' : 'Scheme'}
+        {canCreate && <Button variant="contained" startIcon={<Add />} onClick={() => openDialog()}>
+          Add Scheme
         </Button>}
       </Box>
 
       {message && <Alert sx={{ mb: 2 }} onClose={() => setMessage('')}>{message}</Alert>}
       <Card sx={{ overflow: 'hidden' }}>
         {loading && <LinearProgress />}
-        <Tabs value={tab} onChange={(_, value) => setTab(value)} sx={{ px: 2, bgcolor: '#fafbfc' }}>
-          <Tab label="Categories" />
-          <Tab label="Schemes" />
-        </Tabs>
-        {tab === 0 && (
-          <PortfolioTable rows={orderedCategories} columns={['Name', 'Union Council', 'Description', 'Order']} renderRow={(row, index) => (
-            <TableRow key={row.id} hover>
-              <TableCell>{row.name}</TableCell>
-              <TableCell>{row.union_council_name}</TableCell>
-              <TableCell>{row.description || 'N/A'}</TableCell>
-              <TableCell>
-                <OrderButtons
-                  disabled={!canEdit}
-                  value={index + 1}
-                  isFirst={orderedCategories.filter((item) => String(item.union_council) === String(row.union_council))[0]?.id === row.id}
-                  isLast={orderedCategories.filter((item) => String(item.union_council) === String(row.union_council)).at(-1)?.id === row.id}
-                  onUp={() => move('category', row, -1)}
-                  onDown={() => move('category', row, 1)}
-                />
-              </TableCell>
-              <Actions canEdit={canEdit} canDelete={canDelete} onEdit={() => openDialog('category', row)} onDelete={() => remove('category', row)} />
-            </TableRow>
-          )} />
-        )}
-        {tab === 1 && (
-          <PortfolioTable rows={orderedSchemes} columns={['Scheme', 'UC / Category', 'Status', 'Order']} renderRow={(row, index) => (
-            <TableRow key={row.id} hover>
-              <TableCell>
-                <Typography sx={{ fontWeight: 700 }}>{row.name}</Typography>
-                <Typography variant="body2" color="text.secondary">{row.description || 'No description'}</Typography>
-              </TableCell>
-              <TableCell>{row.union_council_name} / {row.category_name}</TableCell>
-              <TableCell><Chip size="small" label={row.status} color={statusColor(row.status)} /></TableCell>
-              <TableCell>
-                <OrderButtons
-                  disabled={!canEdit}
-                  value={index + 1}
-                  isFirst={orderedSchemes.filter((item) => String(item.union_council) === String(row.union_council) && String(item.category) === String(row.category))[0]?.id === row.id}
-                  isLast={orderedSchemes.filter((item) => String(item.union_council) === String(row.union_council) && String(item.category) === String(row.category)).at(-1)?.id === row.id}
-                  onUp={() => move('scheme', row, -1)}
-                  onDown={() => move('scheme', row, 1)}
-                />
-              </TableCell>
-              <Actions canEdit={canEdit} canDelete={canDelete} onEdit={() => openDialog('scheme', row)} onDelete={() => remove('scheme', row)} />
-            </TableRow>
-          )} />
-        )}
+        <PortfolioTable rows={orderedSchemes} columns={['Scheme', 'UC / Category', 'Status', 'Order']} renderRow={(row, index) => (
+          <TableRow key={row.id} hover>
+            <TableCell>
+              <Typography sx={{ fontWeight: 700 }}>{row.name}</Typography>
+              <Typography variant="body2" color="text.secondary">{row.description || 'No description'}</Typography>
+            </TableCell>
+            <TableCell>{row.union_council_name} / {row.category_name}</TableCell>
+            <TableCell><Chip size="small" label={row.status} color={statusColor(row.status)} /></TableCell>
+            <TableCell>
+              <OrderButtons
+                disabled={!canEdit}
+                value={index + 1}
+                isFirst={orderedSchemes.filter((item) => String(item.union_council) === String(row.union_council) && String(item.category) === String(row.category))[0]?.id === row.id}
+                isLast={orderedSchemes.filter((item) => String(item.union_council) === String(row.union_council) && String(item.category) === String(row.category)).at(-1)?.id === row.id}
+                onUp={() => move(row, -1)}
+                onDown={() => move(row, 1)}
+              />
+            </TableCell>
+            <Actions canEdit={canEdit} canDelete={canDelete} onEdit={() => openDialog(row)} onDelete={() => remove(row)} />
+          </TableRow>
+        )} />
       </Card>
 
-      <Dialog open={Boolean(dialog)} onClose={() => setDialog(null)} fullWidth maxWidth="md">
-        <DialogTitle>{editing ? 'Edit' : 'Add'} {dialog === 'category' ? 'Category' : 'Scheme'}</DialogTitle>
-        <DialogContent dividers>
-          <Grid container spacing={2.5} sx={{ pt: 1 }}>
+      <Dialog
+        open={Boolean(dialog)}
+        onClose={() => setDialog(null)}
+        fullWidth
+        maxWidth="md"
+        PaperProps={{ sx: { maxWidth: 820, overflow: 'hidden' } }}
+      >
+        <DialogTitle sx={{ p: 0 }}>
+          <Box sx={{ px: { xs: 2.5, sm: 3.5 }, py: 2.5, bgcolor: '#F5FAF7', display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+            <Box sx={{ width: 42, height: 42, borderRadius: 2.5, bgcolor: 'primary.main', color: 'primary.contrastText', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <Add fontSize="small" />
+            </Box>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography component="h2" variant="h6" sx={{ fontSize: '1.1rem' }}>
+                {editing ? 'Edit portfolio scheme' : 'Add a portfolio scheme'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
+                Add the details that will appear on the public schemes page.
+              </Typography>
+            </Box>
+            <IconButton aria-label="Close form" onClick={() => setDialog(null)} size="small" sx={{ mt: 0.15 }}>
+              <Close fontSize="small" />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ px: { xs: 2.5, sm: 3.5 }, py: 3 }}>
+          <FormSection title="Scheme details" description="Choose where this scheme belongs, then add the public-facing information." />
+          <Grid container spacing={2.25}>
             <Grid item xs={12} md={6}>
-              <TextField select fullWidth required label="Union Council" value={form.union_council} onChange={(event) => setForm((prev) => ({ ...prev, union_council: event.target.value, category: '' }))}>
+              <TextField select fullWidth required label="Union Council" value={form.union_council} onChange={(event) => setForm((prev) => ({ ...prev, union_council: event.target.value }))}>
                 {orderedUcs.map((uc) => <MenuItem key={uc.id} value={uc.id}>{uc.name}</MenuItem>)}
               </TextField>
             </Grid>
-            {dialog === 'scheme' && (
-              <Grid item xs={12} md={6}>
-                <TextField select fullWidth label="Category" value={form.category} onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}>
-                  {categoryOptions.map((category) => <MenuItem key={category.id} value={category.id}>{category.name}</MenuItem>)}
-                </TextField>
-              </Grid>
-            )}
             <Grid item xs={12} md={6}>
-              <TextField fullWidth required label={dialog === 'scheme' ? 'Scheme Name' : 'Name'} value={form.name} onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))} />
+              <TextField select fullWidth required label="Category" value={form.category} onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}>
+                {orderedCategories.map((category) => <MenuItem key={category.id} value={category.id}>{category.name}</MenuItem>)}
+              </TextField>
             </Grid>
-            {dialog === 'scheme' && (
-              <Grid item xs={12} md={6}>
-                <TextField select fullWidth label="Status" value={form.status} onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value }))}>
-                  <MenuItem value="ongoing">Ongoing</MenuItem>
-                  <MenuItem value="past">Past</MenuItem>
-                  <MenuItem value="future">Future</MenuItem>
-                </TextField>
-              </Grid>
-            )}
+            <Grid item xs={12} md={6}>
+              <TextField fullWidth required label="Scheme Name" value={form.name} onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField select fullWidth label="Status" value={form.status} onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value }))}>
+                <MenuItem value="ongoing">Ongoing</MenuItem>
+                <MenuItem value="past">Past</MenuItem>
+                <MenuItem value="future">Future</MenuItem>
+              </TextField>
+            </Grid>
             <Grid item xs={12}>
-              <TextField fullWidth multiline rows={dialog === 'scheme' ? 4 : 3} label="Description" value={form.description} onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))} />
+              <TextField fullWidth multiline rows={4} label="Description" placeholder="Briefly describe the project, its purpose, or expected benefit." value={form.description} onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))} />
             </Grid>
-            {dialog === 'scheme' && (
-              <>
-                <Grid item xs={12} md={6}>
-                  <TextField fullWidth label="Tags" value={form.tags} onChange={(event) => setForm((prev) => ({ ...prev, tags: event.target.value }))} helperText="Comma-separated" />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField fullWidth label="Notes" value={form.notes} onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))} />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>Image</Typography>
-                  <input type="file" accept="image/*" onChange={(event) => setForm((prev) => ({ ...prev, image: event.target.files?.[0] || null }))} />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>Additional Images</Typography>
-                  <input type="file" accept="image/*" multiple onChange={(event) => setForm((prev) => ({ ...prev, images: Array.from(event.target.files || []) }))} />
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.7 }}>
-                    Add one or more images for a slideshow on the public scheme page.
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>Attachment</Typography>
-                  <input type="file" onChange={(event) => setForm((prev) => ({ ...prev, attachment: event.target.files?.[0] || null }))} />
-                </Grid>
-              </>
-            )}
+            <Grid item xs={12} md={6}>
+              <TextField fullWidth label="Tags" value={form.tags} onChange={(event) => setForm((prev) => ({ ...prev, tags: event.target.value }))} helperText="Comma-separated" />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField fullWidth label="Notes" value={form.notes} onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))} />
+            </Grid>
+          </Grid>
+
+          <Divider sx={{ my: 3.25 }} />
+          <FormSection title="Media & files" description="A cover image is recommended. Add gallery images or a supporting document when useful." />
+          <Grid container spacing={2.25}>
+            <Grid item xs={12} md={6}>
+              <FileUpload
+                icon={<ImageOutlined fontSize="small" />}
+                title="Cover image"
+                description="JPG, PNG, or WebP"
+                accept="image/*"
+                fileName={form.image?.name}
+                onChange={(event) => setForm((prev) => ({ ...prev, image: event.target.files?.[0] || null }))}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FileUpload
+                icon={<PhotoLibraryOutlined fontSize="small" />}
+                title="Gallery images"
+                description="Add images for a public slideshow"
+                accept="image/*"
+                multiple
+                fileName={form.images.length ? `${form.images.length} image${form.images.length === 1 ? '' : 's'} selected` : ''}
+                onChange={(event) => setForm((prev) => ({ ...prev, images: Array.from(event.target.files || []) }))}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FileUpload
+                icon={<AttachFileOutlined fontSize="small" />}
+                title="Supporting attachment"
+                description="Optional project document or report"
+                fileName={form.attachment?.name}
+                onChange={(event) => setForm((prev) => ({ ...prev, attachment: event.target.files?.[0] || null }))}
+              />
+            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
@@ -336,6 +336,44 @@ export default function PortfolioSchemesManagementPage() {
           <Button variant="contained" disabled={saving} onClick={save}>{saving ? 'Saving...' : 'Save'}</Button>
         </DialogActions>
       </Dialog>
+    </Box>
+  );
+}
+
+function FormSection({ title, description }) {
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Typography variant="subtitle1" sx={{ color: 'text.primary' }}>{title}</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>{description}</Typography>
+    </Box>
+  );
+}
+
+function FileUpload({ icon, title, description, accept, multiple = false, fileName, onChange }) {
+  return (
+    <Box
+      sx={{
+        minHeight: 118,
+        p: 1.75,
+        border: '1px dashed',
+        borderColor: fileName ? 'primary.main' : '#B9C9C1',
+        borderRadius: 2.5,
+        bgcolor: fileName ? 'rgba(11, 93, 59, 0.045)' : '#FAFCFB',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: 0.45,
+        transition: 'border-color 160ms ease, background-color 160ms ease',
+        '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(11, 93, 59, 0.035)' },
+      }}
+    >
+      <Box sx={{ color: 'primary.main', display: 'grid', placeItems: 'center', mb: 0.2 }}>{icon}</Box>
+      <Typography variant="subtitle2">{title}</Typography>
+      <Typography variant="caption" color="text.secondary">{fileName || description}</Typography>
+      <Button component="label" size="small" variant="text" sx={{ minHeight: 28, px: 0.5, mt: 'auto' }}>
+        {fileName ? 'Replace file' : 'Choose file'}
+        <input hidden type="file" accept={accept} multiple={multiple} onChange={onChange} />
+      </Button>
     </Box>
   );
 }

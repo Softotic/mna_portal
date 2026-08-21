@@ -229,13 +229,6 @@ const toFormData = (data) => {
   return formData;
 };
 
-export const portfolioCategoriesAPI = {
-  list: (params) => api.get('/public/portfolio/categories/', { params }),
-  create: (data) => api.post('/public/portfolio/categories/', data),
-  update: (id, data) => api.patch(`/public/portfolio/categories/${id}/`, data),
-  delete: (id) => api.delete(`/public/portfolio/categories/${id}/`),
-};
-
 export const portfolioSchemesAPI = {
   list: (params) => api.get('/public/portfolio/schemes/', { params }),
   get: (id) => api.get(`/public/portfolio/schemes/${id}/`),

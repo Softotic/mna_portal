@@ -98,11 +98,16 @@ export default function PublicSchemesPage() {
   }, [requestKey]);
 
   const availableCategories = useMemo(
-    () =>
-      selectedUc
-        ? categories.filter((category) => String(category.union_council) === String(selectedUc))
-        : categories,
-    [categories, selectedUc],
+    () => {
+      if (!selectedUc) return categories;
+      const categoryIds = new Set(
+        schemes
+          .filter((scheme) => String(scheme.union_council) === String(selectedUc))
+          .map((scheme) => String(scheme.category)),
+      );
+      return categories.filter((category) => categoryIds.has(String(category.id)));
+    },
+    [categories, schemes, selectedUc],
   );
 
   const visibleSchemes = useMemo(

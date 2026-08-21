@@ -9,7 +9,6 @@ from .models import (
     ComplaintUpdate,
     CitizenFeedback,
     TeamMember,
-    PortfolioCategory,
     PortfolioScheme,
     PortfolioSchemeImage,
     NewsImage,
@@ -139,14 +138,6 @@ class TeamMemberAdmin(admin.ModelAdmin):
     list_filter = ('status', 'featured', 'department', 'union_council')
     search_fields = ('name', 'designation', 'email', 'phone', 'union_council', 'department', 'bio')
     list_editable = ('status', 'featured')
-    readonly_fields = ('created_at', 'updated_at')
-
-
-@admin.register(PortfolioCategory)
-class PortfolioCategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'union_council', 'sort_order', 'updated_at')
-    list_filter = ('union_council',)
-    search_fields = ('name', 'description', 'union_council__name')
     readonly_fields = ('created_at', 'updated_at')
 
 
