@@ -26,7 +26,7 @@ class PublicSettingsAdmin(admin.ModelAdmin):
             'fields': ('site_name', 'leader_name', 'designation', 'constituency', 'district', 'logo'),
         }),
         ('Content', {
-            'fields': ('site_message', 'hero_statement', 'intro', 'intro_image', 'about', 'achievements'),
+            'fields': ('site_message', 'hero_statement', 'intro', 'intro_image', 'about', 'about_image', 'achievements'),
         }),
         ('Organization Info', {
             'fields': ('vision', 'mission', 'values'),

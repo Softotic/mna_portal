@@ -40,6 +40,7 @@ class SafeFileUrlField(serializers.FileField):
 class PublicSettingsSerializer(serializers.ModelSerializer):
     """Serializer for public site settings."""
     intro_image = SafeFileUrlField(required=False, allow_null=True)
+    about_image = SafeFileUrlField(required=False, allow_null=True)
     logo = SafeFileUrlField(required=False, allow_null=True)
 
     class Meta:
@@ -59,6 +60,7 @@ class PublicSettingsSerializer(serializers.ModelSerializer):
             'mission',
             'values',
             'about',
+            'about_image',
             'achievements',
             'office_address',
             'office_hours',

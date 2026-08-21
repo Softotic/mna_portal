@@ -24,6 +24,7 @@ class PublicSettings(models.Model):
     mission = models.TextField(blank=True, help_text='Organization mission')
     values = models.TextField(blank=True, help_text='Organization values')
     about = models.TextField(blank=True, help_text='About section')
+    about_image = models.ImageField(upload_to='public/about/', blank=True, null=True, help_text='Dedicated About page image')
     achievements = models.TextField(blank=True, help_text='Line-separated achievements or focus areas')
     office_address = models.TextField(blank=True)
     office_hours = models.CharField(max_length=255, blank=True)

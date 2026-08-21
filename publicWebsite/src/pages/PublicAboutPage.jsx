@@ -64,7 +64,8 @@ export default function PublicAboutPage() {
     settings?.about || settings?.intro ||
       'This office helps citizens reach their elected representative, understand ongoing public work, and receive responses through structured service channels.',
   );
-  const portrait = settings?.intro_image ? resolveMediaUrl(settings.intro_image) : portraitFallback;
+  const portraitSource = settings?.about_image || settings?.intro_image;
+  const portrait = portraitSource ? resolveMediaUrl(portraitSource) : portraitFallback;
 
   const achievements = useMemo(
     () => toList(settings?.achievements, [
@@ -133,8 +134,8 @@ export default function PublicAboutPage() {
               <CardMedia
                 component="img"
                 src={portrait}
-                alt={settings?.intro_image ? `Portrait of ${leaderName}` : 'Constituency public office'}
-                sx={{ position: 'relative', width: '100%', aspectRatio: '4 / 5', maxHeight: 570, objectFit: 'cover', objectPosition: settings?.intro_image ? 'center 20%' : 'center', borderRadius: 2 }}
+                alt={portraitSource ? `Portrait of ${leaderName}` : 'Constituency public office'}
+                sx={{ position: 'relative', width: '100%', aspectRatio: '4 / 5', maxHeight: 570, objectFit: 'cover', objectPosition: portraitSource ? 'center 20%' : 'center', borderRadius: 2 }}
               />
               <Box sx={{ position: 'absolute', left: { xs: 16, sm: -30 }, bottom: { xs: 16, sm: 28 }, maxWidth: 280, bgcolor: 'background.paper', color: 'text.primary', p: 2.5, borderRadius: 1.5, boxShadow: '0 8px 0 rgba(214,154,53,0.82)' }}>
                 <Typography sx={{ fontWeight: 800 }}>{leaderName}</Typography>

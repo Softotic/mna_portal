@@ -45,18 +45,15 @@ const DRAWER_WIDTH = 280;
 
 const NAV_GROUPS = [
   {
-    label: 'Workspace',
+    label: 'Overview',
     items: [
       { text: 'Dashboard', icon: DashboardOutlined, path: '/dashboard' },
-      { text: 'Users', icon: GroupOutlined, path: '/users', module: 'USERS', action: 'view' },
-      { text: 'Roles', icon: SecurityOutlined, path: '/roles', module: 'ROLES', action: 'view' },
       { text: 'Categories', icon: CategoryOutlined, path: '/categories', module: 'CATEGORIES', action: 'view' },
     ],
   },
   {
     label: 'Public website',
     items: [
-      { text: 'Website Settings', icon: LanguageOutlined, path: '/website-settings' },
       { text: 'News Management', icon: NewspaperOutlined, path: '/news-management' },
       { text: 'Feedback Management', icon: ForumOutlined, path: '/feedback-management' },
       { text: 'Team Management', icon: GroupOutlined, path: '/team-management' },
@@ -65,8 +62,18 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: 'Account',
-    items: [{ text: 'Settings', icon: SettingsOutlined, path: '/settings' }],
+    label: 'Security',
+    items: [
+      { text: 'Users', icon: GroupOutlined, path: '/users', module: 'USERS', action: 'view' },
+      { text: 'Roles', icon: SecurityOutlined, path: '/roles', module: 'ROLES', action: 'view' },
+    ],
+  },
+  {
+    label: 'Settings',
+    items: [
+      { text: 'Public Website Settings', icon: LanguageOutlined, path: '/website-settings' },
+      { text: 'Admin Portal Settings', icon: SettingsOutlined, path: '/settings' },
+    ],
   },
 ];
 

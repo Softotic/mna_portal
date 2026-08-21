@@ -140,14 +140,14 @@ export const schemeCategoriesAPI = {
 export const publicSettingsAPI = {
   current: () => api.get('/public/settings/current/'),
   update: (id, data) => {
-    const fileFields = new Set(['logo', 'intro_image']);
+    const fileFields = new Set(['logo', 'intro_image', 'about_image']);
     const cleanData = Object.fromEntries(
       Object.entries(data).filter(([key, value]) => {
         if (!fileFields.has(key)) return true;
         return value instanceof File;
       })
     );
-    const hasFileUpload = cleanData.logo instanceof File || cleanData.intro_image instanceof File;
+    const hasFileUpload = [...fileFields].some((field) => cleanData[field] instanceof File);
 
     if (hasFileUpload) {
       const formData = new FormData();
